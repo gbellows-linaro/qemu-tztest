@@ -1,0 +1,7 @@
+ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- make
+
+./arm-softmmu/qemu-system-arm -machine vexpress-a15 -cpu cortex-a15 -bios
+/path/to/tztest.img -serial stdio -m 1024 -semihosting
+
+arm-linux-gnueabi-objdump -xdSt tztest
+
