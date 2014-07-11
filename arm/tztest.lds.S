@@ -21,27 +21,40 @@ TEXT_OFFSET  = 0x00010000;
  */
 SRAM_OFFSET = 0x14000000;
 
-/* Put our stack at the top of sram so that it moves toward the data section.
+/* Start our stack at the top of sram so that it moves toward the data section.
  */
-/*STACKTOP = 0x80000000 + 0x800000; */
-STACKTOP = 0x16000000;
+USR_STACKTOP = 0x16000000;
+SYS_STACKTOP = 0x15ff0000;
+SVC_STACKTOP = 0x15fe0000;
+MON_STACKTOP = 0x15fd0000;
 
 SECTIONS
 {
  . = 0;
- .boot : { tzboot.o }
+ .boot : { arm/tzboot.o }
 
  . = TEXT_OFFSET;
  /* Put most of the actual boot loader code up in high memory
   * where it won't get overwritten by kernel, initrd or atags.
   */
  .text : { *(.text) }
+ .rodata : { *(.rodata) }
+ .data : { *(.data) }
 
  . = SRAM_OFFSET;
 
- .data : { *(.data) }
- .bss : { *(.bss) }
+ /*.data : AT ( ADDR (.rodata) + SIZEOF (.rodata) ) { *(.data) }*/
+ .bss : AT ( ADDR (.data) + SIZEOF (.data) ) { *(.bss) }
 
- . = STACKTOP;
- stacktop = .;
+ . = MON_STACKTOP;
+ mon_stacktop = .;
+
+ . = SVC_STACKTOP;
+ svc_stacktop = .;
+
+ . = SYS_STACKTOP;
+ sys_stacktop = .;
+
+ . = USR_STACKTOP;
+ usr_stacktop = .;
 }

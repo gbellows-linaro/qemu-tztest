@@ -1,47 +1,77 @@
-# Makefile - build a kernel+filesystem image for stand-alone Linux booting
-#
-# Copyright (C) 2011 ARM Limited. All rights reserved.
-#
-# Use of this source code is governed by a BSD-style license that can be
-# found in the LICENSE.txt file.
 
-TZBOOT		= tzboot.S
-OBJS 		= tzboot.o tztest.o string.o semihosting.o
+ifeq ($(wildcard config.mak),)
+$(error run ./configure first. See ./configure -h)
+endif
 
-TEST		= tztest
-TESTIMAGE	= tztest.img
-LD_SCRIPT	= tztest.lds.S
+include config.mak
 
-CC		= $(CROSS_COMPILE)gcc
-LD		= $(CROSS_COMPILE)ld
-CP		= $(CROSS_COMPILE)objcopy
-CPPFLAGS  = -march=armv7-a -marm -g -O0 -DVEXPRESS 
+.PHONY: arch_clean clean distclean cscope
 
-# These are needed by the underlying kernel make
-export CROSS_COMPILE ARCH
+# libcflat paths
+LIBCFLAT_objdir = lib/libcflat
+LIBCFLAT_srcdir = lib/libcflat
+LIBCFLAT_archdir = lib/libcflat/$(ARCH)
+LIBCFLAT_archive = $(LIBCFLAT_objdir)/libcflat.a
+LIBCFLAT_OBJS = \
+	$(LIBCFLAT_objdir)/argv.o \
+	$(LIBCFLAT_objdir)/printf.o \
+	$(LIBCFLAT_objdir)/string.o \
+	$(LIBCFLAT_objdir)/report.o
 
-# Build all wrappers
-all: $(TEST) 
+# libfdt paths
+LIBFDT_objdir = lib/libfdt
+LIBFDT_srcdir = lib/libfdt
+LIBFDT_archive = $(LIBFDT_objdir)/libfdt.a
+LIBFDT_include = $(addprefix $(LIBFDT_srcdir)/,$(LIBFDT_INCLUDES))
+LIBFDT_version = $(addprefix $(LIBFDT_srcdir)/,$(LIBFDT_VERSION))
 
-clean distclean:
-	rm -f $(TEST) $(TESTIMAGE) \
-	tztest.lds $(OBJS)
+# cc-option
+# Usage: OP_CFLAGS+=$(call cc-option, -falign-functions=0, -malign-functions=0)
 
-$(TEST): $(OBJS) tztest.lds
-	$(LD) -o $@ $(OBJS) --script=tztest.lds
-	$(CP) -O binary $(TEST) $(TESTIMAGE) 
+cc-option = $(shell if $(CC) $(1) -S -o /dev/null -xc /dev/null \
+              > /dev/null 2>&1; then echo "$(1)"; else echo "$(2)"; fi ;)
 
-boot.o: $(TZBOOT)
-	$(CC) $(CPPFLAGS) -c -o $@ $<
+CFLAGS += -marm
+CFLAGS += -mcpu=$(PROCESSOR)
+CFLAGS += $(autodepend-flags)
+CFLAGS += -std=gnu99
+CFLAGS += -ffreestanding
+CFLAGS += -Wextra
+CFLAGS += -g -O0
+CFLAGS += -Ilib -I$(LIBFDT_srcdir) -I $(LIBCFLAT_srcdir) -I$(LIBCFLAT_archdir)
+CFLAGS += $(call cc-option, -fomit-frame-pointer, "")
+CFLAGS += $(call cc-option, -fno-stack-protector, "")
+CFLAGS += $(call cc-option, -fno-stack-protector-all, "")
+CXXFLAGS += $(CFLAGS)
+LDFLAGS += $(CFLAGS)
 
-%.o: %.c
-	$(CC) $(CPPFLAGS) -O2 -I. -c -o $@ $<
+autodepend-flags = -MMD -MF $(dir $*).$(notdir $*).d
 
-tztest.lds: $(LD_SCRIPT) Makefile
-	$(CC) $(CPPFLAGS) -E -P -C -o $@ $<
+#include architecure specific make rules
+include $(ARCH)/Makefile.tztest
 
-force: ;
+$(LIBCFLAT_archive): $(LIBCFLAT_OBJS)
+	$(AR) rcs $@ $^
 
-Makefile: ;
+include $(LIBFDT_srcdir)/Makefile.libfdt
+$(LIBFDT_archive): CFLAGS += -Wno-sign-compare
+$(LIBFDT_archive): $(addprefix $(LIBFDT_objdir)/,$(LIBFDT_OBJS))
+	$(AR) rcs $@ $^
 
-.PHONY: all clean distclean
+%.o: %.S
+	$(CC) $(CFLAGS) -c -nostdlib -o $@ $<
+
+-include */.*.d */*/.*.d
+
+clean: arch_clean
+	$(RM) $(LIBCFLAT_archive) $(LIBCFLAT_OBJS) $(LIBCFLAT_objdir)/.*.d
+
+libfdt_clean:
+	$(RM) $(LIBFDT_archive) $(addprefix $(LIBFDT_objdir)/,$(LIBFDT_OBJS)) \
+		  $(LIBFDT_objdir)/.*.d
+
+libcflat_clean:
+	$(RM) $(LIBCFLAT_archive) $(LIBCFLAT_OBJS)
+
+distclean: clean libfdt_clean libcflat_clean
+	$(RM) config.mak ..d

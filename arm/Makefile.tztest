@@ -1,0 +1,54 @@
+#
+# arm makefile
+#
+# Authors: Andrew Jones <drjones@redhat.com>
+#
+
+TEST		= $(ARCH)/tztest.elf
+TESTIMAGE 	= $(ARCH)/tztest.flat
+TZBOOT		= $(ARCH)/tzboot.o
+TZLOAD		= $(ARCH)/tztest.lds
+TZOBJS		= $(ARCH)/tztest_builtins.o \
+			  $(ARCH)/tztest.o
+LIBCFLAT_OBJS	+= $(LIBCFLAT_objdir)/devicetree.o \
+			  	$(LIBCFLAT_objdir)/virtio.o \
+			  	$(LIBCFLAT_objdir)/virtio-testdev.o \
+			  	$(LIBCFLAT_archdir)/io.o \
+			  	$(LIBCFLAT_archdir)/setup.o \
+			  	$(LIBCFLAT_archdir)/spinlock.o \
+			  	$(LIBCFLAT_archdir)/processor.o
+
+all: $(TEST) $(TESTIMAGE)
+
+##################################################################
+
+libeabi = $(LIBCFLAT_archdir)/libeabi.a
+eabiobjs = $(LIBCFLAT_archdir)/eabi_compat.o
+libgcc := $(shell $(CC) -m$(ARCH) --print-libgcc-file-name)
+
+FLATLIBS = $(LIBCFLAT_archive) $(LIBFDT_archive) $(libgcc) $(libeabi)
+
+$(TEST): $(TZOBJS) $(FLATLIBS) $(TZLOAD) $(TZBOOT)
+	$(LD) -o $@ $(TZOBJS) $(FLATLIBS) --script=$(TZLOAD)
+
+$(TESTIMAGE): $(TEST)
+	$(OBJCOPY) -O binary $(TEST) $(TESTIMAGE) 
+
+$(TZBOOT): $(ARCH)/tzboot.S
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(TZLOAD): $(ARCH)/tztest.lds.S Makefile
+	$(CC) $(CFLAGS) -E -P -C -o $@ $<
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(libeabi): $(eabiobjs)
+	$(AR) rcs $@ $^
+
+arch_clean: libeabi_clean 
+	$(RM) $(TZOBJS) $(TEST) $(TESTIMAGE) $(TZLOAD) $(TZBOOT) \
+		  $(LIBCFLAT_OBJS) $(LIBCFLAT_archdir)/.*.d $(ARCH)/.*.d
+
+libeabi_clean:
+	$(RM) $(libeabi) $(eabiobjs)

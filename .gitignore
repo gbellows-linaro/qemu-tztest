@@ -1,0 +1,7 @@
+*.a
+*.d
+*.o
+*.flat
+*.elf
+/config.mak
+arm/tztest.lds

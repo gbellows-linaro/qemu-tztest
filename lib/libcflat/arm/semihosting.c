@@ -16,8 +16,8 @@
  *    from this software without specific prior written permission.
  */
 
-#include <string.h>
 #include "semihosting.h"
+#include "libcflat.h"
 
 int semi_open(char const *filename, int mode)
 {
