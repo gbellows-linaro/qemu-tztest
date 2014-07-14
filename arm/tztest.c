@@ -12,6 +12,7 @@ volatile int test_count = 0;
 
 void smc_handler(smc_op_t op, int data) 
 {
+    test_desc_t *test;
     int smc = 0;
     switch (op) {
         case SMC_SET_SECURE_STATE:
@@ -23,20 +24,27 @@ void smc_handler(smc_op_t op, int data)
             smc |= data;
             _write_scr(smc);
             break;
+        case SMC_TEST:
+            test = (test_desc_t *)data;
+            test->func(data);
+            break;
+        case SMC_CATCH:
+            exception = MON;
+            break;
         default:
             break;
     }
 }
 
 void svc_handler(svc_op_t op, int data) {
-    svc_test_desc_t *test;
+    test_desc_t *test;
     int cpsr = 0;
     switch(op) {
-        case SMC:
+        case SVC_SMC:
             __smc(op, data);
             break;
-        case TEST:
-            test = (svc_test_desc_t *)data;
+        case SVC_TEST:
+            test = (test_desc_t *)data;
             if (MON == test->processor_mode || USR == test->processor_mode) {
                 break;
             }
@@ -45,12 +53,14 @@ void svc_handler(svc_op_t op, int data) {
             cpsr != test->processor_mode;
             _write_cpsr(cpsr);
             __smc(SMC_SET_SECURE_STATE, test->secure_state);
-            test->func();
+            test->func(data);
+            break;
+        case SVC_CATCH:
+            exception = SVC;
             break;
         default:
             break;
     }
-    exception = SVC;
 }
 
 void undef_handler() {
@@ -61,7 +71,7 @@ void unused_handler() {
     exception = -1;
 }
 
-void P0_nonsecure_tests() 
+void P0_nonsecure_tests(test_desc_t *data) 
 {
     /* Set things to non-secure P1 and attempt accesses */
     printf("\nValidating non-secure P0 inaccessibility:\n");
@@ -71,7 +81,7 @@ void P0_nonsecure_tests()
 }
 
 /* Validate restricted registers are inaccessible */
-void P1_nonsecure_tests() {
+void P1_nonsecure_tests(test_desc_t *data) {
     /* Set ourselves in secure P1 and read the values we intend to write below.
      * The intent is to write-back the same value in case the write goes
      * through.
@@ -106,6 +116,17 @@ void P1_nonsecure_tests() {
 
     printf("\tNon-secure write of NSACR ... ");
     TEST_EXCP_COND(_write_nsacr(nsacr), UND, ==);
+}
+
+void P1_smc_test(test_desc_t *data)
+{
+    /* Test that calling smc from a given P1 processor mode takes us to monitor
+     * mode.
+     */
+    printf("\nValidating smc call from P1:\n");
+
+    printf("\tCalling smc from %s ... ", MODE_STR(data->processor_mode));
+    TEST_EXCP_COND(_smc(SMC_CATCH, 0), MON, ==);
 }
 
 void check_init_mode() 
@@ -153,7 +174,7 @@ void check_init_mode()
 
 int tztest_start() 
 {
-    svc_test_desc_t test;
+    test_desc_t test;
 
     /* Make sure we are starting in secure state */
 #if 0
@@ -163,14 +184,20 @@ int tztest_start()
     }
 #endif
 
-    P0_nonsecure_tests();
+    P0_nonsecure_tests(NULL);
     
     test.processor_mode = SYS;
     test.secure_state = NONSECURE;
     test.func = P1_nonsecure_tests;
-    __svc(TEST, &test);
+    __svc(SVC_TEST, &test);
  
-    // Test: switching to MON from other modes
+    test.processor_mode = SYS;
+    test.secure_state = SECURE;
+    test.func = P1_smc_test;
+    __svc(SVC_TEST, &test);
+    test.processor_mode = SVC;
+    __svc(SVC_TEST, &test);
+ 
     // Test: Access to secure memory only allowed from secure mode
     //      pg. B1-1156
     // Test: PL2 and secure not combinable

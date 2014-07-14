@@ -22,18 +22,21 @@ enum {
 
 typedef enum {
     SMC_SET_SECURE_STATE = 0,
+    SMC_TEST,
+    SMC_CATCH
 } smc_op_t;
 
 typedef enum {
-    SMC = 1,
-    TEST
+    SVC_SMC = 1,
+    SVC_TEST,
+    SVC_CATCH
 } svc_op_t;
 
 typedef struct {
     int processor_mode;
     int secure_state;
     void (*func)();
-} svc_test_desc_t;
+} test_desc_t;
 
 #ifdef DEBUG
 #define DEBUG_MSG(_str, ...) \
@@ -41,6 +44,12 @@ typedef struct {
 #else
 #define DEBUG_MSG(_str, ...)
 #endif  
+
+#define MODE_STR(_mode)             \
+    ((_mode == MON) ? "MON" :        \
+     (_mode == SVC) ? "SVC" :        \
+     (_mode == SYS) ? "SYS" :        \
+     (_mode == USR) ? "USR" : "Unknown")
 
 void smc_handler(smc_op_t, int) __attribute__ ((interrupt ("SWI")));
 void svc_handler(svc_op_t, int) __attribute__ ((interrupt ("SWI")));

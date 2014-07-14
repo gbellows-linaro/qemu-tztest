@@ -68,4 +68,7 @@ static inline void _write_cpsr(int val) {
     __msr(cpsr, val);
 }
 
+static inline void _smc(int op, int data) {
+    __smc(op, data);
+}
 #endif
