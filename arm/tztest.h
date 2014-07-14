@@ -26,8 +26,14 @@ typedef enum {
 
 typedef enum {
     SMC = 1,
-    MODE
+    TEST
 } svc_op_t;
+
+typedef struct {
+    int processor_mode;
+    int secure_state;
+    void (*func)();
+} svc_test_desc_t;
 
 #ifdef DEBUG
 #define DEBUG_MSG(_str, ...) \

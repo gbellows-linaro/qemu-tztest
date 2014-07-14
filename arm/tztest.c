@@ -6,10 +6,6 @@
  * register value ratherh than the memory value making it look like the writes
  * actually happened.
  */
-volatile int smc_count = 0; 
-volatile int svc_count = 0;
-volatile int undef_count = 0;
-volatile int unused_count = 0;
 volatile int exception = 0;
 volatile int fail_count = 0;
 volatile int test_count = 0;
@@ -33,34 +29,53 @@ void smc_handler(smc_op_t op, int data)
 }
 
 void svc_handler(svc_op_t op, int data) {
+    svc_test_desc_t *test;
+    int cpsr = 0;
     switch(op) {
         case SMC:
             __smc(op, data);
             break;
+        case TEST:
+            test = (svc_test_desc_t *)data;
+            if (MON == test->processor_mode || USR == test->processor_mode) {
+                break;
+            }
+            cpsr = _read_cpsr();
+            cpsr &= ~0x1f;
+            cpsr != test->processor_mode;
+            _write_cpsr(cpsr);
+            __smc(SMC_SET_SECURE_STATE, test->secure_state);
+            test->func();
+            break;
         default:
             break;
     }
-    svc_count++;
     exception = SVC;
 }
 
 void undef_handler() {
-    undef_count++;
     exception = UND;
 }
 
 void unused_handler() {
-    unused_count++;
     exception = -1;
 }
 
+void P0_nonsecure_tests() 
+{
+    /* Set things to non-secure P1 and attempt accesses */
+    printf("\nValidating non-secure P0 inaccessibility:\n");
+
+    printf("\tUnprivileged smc call ... ");
+    TEST_EXCP_COND(__smc(SMC_SET_SECURE_STATE, SECURE), UND, ==);
+}
+
 /* Validate restricted registers are inaccessible */
-void test1() {
+void P1_nonsecure_tests() {
     /* Set ourselves in secure P1 and read the values we intend to write below.
      * The intent is to write-back the same value in case the write goes
      * through.
      */
-    __cps(SYS);
     __smc(SMC_SET_SECURE_STATE, SECURE);
     int scr = _read_scr();
     int sder = _read_sder();
@@ -97,9 +112,25 @@ void check_init_mode()
 {
     printf("\nValidating startup state:\n");
 
+    printf("Security extension supported...");
+    int idpfr1 = 0;
+    /* Read the ID_PFR1 CP register and check that it is marked for support of
+     * the security extension.
+     */
+    __mrc(15, 0, idpfr1, 0, 1, 1);
+    if (0x10 != (idpfr1 & 0xf0)) {
+        printf("/tFAILED\n");
+        DEBUG_MSG("current IDPFR1 (%d) != expected IDPFR1 (%d)\n", 
+                  (idpfr1 & 0xf0), 0x10);
+        fail_count++;
+    } else {
+        printf("PASSED\n");
+    }
+    test_count++;
+
     printf("\tInitial processor mode... ");
     if (SVC != (_read_cpsr() & 0x1f)) {
-        printf("Failed\n");
+        printf("FAILED\n");
         DEBUG_MSG("current CPSR (%d) != expected CPSR (%d)\n", 
                   (_read_cpsr() & 0x1f), SVC);
         fail_count++;
@@ -122,17 +153,24 @@ void check_init_mode()
 
 int tztest_start() 
 {
+    svc_test_desc_t test;
+
     /* Make sure we are starting in secure state */
+#if 0
     if (0 != (_read_scr() & 0x1)) {
         printf("Not in secure state!\n");
         goto exit;
     }
+#endif
 
-    test1();
+    P0_nonsecure_tests();
+    
+    test.processor_mode = SYS;
+    test.secure_state = NONSECURE;
+    test.func = P1_nonsecure_tests;
+    __svc(TEST, &test);
  
-    // Check: Test if security extensions are enabled before testing
     // Test: switching to MON from other modes
-    // Test: Call smc from unpriv mode
     // Test: Access to secure memory only allowed from secure mode
     //      pg. B1-1156
     // Test: PL2 and secure not combinable

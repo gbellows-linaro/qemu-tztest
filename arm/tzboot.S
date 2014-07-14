@@ -183,19 +183,15 @@ init_stacks:
 	ldr sp, =sys_stacktop
 
     /* Switch to nonsecure state */
-    /*
     mov r0, 0
     mov r1, NONSECURE
     smc 0
-    */
 
     /* Set up the USR stack */
-    /*
     mrs r10, cpsr
     cps #USR
 	ldr sp, =usr_stacktop
     msr cpsr, r10
-    */
 
 	/* And call the test starting C entrypoint */
 	bl      tztest_start
