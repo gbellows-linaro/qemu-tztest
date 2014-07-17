@@ -1,4 +1,4 @@
-	.arch_extension sec
+    .arch_extension sec
 
     .equ USR, 0x10
     .equ FIQ, 0x11
@@ -14,7 +14,7 @@
     .equ NONSECURE, 0x1
 
 reset:
-	b	init   	@ Must be first instruction for power on reset vector
+	b	init_secure   	@ Must be first instruction for power on reset vector
 
 .align 5
 /* We use the same vector table for Hyp and Monitor mode, since
@@ -30,38 +30,16 @@ secure_vectors:
 	.word 0 /* irq */
 	.word 0 /* fiq */
 
-.align 5
-/* We use the same vector table for Hyp and Monitor mode, since
- * we will only use each once and they don't overlap.
- */
-nonsecure_vectors:
-	.word 0	/* reset */
-	b   undef_handler /* undef */
-	b	nonsecure_svc_vec /* svc */
-	.word 0 /* pabt */
-	.word 0 /* dabt */
-	.word 0 /* hmc */
-	.word 0 /* irq */
-	.word 0 /* fiq */
-
 undef_vec:
     b undef_handler
     b end
-
-unused_vec:
-    b  unused_handler
-    b end
-
-nonsecure_svc_vec:
-    b svc_handler
-	mov pc, lr
 
 secure_svc_vec:
     b svc_handler
 	mov pc, lr
 
 /* Test boot starting point */
-init:
+init_secure:
 init_uart:
 	@
 	@ UART initialisation (38400 8N1)
@@ -102,44 +80,17 @@ init_check:
 
 init_secure_stacks:
     /* Switch to system mode */
-//    cps #SYS
+    cps #SYS
 
     /* Set up the SYS stack */
-//	ldr sp, =sys_stacktop
+	ldr sp, =sys_stacktop
 
     /* Switch to system mode */
-//    cps #SVC
+    cps #SVC
 
-    /* Reset the SVC stack*/
-	ldr sp, =svc_stacktop
-
-    ldr lr, =tztest_secure_svc_start
+    ldr lr, =tztest_start
     ldr r0, =init_nonsecure
     b init_monitor
 
-init_nonsecure:
-    /* Reset the SVC stack*/
-	ldr sp, =sys_stacktop
-
-    /* Disable interrupts for now */
-    mrs r10, cpsr
-    orr r10, r10, #0xc0     @ Mask IRQ and FIQ
-    msr cpsr_all, r10
-
-    /* Make sure vectors are based at 0 */
-    mrc p15, 0, r10, c1, c0, 0
-    bic r10, r10, #0x2000           @ SCTLR.V = 0
-    mcr p15, 0, r10, c1, c0, 0
-
-    /* Set up non-secure VBAR */
-    mrc p15, 0, r11, c12, c0, 0
-    ldr r11, =nonsecure_vectors
-    mcr p15, 0, r11, c12, c0, 0
-    isb
-
-init_nonsecure_stacks:
-	bl      tztest_nonsecure_svc_start
-    /* Should not get here */
-	
-end:	
-    b      end
+end:
+    b end

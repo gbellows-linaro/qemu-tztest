@@ -43,7 +43,6 @@ SECTIONS
 
  . = SRAM_OFFSET;
 
- /*.data : AT ( ADDR (.rodata) + SIZEOF (.rodata) ) { *(.data) }*/
  .bss : AT ( ADDR (.data) + SIZEOF (.data) ) { *(.bss) }
 
  . = MON_STACKTOP;

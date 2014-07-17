@@ -30,6 +30,7 @@ void smc_handler(smc_op_t op, int data)
             break;
         case SMC_CATCH:
             exception = MON;
+        case SMC_NOOP:
             break;
         default:
             break;
@@ -40,8 +41,8 @@ void svc_handler(svc_op_t op, int data) {
     test_desc_t *test;
     int cpsr = 0;
     switch(op) {
-        case SVC_SMC:
-            __smc(op, data);
+        case SVC_SMC_TEST:
+            __smc(SMC_TEST, data);
             break;
         case SVC_TEST:
             test = (test_desc_t *)data;
@@ -81,7 +82,8 @@ void P0_nonsecure_tests(test_desc_t *data)
 }
 
 /* Validate restricted registers are inaccessible */
-void P1_nonsecure_tests(test_desc_t *data) {
+void P1_nonsecure_tests(test_desc_t *data) 
+{
     /* Set ourselves in secure P1 and read the values we intend to write below.
      * The intent is to write-back the same value in case the write goes
      * through.
@@ -118,29 +120,98 @@ void P1_nonsecure_tests(test_desc_t *data) {
     TEST_EXCP_COND(_write_nsacr(nsacr), UND, ==);
 }
 
+void MON_smc_check(test_desc_t *data)
+{
+    /* Check that the secure state is as expected.  When called from anywhere
+     * besides MON mode, the secure state should be the same as the
+     * origination.  If smc is called from monitor mode then the secure state
+     * should now be SECURE.
+     */
+    printf("\tChecking that smc results in switch to secure state ... ");
+    if (data->secure_state != (_read_scr() & 0x1)) {
+        printf("FAILED\n");
+        fail_count++;
+    } else {
+        printf("PASSED\n");
+    }
+    test_count++;
+
+    printf("\tChecking that smc results in switch to monitor mode ... ");
+    if (MON != (_read_cpsr() & 0x1f)) {
+        printf("FAILED\n");
+        fail_count++;
+    } else {
+        printf("PASSED\n");
+    }
+    test_count++;
+}
+
 void P1_smc_test(test_desc_t *data)
 {
     /* Test that calling smc from a given P1 processor mode takes us to monitor
      * mode.
      */
-    printf("\nValidating smc call from P1:\n");
+    __smc(SMC_SET_SECURE_STATE, SECURE);
+    printf("\nValidating smc call from %s mode:\n", 
+           MODE_STR(data->processor_mode));
 
-    printf("\tCalling smc from %s ... ", MODE_STR(data->processor_mode));
-    TEST_EXCP_COND(_smc(SMC_CATCH, 0), MON, ==);
+    printf("\tChecking that smc causes SMC exception ... ");
+    TEST_EXCP_COND(__smc(SMC_CATCH, 0), MON, ==);
+
+    test_desc_t test;
+    test.processor_mode = MON;
+    test.secure_state = SECURE;
+    test.func = MON_smc_check;
+    __smc(SMC_TEST, &test);
+}
+
+void MON_check_banked_access(test_desc_t *data)
+{
+    int scr;
+    int vbar[2];
+
+    /* Make sure we are in secure state */
+    __smc(SMC_NOOP, 0);
+
+#if 0
+    scr = _read_scr();
+
+    DEBUG_MSG("SCR = %x\n", scr); 
+    printf("\nValidating distinct banked register values:\n");
+
+    printf("\tChecking VBAR banks... ");
+    vbar[SECURE] = _read_vbar();
+    DEBUG_MSG("vbar[SECURE] = %x\n", vbar[SECURE]);
+    _write_scr(scr | NONSECURE);
+    DEBUG_MSG("SCR = %x\n", _read_scr()); 
+    vbar[NONSECURE] = _read_vbar();
+    DEBUG_MSG("vbar[NONSECURE] = %x\n", vbar[NONSECURE]);
+    if (vbar[SECURE] == vbar[NONSECURE]) {
+        printf("FAILED\n");
+            DEBUG_MSG("vbar[SECURE] (%x) == vbar[NONSECURE] (%x)\n",
+                      vbar[SECURE], vbar[NONSECURE]);
+        fail_count++;
+    } else {
+        printf("PASSED\n");
+    }
+    test_count++;
+
+    _write_scr(scr);
+#endif
 }
 
 void check_init_mode() 
 {
     printf("\nValidating startup state:\n");
 
-    printf("Security extension supported...");
+    printf("\tSecurity extension supported...");
     int idpfr1 = 0;
     /* Read the ID_PFR1 CP register and check that it is marked for support of
      * the security extension.
      */
     __mrc(15, 0, idpfr1, 0, 1, 1);
     if (0x10 != (idpfr1 & 0xf0)) {
-        printf("/tFAILED\n");
+        printf("FAILED\n");
         DEBUG_MSG("current IDPFR1 (%d) != expected IDPFR1 (%d)\n", 
                   (idpfr1 & 0xf0), 0x10);
         fail_count++;
@@ -171,41 +242,45 @@ void check_init_mode()
     }
     test_count++;
 }
+int tztest_secure_svc_start()
+{
+    DEBUG_MSG("Starting secure test loop\n");
+}
 
-int tztest_start() 
+int tztest_nonsecure_svc_start() 
 {
     test_desc_t test;
 
-    /* Make sure we are starting in secure state */
-#if 0
-    if (0 != (_read_scr() & 0x1)) {
-        printf("Not in secure state!\n");
-        goto exit;
-    }
-#endif
-
-    P0_nonsecure_tests(NULL);
+//    P0_nonsecure_tests(NULL);
     
-    test.processor_mode = SYS;
+    __smc(SMC_NOOP, 0);
+
+#if 0
+    test.processor_mode = SVC;
     test.secure_state = NONSECURE;
     test.func = P1_nonsecure_tests;
     __svc(SVC_TEST, &test);
  
-    test.processor_mode = SYS;
+    test.processor_mode = SVC;
     test.secure_state = SECURE;
     test.func = P1_smc_test;
     __svc(SVC_TEST, &test);
-    test.processor_mode = SVC;
-    __svc(SVC_TEST, &test);
+#endif
  
+#ifdef MMU_ENABLED
     // Test: Access to secure memory only allowed from secure mode
     //      pg. B1-1156
+#endif
+#ifdef VIRT_ENABLED
     // Test: PL2 and secure not combinable
     //      pg. B1-1157
     //      "hyp mode is only available when NS=1"
     // Test: An axception cannot be taken fromsecure mode to nonsecure (2->1)
     //      pg  B1-1138
+#endif
+#ifdef SIMD_ENABLED
     // Test: Check that vector ops are undefined if CPACR/NSACR
+#endif
     // Test: Check that monitor mode has access to secure resource despite NS
     //      pg. B1-1140
     // Test: Check that access to banked regs from mon mode depend on NS

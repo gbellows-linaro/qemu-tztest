@@ -23,21 +23,24 @@ enum {
 typedef enum {
     SMC_SET_SECURE_STATE = 0,
     SMC_TEST,
-    SMC_CATCH
+    SMC_CATCH,
+    SMC_NOOP
 } smc_op_t;
 
 typedef enum {
-    SVC_SMC = 1,
+    SVC_SMC_TEST = 0,
     SVC_TEST,
-    SVC_CATCH
+    SVC_CATCH,
 } svc_op_t;
 
 typedef struct {
     int processor_mode;
     int secure_state;
     void (*func)();
+    int result;
 } test_desc_t;
 
+#define DEBUG 1
 #ifdef DEBUG
 #define DEBUG_MSG(_str, ...) \
     printf("[DEBUG] %s: " _str, __FUNCTION__, ##__VA_ARGS__)

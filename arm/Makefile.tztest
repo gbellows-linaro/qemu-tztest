@@ -1,14 +1,9 @@
-#
-# arm makefile
-#
-# Authors: Andrew Jones <drjones@redhat.com>
-#
-
 TEST		= $(ARCH)/tztest.elf
 TESTIMAGE 	= $(ARCH)/tztest.flat
 TZBOOT		= $(ARCH)/tzboot.o
 TZLOAD		= $(ARCH)/tztest.lds
 TZOBJS		= $(ARCH)/tztest_builtins.o \
+			  $(ARCH)/monitor.o \
 			  $(ARCH)/tztest.o
 LIBCFLAT_OBJS	+= $(LIBCFLAT_objdir)/devicetree.o \
 			  	$(LIBCFLAT_objdir)/virtio.o \

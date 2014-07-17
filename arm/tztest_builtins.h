@@ -10,7 +10,7 @@
         "mov r0, %[r0]\n"                   \
         "mov r1, %[r1]\n"                   \
         "smc 0\n"                           \
-        : : [r0] "r" (_r0) , [r1] "r" (_r1) \
+        : : [r0] "r" (_r0), [r1] "r" (_r1)  \
     )
 
 #define __svc(_r0, _r1)                     \
@@ -39,7 +39,7 @@
 
 #define _read_cp(_reg, _cp, _opc1, _crm, _crn, _opc2)   \
     static inline int _read_##_reg() {                  \
-        int _r0 = -1;                                   \
+        volatile int _r0 = -1;                          \
         __mrc(_cp, _opc1, _r0, _crm, _crn, _opc2);      \
         return _r0;                                     \
     }
@@ -53,10 +53,13 @@ _read_cp(scr, 15, 0, 1, 1, 0)       /* _read_scr */
 _read_cp(sder, 15, 0, 1, 1, 1)      /* _read_sder */
 _read_cp(nsacr, 15, 0, 1, 1, 2)     /* _read_nsacr */
 _read_cp(mvbar, 15, 0, 12, 0, 1)    /* _read_mvbar */
+_read_cp(vbar, 15, 0, 12, 0, 0)     /* _read_vbar */
+
 _write_cp(scr, 15, 0, 1, 1, 0)       /* _write_scr */
 _write_cp(sder, 15, 0, 1, 1, 1)      /* _write_sder */
 _write_cp(nsacr, 15, 0, 1, 1, 2)     /* _write_nsacr */
 _write_cp(mvbar, 15, 0, 12, 0, 1)    /* _write_mvbar */
+_write_cp(vbar, 15, 0, 12, 0, 0)     /* _write_vbar */
 
 static inline int _read_cpsr() {
     int r0 = -1;
@@ -68,7 +71,9 @@ static inline void _write_cpsr(int val) {
     __msr(cpsr, val);
 }
 
+/*
 static inline void _smc(int op, int data) {
     __smc(op, data);
 }
+*/
 #endif
