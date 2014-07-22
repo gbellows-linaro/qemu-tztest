@@ -39,15 +39,20 @@ SECTIONS
  . = 0;
  .boot : { arm/tzboot.o }
 
- . = TEXT_OFFSET;
-
- .text : { *(.text) }
- .rodata : { *(.rodata) }
- .data : { *(.data) }
-
+ _flash_stext = .;
  . = SRAM_OFFSET;
+ _ram_stext = .;
+ .text : AT ( _flash_stext ) { *(.text); }
+ _ram_etext = .;
+ _text_size = SIZEOF(.text);
 
- .bss : AT ( ADDR (.data) + SIZEOF (.data) ) { *(.bss) }
+ _flash_sdata = _flash_stext + _text_size;
+ _ram_sdata = .;
+ .rodata : { *(.rodata); }
+ .data : { *(.data); }
+ .bss :  { *(.bss); }
+ _ram_edata =.;
+ _data_size = _ram_edata - _ram_sdata;
 
  . = NSEC_USR_STACKTOP;
  nsec_usr_stacktop = .;

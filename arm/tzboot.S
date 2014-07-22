@@ -45,6 +45,24 @@ init_cpu:
     /* Start by setting up the boot stack*/
 	ldr sp, =boot_stacktop
 
+    ldr r0, =_flash_stext
+    ldr r1, =_ram_stext
+    ldr r2, =_text_size
+copy_text:
+    ldrb r10, [r0], #1
+    strb r10, [r1], #1
+    subs r2, r2, #1
+    bne copy_text
+    
+    ldr r0, =_flash_sdata
+    ldr r1, =_ram_sdata
+    ldr r2, =_data_size
+copy_data:
+    ldrb r10, [r0], #1
+    strb r10, [r1], #1
+    subs r2, r2, #1
+    bne copy_data
+
     bl secure_init
 	
 end:	
