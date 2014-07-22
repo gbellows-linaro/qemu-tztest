@@ -23,10 +23,16 @@ SRAM_OFFSET = 0x14000000;
 
 /* Start our stack at the top of sram so that it moves toward the data section.
  */
-USR_STACKTOP = 0x16000000;
-SYS_STACKTOP = 0x15ff0000;
-SVC_STACKTOP = 0x15fe0000;
-MON_STACKTOP = 0x15fd0000;
+SEC_STACK_BASE = 0x16000000;
+MON_STACKTOP = SEC_STACK_BASE;
+SEC_SVC_STACKTOP = MON_STACKTOP - 0x40000;
+SEC_UND_STACKTOP = SEC_SVC_STACKTOP - 0x40000;
+SEC_USR_STACKTOP = SEC_UND_STACKTOP - 0x40000;
+
+NSEC_STACK_BASE = 0x15800000;
+NSEC_SVC_STACKTOP = NSEC_STACK_BASE;
+NSEC_UND_STACKTOP = NSEC_SVC_STACKTOP - 0x40000;
+NSEC_USR_STACKTOP = NSEC_UND_STACKTOP - 0x40000;
 
 SECTIONS
 {
@@ -45,15 +51,26 @@ SECTIONS
 
  .bss : AT ( ADDR (.data) + SIZEOF (.data) ) { *(.bss) }
 
+ . = NSEC_USR_STACKTOP;
+ nsec_usr_stacktop = .;
+
+ . = NSEC_UND_STACKTOP;
+ nsec_und_stacktop = .;
+
+ . = NSEC_SVC_STACKTOP;
+ nsec_svc_stacktop = .;
+
+ . = SEC_USR_STACKTOP;
+ sec_usr_stacktop = .;
+
+ . = SEC_UND_STACKTOP;
+ sec_und_stacktop = .;
+
+ . = SEC_SVC_STACKTOP;
+ sec_svc_stacktop = .;
+ boot_stacktop = sec_svc_stacktop;
+
  . = MON_STACKTOP;
  mon_stacktop = .;
 
- . = SVC_STACKTOP;
- svc_stacktop = .;
-
- . = SYS_STACKTOP;
- sys_stacktop = .;
-
- . = USR_STACKTOP;
- usr_stacktop = .;
 }

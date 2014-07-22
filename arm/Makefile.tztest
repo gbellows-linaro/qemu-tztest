@@ -2,13 +2,19 @@ TEST		= $(ARCH)/tztest.elf
 TESTIMAGE 	= $(ARCH)/tztest.flat
 TZBOOT		= $(ARCH)/tzboot.o
 TZLOAD		= $(ARCH)/tztest.lds
-TZOBJS		= $(ARCH)/tztest_builtins.o \
-			  $(ARCH)/monitor.o \
-			  $(ARCH)/tztest.o
+TZOBJS		= $(ARCH)/sm_asm.o \
+			  $(ARCH)/sm.o \
+			  $(ARCH)/secure_init.o \
+			  $(ARCH)/nonsecure_init.o \
+			  $(ARCH)/tztest_secure_svc.o \
+			  $(ARCH)/tztest_secure_usr.o \
+			  $(ARCH)/tztest_nonsecure_svc.o \
+			  $(ARCH)/tztest_nonsecure_usr.o
 LIBCFLAT_OBJS	+= $(LIBCFLAT_objdir)/devicetree.o \
 			  	$(LIBCFLAT_objdir)/virtio.o \
 			  	$(LIBCFLAT_objdir)/virtio-testdev.o \
 			  	$(LIBCFLAT_archdir)/io.o \
+			  	$(LIBCFLAT_archdir)/misc.o \
 			  	$(LIBCFLAT_archdir)/setup.o \
 			  	$(LIBCFLAT_archdir)/spinlock.o \
 			  	$(LIBCFLAT_archdir)/processor.o
@@ -20,6 +26,7 @@ all: $(TEST) $(TESTIMAGE)
 libeabi = $(LIBCFLAT_archdir)/libeabi.a
 eabiobjs = $(LIBCFLAT_archdir)/eabi_compat.o
 libgcc := $(shell $(CC) -m$(ARCH) --print-libgcc-file-name)
+CFLAGS += -I$(ARCH) -DASM
 
 FLATLIBS = $(LIBCFLAT_archive) $(LIBFDT_archive) $(libgcc) $(libeabi)
 

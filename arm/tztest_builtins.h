@@ -4,13 +4,16 @@
 /* SMC intrinsic
  * Need to enable the security extension on v7 or the assembler will complain
  */
-#define __smc(_r0, _r1)                     \
+#define __smc(_op, _indata, _ret, _outdata) \
     asm volatile (                          \
         ".arch_extension sec\n"             \
         "mov r0, %[r0]\n"                   \
         "mov r1, %[r1]\n"                   \
+        "mov r2, %[r2]\n"                   \
+        "mov r3, %[r3]\n"                   \
         "smc 0\n"                           \
-        : : [r0] "r" (_r0), [r1] "r" (_r1)  \
+        : [r0] "+r" (_op), [r1] "+r" (_indata), \
+          [r2] "=r" (_ret), [r3] "=r" (_outdata)  \
     )
 
 #define __svc(_r0, _r1)                     \
@@ -70,10 +73,4 @@ static inline int _read_cpsr() {
 static inline void _write_cpsr(int val) {
     __msr(cpsr, val);
 }
-
-/*
-static inline void _smc(int op, int data) {
-    __smc(op, data);
-}
-*/
 #endif

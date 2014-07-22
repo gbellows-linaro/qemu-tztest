@@ -1,22 +1,7 @@
 #ifndef _TZTEST_H
 #define _TZTEST_H
 
-enum {
-    USR = 0x10,
-    FIQ,
-    IRQ,
-    SVC,
-    MON = 0x16,
-    ABT,
-    HYP = 0x1a,
-    UND,
-    SYS = 0x1f
-} processor_mode;
-
-enum {
-    SECURE = 0,
-    NONSECURE
-} secure_state;
+#include <arm32.h>
 
 #define STDOUT 1
 
@@ -58,17 +43,17 @@ void smc_handler(smc_op_t, int) __attribute__ ((interrupt ("SWI")));
 void svc_handler(svc_op_t, int) __attribute__ ((interrupt ("SWI")));
 void undef_handler() __attribute__ ((interrupt ("UNDEF")));
 
-#define TEST_EXCP_COND(fn, excp, op)        \
-    do {                                    \
-        fn;                                 \
-        if (exception op excp) {            \
-            exception = 0;                  \
-            printf("PASSED\n");             \
-        } else {                            \
-            printf("FAILED\n");             \
-            fail_count++;                   \
-        }                                   \
-        test_count++;                       \
+#define TEST_EXCP_COND(_fn, _prefix, _excp, _op)    \
+    do {                                            \
+        _fn;                                        \
+        if (_prefix##_exception _op _excp) {        \
+            _prefix##_exception = 0;                \
+            printf("PASSED\n");                     \
+        } else {                                    \
+            printf("FAILED\n");                     \
+            _prefix##_fail_count++;                 \
+        }                                           \
+        _prefix##_test_count++;                     \
     } while (0)
 
 #endif
