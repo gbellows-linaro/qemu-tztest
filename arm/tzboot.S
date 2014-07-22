@@ -1,6 +1,3 @@
-reset:
-	b	init   	@ Must be first instruction for power on reset vector
-
 .align 5
 /* We use the same vector table for Hyp and Monitor mode, since
  * we will only use each once and they don't overlap.
@@ -15,7 +12,7 @@ boot_vectors:
 	.word 0 /* irq */
 	.word 0 /* fiq */
 
-init:
+reset:
 init_uart:
 	@
 	@ UART initialisation (38400 8N1)

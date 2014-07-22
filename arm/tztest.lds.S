@@ -40,9 +40,7 @@ SECTIONS
  .boot : { arm/tzboot.o }
 
  . = TEXT_OFFSET;
- /* Put most of the actual boot loader code up in high memory
-  * where it won't get overwritten by kernel, initrd or atags.
-  */
+
  .text : { *(.text) }
  .rodata : { *(.rodata) }
  .data : { *(.data) }
