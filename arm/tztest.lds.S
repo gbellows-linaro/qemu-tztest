@@ -19,21 +19,11 @@ TARGET(binary)
 /* SRAM is mapped from 0x14000000 to 0x16000000.  Our Data section must be
  * located here so it can be written.
  */
-SRAM_OFFSET = 0x80000000;
+RAM_BASE = 0x80000000;
 
 /* Start our stack at the top of sram so that it moves toward the data section.
  */
 STACK_SIZE = 0x40000;
-SEC_STACK_BASE = 0x16000000;
-MON_STACKTOP = SEC_STACK_BASE;
-SEC_SVC_STACKTOP = MON_STACKTOP - 0x40000;
-SEC_UND_STACKTOP = SEC_SVC_STACKTOP - 0x40000;
-SEC_USR_STACKTOP = SEC_UND_STACKTOP - 0x40000;
-
-NSEC_STACK_BASE = SEC_STACK_BASE - 0x800000;
-NSEC_SVC_STACKTOP = NSEC_STACK_BASE;
-NSEC_UND_STACKTOP = NSEC_SVC_STACKTOP - 0x40000;
-NSEC_USR_STACKTOP = NSEC_UND_STACKTOP - 0x40000;
 
 SECTIONS
 {
@@ -42,7 +32,9 @@ SECTIONS
  _eboot = .;
 
  _flash_stext = .;
- . = SRAM_OFFSET;
+ . = RAM_BASE;
+ sec_ram_base = .;
+ nsec_ram_base = .;
  _ram_stext = .;
  .text : AT ( _flash_stext ) { *(.text); }
  _ram_etext = .;
@@ -62,17 +54,11 @@ SECTIONS
 
 . = ALIGN(0x2000) + STACK_SIZE;
  nsec_usr_stacktop = .;
-
  nsec_und_stacktop = nsec_usr_stacktop + STACK_SIZE;
-
  nsec_svc_stacktop = nsec_und_stacktop + STACK_SIZE;
-
  sec_usr_stacktop = nsec_svc_stacktop + STACK_SIZE;
-
  sec_und_stacktop = sec_usr_stacktop + STACK_SIZE;
-
  sec_svc_stacktop = sec_und_stacktop + STACK_SIZE;
  boot_stacktop = sec_svc_stacktop;
-
  mon_stacktop = sec_svc_stacktop + STACK_SIZE;
 }

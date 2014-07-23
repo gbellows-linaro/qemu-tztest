@@ -55,6 +55,7 @@ init_nonsecure_mmu:
 
     /* This function will return the initialized base address */
     ldr r0, =nsec_l1_page_table
+    ldr r1, =nsec_ram_base
 
     /* Set TTBR0 to the initialized address plus enable shareable write-back 
      * write-allocate.

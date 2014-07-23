@@ -20,7 +20,7 @@
 #define SECTION_NO_EXEC              (1 << 4)
 #define SECTION_SECTION              (2 << 0)
 
-uint32_t *pagetable_init(uint32_t *ttbr0)
+uint32_t *pagetable_init(uint32_t *ttbr0, uint32_t base)
 {
     uint32_t size = 0x2000000;
 #if 0
@@ -38,7 +38,7 @@ uint32_t *pagetable_init(uint32_t *ttbr0)
 #endif
 
     int attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_SECTION;
-    int m = (0x80000000 >> 20) *4;
+    int m = (base >> 20) *4;
     int n = size >> 20;
 
     attr |= SECTION_NORMAL_CACHED;

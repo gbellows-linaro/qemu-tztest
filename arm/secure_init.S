@@ -63,6 +63,7 @@ init_secure_mmu:
 
     /* This function will return the initialized base address */
     ldr r0, =sec_l1_page_table
+    ldr r1, =sec_ram_base
     bl pagetable_init
 
     /* Set TTBR0 to the initialized address plus enable shareable write-back 
