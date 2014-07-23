@@ -113,3 +113,4 @@ void tztest_secure_svc_init_monitor()
     nsec_ctx->mon_lr = (unsigned int)init_nonsecure;
     nsec_ctx->mon_spsr = CPSR_MODE_SVC | CPSR_I;
 }
+

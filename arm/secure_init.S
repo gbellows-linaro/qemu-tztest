@@ -50,6 +50,39 @@ secure_init:
     mcr p15, 0, r11, c12, c0, 0
     isb
     
+init_secure_mmu:
+    /* Disable data and instruction caches */
+    mrc p15, 0, r10, c1, c0, 0
+    bic r10, r10, #0x0004
+    bic r10, r10, #0x1000
+    mcr p15, 0, r10, c1, c0, 0
+
+    /* Set domain 0 & 1 for client access */
+    mov r10, #0x5
+    mcr p15, 0, r10, c3, c0, 0
+
+    /* This function will return the initialized base address */
+    ldr r0, =sec_l1_page_table
+    bl pagetable_init
+
+    /* Set TTBR0 to the initialized address plus enable shareable write-back 
+     * write-allocate.
+     */
+    orr r0, r0, #0xB
+    mcr p15, 0, r0, c2, c0, 0
+
+    /* Set-up the table base control to split between TTBR0/1 (N = 0) */
+    mov r10, #0x0
+    mcr p15, 0, r10, c2, c0, 2
+
+    /* Enable the mmu */
+    mcr p15, 0, r10, c8, c7, 0
+    mrc p15, 0, r10, c1, c0, 0
+    orr r10, r10, #0x1
+    mcr p15, 0, r10, c1, c0, 0
+    isb
+    dsb
+
 init_secure_stacks:
     /* Set-up the secure SVC stack */
 	ldr sp, =sec_svc_stacktop
