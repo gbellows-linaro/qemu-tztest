@@ -32,7 +32,18 @@ void nsec_svc_handler(volatile svc_op_t op, volatile int data) {
 }
 
 void nsec_undef_handler() {
+    DEBUG_MSG("Undefined exception taken\n");
     nsec_exception = CPSR_MODE_UND;
+}
+
+void nsec_pabort_handler(int status, int addr) {
+    DEBUG_MSG("status = %d\taddress = %d\n", status, addr);
+    nsec_exception = CPSR_MODE_ABT;
+}
+
+void nsec_dabort_handler(int status, int addr) {
+    DEBUG_MSG("status = %d\taddress = %d\n", status, addr);
+    nsec_exception = CPSR_MODE_ABT;
 }
 
 int tztest_nonsecure_smc_test() 

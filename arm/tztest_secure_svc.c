@@ -27,7 +27,18 @@ void sec_svc_handler(svc_op_t op, int data) {
 }
 
 void sec_undef_handler() {
+    DEBUG_MSG("Undefined exception taken\n");
     sec_exception = CPSR_MODE_UND;
+}
+
+void sec_pabort_handler(int status, int addr) {
+    DEBUG_MSG("status = %d\taddress = %d\n", status, addr);
+    sec_exception = CPSR_MODE_ABT;
+}
+
+void sec_dabort_handler(int status, int addr) {
+    DEBUG_MSG("status = %d\taddress = %d\n", status, addr);
+    sec_exception = CPSR_MODE_ABT;
 }
 
 void check_init_mode() 

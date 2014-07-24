@@ -55,9 +55,14 @@ SECTIONS
 . = ALIGN(0x2000) + STACK_SIZE;
  nsec_usr_stacktop = .;
  nsec_und_stacktop = nsec_usr_stacktop + STACK_SIZE;
+ nsec_abt_stacktop = nsec_und_stacktop + STACK_SIZE;
  nsec_svc_stacktop = nsec_und_stacktop + STACK_SIZE;
- sec_usr_stacktop = nsec_svc_stacktop + STACK_SIZE;
+ . = . + STACK_SIZE;
+
+. = ALIGN(0x2000) + STACK_SIZE;
+ sec_usr_stacktop = . + STACK_SIZE;
  sec_und_stacktop = sec_usr_stacktop + STACK_SIZE;
+ sec_abt_stacktop = sec_und_stacktop + STACK_SIZE;
  sec_svc_stacktop = sec_und_stacktop + STACK_SIZE;
  boot_stacktop = sec_svc_stacktop;
  mon_stacktop = sec_svc_stacktop + STACK_SIZE;

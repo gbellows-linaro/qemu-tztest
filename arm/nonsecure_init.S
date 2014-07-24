@@ -6,10 +6,10 @@
  */
 nonsecure_vectors:
 	.word 0	/* reset */
-	b   nonsecure_undef_vec /* undef */
-	b	nonsecure_svc_vec /* svc */
-	.word 0 /* pabt */
-	.word 0 /* dabt */
+	b   nonsecure_undef_vec     /* undef */
+	b	nonsecure_svc_vec       /* svc */
+	b   nonsecure_pabort_vec   /* pabt */
+	b   nonsecure_dabort_vec   /* dabt */
 	.word 0 /* hmc */
 	.word 0 /* irq */
 	.word 0 /* fiq */
@@ -18,6 +18,18 @@ nonsecure_undef_vec:
     srsdb sp!, #CPSR_MODE_UND
     bl nsec_undef_handler
     rfefd sp!
+
+nonsecure_pabort_vec:
+    mrc p15, 0, r0, c5, c0, 1       /* IFSR */
+    mrc p15, 0, r1, c6, c0, 2       /* IFAR */
+    bl nsec_pabort_handler
+    b end
+
+nonsecure_dabort_vec:
+    mrc p15, 0, r0, c5, c0, 0       /* DFSR */
+    mrc p15, 0, r1, c6, c0, 0       /* DFAR */
+    bl nsec_dabort_handler
+    b end
 
 nonsecure_svc_vec:
     srsdb sp!, #CPSR_MODE_SVC
@@ -37,7 +49,6 @@ init_nonsecure:
     mcr p15, 0, r10, c1, c0, 0
 
     /* Set up non-secure VBAR */
-    mrc p15, 0, r11, c12, c0, 0
     ldr r11, =nonsecure_vectors
     mcr p15, 0, r11, c12, c0, 0
     isb
@@ -81,6 +92,9 @@ init_nonsecure_stacks:
 
     cps #CPSR_MODE_UND
 	ldr sp, =nsec_und_stacktop
+
+    cps #CPSR_MODE_ABT
+	ldr sp, =nsec_abt_stacktop
 
     /* Have to set user (and system) stack from SYS mode so we can get back to
      * SVC.

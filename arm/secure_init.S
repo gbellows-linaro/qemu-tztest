@@ -8,10 +8,10 @@
  */
 secure_vectors:
 	.word 0	/* reset */
-	b   secure_undef_vec /* undef */
-	b   secure_svc_vec /* svc */
-	.word 0 /* pabt */
-	.word 0 /* dabt */
+	b   secure_undef_vec    /* undef */
+	b   secure_svc_vec      /* svc */
+	b   secure_pabort_vec   /* pabt */
+	b   secure_dabort_vec   /* dabt */
 	.word 0 /* hmc */
 	.word 0 /* irq */
 	.word 0 /* fiq */
@@ -19,6 +19,18 @@ secure_vectors:
 secure_undef_vec:
     bl sec_undef_handler
     mov pc, lr
+
+secure_pabort_vec:
+    mrc p15, 0, r0, c5, c0, 1       /* IFSR */
+    mrc p15, 0, r1, c6, c0, 2       /* IFAR */
+    bl sec_pabort_handler
+    b end
+
+secure_dabort_vec:
+    mrc p15, 0, r0, c5, c0, 0       /* DFSR */
+    mrc p15, 0, r1, c6, c0, 0       /* DFAR */
+    bl sec_dabort_handler
+    b end
 
 secure_svc_vec:
     /* Check if this is a return from USR mode and pop the return address off
@@ -45,7 +57,6 @@ secure_init:
     mcr p15, 0, r10, c1, c0, 0
 
     /* Set up secure VBAR */
-    mrc p15, 0, r11, c12, c0, 0
     ldr r11, =secure_vectors
     mcr p15, 0, r11, c12, c0, 0
     isb
@@ -90,6 +101,9 @@ init_secure_stacks:
 
     cps #CPSR_MODE_UND
 	ldr sp, =sec_und_stacktop
+
+    cps #CPSR_MODE_ABT
+	ldr sp, =sec_abt_stacktop
 
     /* Have to set user (and system) stack from SYS mode so we can get back to
      * SVC.
