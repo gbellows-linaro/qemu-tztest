@@ -1,26 +1,30 @@
-TEST		= $(ARCH)/tztest.elf
-TESTIMAGE 	= $(ARCH)/tztest.flat
-TZBOOT		= $(ARCH)/tzboot.o
-TZLOAD		= $(ARCH)/tztest.lds
-TZOBJS		= $(ARCH)/sm_asm.o \
-			  $(ARCH)/sm.o \
-			  $(ARCH)/secure_init.o \
-			  $(ARCH)/nonsecure_init.o \
-			  $(ARCH)/tztest_mmu.o \
-			  $(ARCH)/tztest_secure_svc.o \
-			  $(ARCH)/tztest_secure_usr.o \
-			  $(ARCH)/tztest_nonsecure_svc.o \
-			  $(ARCH)/tztest_nonsecure_usr.o
+SECTEST			= $(ARCH)/tztest_secure.elf
+NSECTEST		= $(ARCH)/tztest_nonsecure.elf
+SECTESTIMAGE 	= $(ARCH)/tztest_secure.flat
+NSECTESTIMAGE 	= $(ARCH)/tztest_nonsecure.flat
+TZTEST_IMAGE 	= $(ARCH)/tztest.img
+TZBOOT			= $(ARCH)/tzboot.o
+TZSECLOAD		= $(ARCH)/tztest_secure.lds
+TZNSECLOAD		= $(ARCH)/tztest_nonsecure.lds
+TZSECOBJS		= $(ARCH)/sm_asm.o \
+			  	  $(ARCH)/sm.o \
+			  	  $(ARCH)/secure_init.o \
+			  	  $(ARCH)/tztest_secure_svc.o \
+			  	  $(ARCH)/tztest_secure_usr.o
+TZNSECOBJS		= $(ARCH)/nonsecure_init.o \
+			  	  $(ARCH)/tztest_nonsecure_svc.o \
+			  	  $(ARCH)/tztest_nonsecure_usr.o
+TZOBJS			= $(ARCH)/tztest_mmu.o
 LIBCFLAT_OBJS	+= $(LIBCFLAT_objdir)/devicetree.o \
-			  	$(LIBCFLAT_objdir)/virtio.o \
-			  	$(LIBCFLAT_objdir)/virtio-testdev.o \
-			  	$(LIBCFLAT_archdir)/io.o \
-			  	$(LIBCFLAT_archdir)/misc.o \
-			  	$(LIBCFLAT_archdir)/setup.o \
-			  	$(LIBCFLAT_archdir)/spinlock.o \
-			  	$(LIBCFLAT_archdir)/processor.o
+			  	   $(LIBCFLAT_objdir)/virtio.o \
+			  	   $(LIBCFLAT_objdir)/virtio-testdev.o \
+			  	   $(LIBCFLAT_archdir)/io.o \
+			  	   $(LIBCFLAT_archdir)/misc.o \
+			  	   $(LIBCFLAT_archdir)/setup.o \
+			  	   $(LIBCFLAT_archdir)/spinlock.o \
+			  	   $(LIBCFLAT_archdir)/processor.o
 
-all: $(TEST) $(TESTIMAGE)
+all: $(TZTEST_IMAGE)
 
 ##################################################################
 
@@ -30,17 +34,32 @@ libgcc := $(shell $(CC) -m$(ARCH) --print-libgcc-file-name)
 CFLAGS += -I$(ARCH) -DASM
 
 FLATLIBS = $(LIBCFLAT_archive) $(LIBFDT_archive) $(libgcc) $(libeabi)
+COMMON = $(FLATLIBS) $(TZOBJS)
 
-$(TEST): $(TZOBJS) $(FLATLIBS) $(TZLOAD) $(TZBOOT)
-	$(LD) -o $@ $(TZOBJS) $(FLATLIBS) --script=$(TZLOAD)
+$(SECTEST): $(TZSECOBJS) $(COMMON) $(TZSECLOAD) $(TZBOOT)
+	$(LD) -o $@ $(TZSECOBJS) $(COMMON) --script=$(TZSECLOAD)
 
-$(TESTIMAGE): $(TEST)
-	$(OBJCOPY) -O binary $(TEST) $(TESTIMAGE) 
+$(SECTESTIMAGE): $(SECTEST)
+	$(OBJCOPY) -O binary $(SECTEST) $(SECTESTIMAGE) 
+
+$(NSECTEST): $(TZNSECOBJS) $(COMMON) $(TZNSECLOAD)
+	$(LD) -o $@ $(TZNSECOBJS) $(COMMON) --script=$(TZNSECLOAD)
+
+$(NSECTESTIMAGE): $(NSECTEST)
+	$(OBJCOPY) -O binary $(NSECTEST) $(NSECTESTIMAGE) 
+
+$(TZTEST_IMAGE): $(SECTESTIMAGE) $(NSECTESTIMAGE)
+	dd if=$(SECTESTIMAGE) of=$@ 2> /dev/null 
+	dd if=$(NSECTESTIMAGE) of=$@ seek=65536 oflag=seek_bytes 2> /dev/null
+	chmod +x $(TZTEST_IMAGE)
 
 $(TZBOOT): $(ARCH)/tzboot.S
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-$(TZLOAD): $(ARCH)/tztest.lds.S Makefile
+$(TZSECLOAD): $(ARCH)/tztest_secure.lds.S Makefile
+	$(CC) $(CFLAGS) -E -P -C -o $@ $<
+
+$(TZNSECLOAD): $(ARCH)/tztest_nonsecure.lds.S Makefile
 	$(CC) $(CFLAGS) -E -P -C -o $@ $<
 
 %.o: %.c
@@ -50,7 +69,10 @@ $(libeabi): $(eabiobjs)
 	$(AR) rcs $@ $^
 
 arch_clean: libeabi_clean 
-	$(RM) $(TZOBJS) $(TEST) $(TESTIMAGE) $(TZLOAD) $(TZBOOT) \
+	$(RM) $(TZOBJS) $(TZSECOBJS) $(TZNSECOBJS) \
+		  $(TZSECLOAD) $(TZNSECLOAD) $(TZBOOT) \
+		  $(SECTEST) $(SECTESTIMAGE) $(NSECTEST) $(NSECTESTIMAGE) \
+		  $(TZTEST_IMAGE) \
 		  $(LIBCFLAT_OBJS) $(LIBCFLAT_archdir)/.*.d $(ARCH)/.*.d
 
 libeabi_clean:

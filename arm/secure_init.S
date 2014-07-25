@@ -7,7 +7,7 @@
  * we will only use each once and they don't overlap.
  */
 secure_vectors:
-	.word 0	/* reset */
+	b   secure_init         /* reset */
 	b   secure_undef_vec    /* undef */
 	b   secure_svc_vec      /* svc */
 	b   secure_pabort_vec   /* pabt */
@@ -60,42 +60,8 @@ secure_init:
     ldr r11, =secure_vectors
     mcr p15, 0, r11, c12, c0, 0
     isb
-    
-init_secure_mmu:
-    /* Disable data and instruction caches */
-    mrc p15, 0, r10, c1, c0, 0
-    bic r10, r10, #0x0004
-    bic r10, r10, #0x1000
-    mcr p15, 0, r10, c1, c0, 0
 
-    /* Set domain 0 & 1 for client access */
-    mov r10, #0x5
-    mcr p15, 0, r10, c3, c0, 0
-
-    /* This function will return the initialized base address */
-    ldr r0, =sec_l1_page_table
-    ldr r1, =sec_ram_base
-    bl pagetable_init
-
-    /* Set TTBR0 to the initialized address plus enable shareable write-back 
-     * write-allocate.
-     */
-    orr r0, r0, #0xB
-    mcr p15, 0, r0, c2, c0, 0
-
-    /* Set-up the table base control to split between TTBR0/1 (N = 0) */
-    mov r10, #0x0
-    mcr p15, 0, r10, c2, c0, 2
-
-    /* Enable the mmu */
-    mcr p15, 0, r10, c8, c7, 0
-    mrc p15, 0, r10, c1, c0, 0
-    orr r10, r10, #0x1
-    mcr p15, 0, r10, c1, c0, 0
-    isb
-    dsb
-
-init_secure_stacks:
+secure_stack_init:
     /* Set-up the secure SVC stack */
 	ldr sp, =sec_svc_stacktop
 
@@ -111,6 +77,44 @@ init_secure_stacks:
     cps #CPSR_MODE_SYS
 	ldr sp, =sec_usr_stacktop
 
+    cps #CPSR_MODE_SVC
+
+secure_mmu_init:
+    /* Disable data and instruction caches */
+    mrc p15, 0, r10, c1, c0, 0
+    bic r10, r10, #0x0004
+    bic r10, r10, #0x1000
+    mcr p15, 0, r10, c1, c0, 0
+
+    /* Set domain 0 & 1 for client access */
+    mov r10, #0x5
+    mcr p15, 0, r10, c3, c0, 0
+
+    /* This function will return the initialized base address */
+    ldr r10, =sec_l1_page_table
+    mov r0, r10
+    ldr r1, =sec_ram_base
+    bl pagetable_init
+
+    /* Set TTBR0 to the initialized address plus enable shareable write-back 
+     * write-allocate.
+     */
+    orr r10, r10, #0xB
+    mcr p15, 0, r10, c2, c0, 0
+
+    /* Set-up the table base control to split between TTBR0/1 (N = 0) */
+    mov r10, #0x0
+    mcr p15, 0, r10, c2, c0, 2
+
+    /* Enable the mmu */
+    mcr p15, 0, r10, c8, c7, 0
+    mrc p15, 0, r10, c1, c0, 0
+    orr r10, r10, #0x1
+    mcr p15, 0, r10, c1, c0, 0
+    isb
+    dsb
+
+secure_init_monitor:
     cps #CPSR_MODE_SVC
     bl tztest_secure_svc_init_monitor
 

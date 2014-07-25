@@ -8,11 +8,11 @@
  * register value ratherh than the memory value making it look like the writes
  * actually happened.
  */
+extern int _ram_nsec_base;
 volatile int sec_exception = 0;
 volatile int sec_fail_count = 0;
 volatile int sec_test_count = 0;
 
-void init_nonsecure();
 void dispatch_secure_usr(int);
 void tztest_secure_svc_loop(int initial_r0, int initial_r1);
 
@@ -32,12 +32,12 @@ void sec_undef_handler() {
 }
 
 void sec_pabort_handler(int status, int addr) {
-    DEBUG_MSG("status = %d\taddress = %d\n", status, addr);
+    DEBUG_MSG("status = %x\taddress = %x\n", status, addr);
     sec_exception = CPSR_MODE_ABT;
 }
 
 void sec_dabort_handler(int status, int addr) {
-    DEBUG_MSG("status = %d\taddress = %d\n", status, addr);
+    DEBUG_MSG("status = %x\taddress = %x\n", status, addr);
     sec_exception = CPSR_MODE_ABT;
 }
 
@@ -121,7 +121,7 @@ void tztest_secure_svc_init_monitor()
      * resumes at initiallizing the nonsecure svc mode.
      */
     nsec_ctx = sm_get_nsec_ctx();
-    nsec_ctx->mon_lr = (unsigned int)init_nonsecure;
+    nsec_ctx->mon_lr = &_ram_nsec_base;
     nsec_ctx->mon_spsr = CPSR_MODE_SVC | CPSR_I;
 }
 

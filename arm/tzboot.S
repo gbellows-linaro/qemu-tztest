@@ -45,24 +45,46 @@ init_cpu:
     /* Start by setting up the boot stack*/
 	ldr sp, =boot_stacktop
 
-    ldr r0, =_flash_stext
-    ldr r1, =_ram_stext
-    ldr r2, =_text_size
-copy_text:
+load_images:
+    ldr r0, =_flash_sectext_start
+    ldr r1, =_ram_sectext_start
+    ldr r2, =_sectext_size
+copy_sectext:
     ldrb r10, [r0], #1
     strb r10, [r1], #1
     subs r2, r2, #1
-    bne copy_text
+    bne copy_sectext
     
-    ldr r0, =_flash_sdata
-    ldr r1, =_ram_sdata
-    ldr r2, =_data_size
-copy_data:
+    ldr r0, =_flash_secdata_start
+    ldr r1, =_ram_secdata_start
+    ldr r2, =_secdata_size
+copy_secdata:
     ldrb r10, [r0], #1
     strb r10, [r1], #1
     subs r2, r2, #1
-    bne copy_data
+    bne copy_secdata
+    
+#if 0
+    mov r11, #0x10000
+    ldm r11!, {r0-r2}
+copy_nsectext:
+    ldrb r10, [r0], #1
+    strb r10, [r1], #1
+    subs r2, r2, #1
+    bne copy_nsectext
+    
+    ldm r11!, {r0-r2}
+copy_nsecdata:
+    ldrb r10, [r0], #1
+    strb r10, [r1], #1
+    subs r2, r2, #1
+    bne copy_nsecdata
+#endif
 
+    mov r0, #0x10000
+    add r0, r0, #0x4
+    blx r0
+    
     bl secure_init
 	
 end:	

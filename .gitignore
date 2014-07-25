@@ -3,5 +3,7 @@
 *.o
 *.flat
 *.elf
+*.img
 /config.mak
-arm/tztest.lds
+arm/tztest_secure.lds
+arm/tztest_nonsecure.lds

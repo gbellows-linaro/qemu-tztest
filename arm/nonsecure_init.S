@@ -1,15 +1,46 @@
 #include <arm32.h>
+b nonsecure_vectors
+
+nonsecure_load:
+    ldr r0, =_flash_nsectext_start
+    ldr r1, =_ram_nsectext_start
+    ldr r2, =_nsectext_size
+copy_nsectext:
+    ldrb r10, [r0], #1
+    strb r10, [r1], #1
+    subs r2, r2, #1
+    bne copy_nsectext
+    
+    ldr r0, =_flash_nsecdata_start
+    ldr r1, =_ram_nsecdata_start
+    ldr r2, =_nsecdata_size
+copy_nsecdata:
+    ldrb r10, [r0], #1
+    strb r10, [r1], #1
+    subs r2, r2, #1
+    bne copy_nsecdata
+
+    mov pc, lr
+    
+#if 0
+.word _flash_nsectext_start
+.word _ram_nsectext_start
+.word _nsectext_size
+.word _flash_nsecdata_start
+.word _ram_nsecdata_start
+.word _nsecdata_size
+#endif
 
 .align 5
 /* We use the same vector table for Hyp and Monitor mode, since
  * we will only use each once and they don't overlap.
  */
 nonsecure_vectors:
-	.word 0	/* reset */
+	b   nonsecure_init          /* reset */
 	b   nonsecure_undef_vec     /* undef */
 	b	nonsecure_svc_vec       /* svc */
-	b   nonsecure_pabort_vec   /* pabt */
-	b   nonsecure_dabort_vec   /* dabt */
+	b   nonsecure_pabort_vec    /* pabt */
+	b   nonsecure_dabort_vec    /* dabt */
 	.word 0 /* hmc */
 	.word 0 /* irq */
 	.word 0 /* fiq */
@@ -36,8 +67,7 @@ nonsecure_svc_vec:
     bl nsec_svc_handler
     rfefd sp!
 
-    .globl init_nonsecure
-init_nonsecure:
+nonsecure_init:
     /* Disable interrupts for now */
     mrs r10, cpsr
     orr r10, r10, #0xc0     @ Mask IRQ and FIQ
@@ -53,7 +83,25 @@ init_nonsecure:
     mcr p15, 0, r11, c12, c0, 0
     isb
 
-init_nonsecure_mmu:
+nonsecure_stack_init:
+    /* Reset the SVC stack*/
+	ldr sp, =nsec_svc_stacktop
+
+    cps #CPSR_MODE_UND
+	ldr sp, =nsec_und_stacktop
+
+    cps #CPSR_MODE_ABT
+	ldr sp, =nsec_abt_stacktop
+
+    /* Have to set user (and system) stack from SYS mode so we can get back to
+     * SVC.
+     */
+    cps #CPSR_MODE_SYS
+	ldr sp, =nsec_usr_stacktop
+
+    cps #CPSR_MODE_SVC
+
+nonsecure_mmu_init:
     /* Disable data and instruction caches */
     mrc p15, 0, r10, c1, c0, 0
     bic r10, r10, #0x0004
@@ -65,14 +113,16 @@ init_nonsecure_mmu:
     mcr p15, 0, r10, c3, c0, 0
 
     /* This function will return the initialized base address */
-    ldr r0, =nsec_l1_page_table
-    ldr r1, =nsec_ram_base
+    ldr r10, =nsec_l1_page_table
+    mov r0, r10
+    ldr r1, =_ram_nsec_base
+    bl pagetable_init
 
     /* Set TTBR0 to the initialized address plus enable shareable write-back 
      * write-allocate.
      */
-    orr r0, r0, #0xB
-    mcr p15, 0, r0, c2, c0, 0
+    orr r10, r10, #0xB
+    mcr p15, 0, r10, c2, c0, 0
 
     /* Set-up the table base control to split between TTBR0/1 (N = 0) */
     mov r10, #0x0
@@ -86,21 +136,7 @@ init_nonsecure_mmu:
     isb
     dsb
 
-init_nonsecure_stacks:
-    /* Reset the SVC stack*/
-	ldr sp, =nsec_svc_stacktop
-
-    cps #CPSR_MODE_UND
-	ldr sp, =nsec_und_stacktop
-
-    cps #CPSR_MODE_ABT
-	ldr sp, =nsec_abt_stacktop
-
-    /* Have to set user (and system) stack from SYS mode so we can get back to
-     * SVC.
-     */
     cps #CPSR_MODE_USR
-	ldr sp, =nsec_usr_stacktop
 
 	bl      tztest_nonsecure_usr_main
 	

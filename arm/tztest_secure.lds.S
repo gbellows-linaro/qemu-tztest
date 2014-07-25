@@ -20,6 +20,7 @@ TARGET(binary)
  * located here so it can be written.
  */
 RAM_BASE = 0x80000000;
+RAM_NSEC_BASE = 0x88000000;
 
 /* Start our stack at the top of sram so that it moves toward the data section.
  */
@@ -31,33 +32,24 @@ SECTIONS
  .boot : { arm/tzboot.o }
  _eboot = .;
 
- _flash_stext = .;
+ _flash_sectext_start = .;
  . = RAM_BASE;
  sec_ram_base = .;
- nsec_ram_base = .;
- _ram_stext = .;
- .text : AT ( _flash_stext ) { *(.text); }
- _ram_etext = .;
- _text_size = SIZEOF(.text);
+ _ram_sectext_start = .;
+ .text : AT ( _flash_sectext_start ) { *(.text); }
+ _ram_sectext_end = .;
+ _sectext_size = SIZEOF(.text);
 
- _flash_sdata = _flash_stext + _text_size;
- _ram_sdata = .;
+ _flash_secdata_start = _flash_sectext_start + _sectext_size;
+ _ram_secdata_start = .;
  .rodata : { *(.rodata); }
  .data : { *(.data); }
  .bss :  { *(.bss); }
- _ram_edata =.;
- _data_size = _ram_edata - _ram_sdata;
+ _ram_secdata_end =.;
+ _secdata_size = _ram_secdata_end - _ram_secdata_start;
 
 . = ALIGN(0x2000);
  sec_l1_page_table = .;
- nsec_l1_page_table = .;
-
-. = ALIGN(0x2000) + STACK_SIZE;
- nsec_usr_stacktop = .;
- nsec_und_stacktop = nsec_usr_stacktop + STACK_SIZE;
- nsec_abt_stacktop = nsec_und_stacktop + STACK_SIZE;
- nsec_svc_stacktop = nsec_und_stacktop + STACK_SIZE;
- . = . + STACK_SIZE;
 
 . = ALIGN(0x2000) + STACK_SIZE;
  sec_usr_stacktop = . + STACK_SIZE;
@@ -66,4 +58,6 @@ SECTIONS
  sec_svc_stacktop = sec_und_stacktop + STACK_SIZE;
  boot_stacktop = sec_svc_stacktop;
  mon_stacktop = sec_svc_stacktop + STACK_SIZE;
+
+ _ram_nsec_base = RAM_NSEC_BASE;
 }

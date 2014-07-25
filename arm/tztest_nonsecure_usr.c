@@ -4,7 +4,6 @@
 
 #define CALL(_f)  __svc(0, _f)
 
-extern void tztest_secure_usr_test1();
 extern int nsec_exception;
 extern int nsec_fail_count;
 extern int nsec_test_count;
@@ -48,7 +47,7 @@ void tztest_nonsecure_usr_main()
 
     DEBUG_MSG("Next\n");
 
-    CALL(tztest_secure_usr_test1);
+    //CALL(tztest_secure_usr_test1);
 
     DEBUG_MSG("Exiting\n");
     
