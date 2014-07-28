@@ -3,6 +3,7 @@
 #include "libcflat.h"
 
 #define CALL(_f)  __svc(0, _f)
+#define RETURN(_r)  __svc(0,(_r))
 
 extern int nsec_exception;
 extern int nsec_fail_count;
@@ -39,6 +40,18 @@ void P0_nonsecure_tests()
     TEST_EXCP_COND(_write_nsacr(0), nsec, CPSR_MODE_UND, ==);
 }
 
+int myglobal =0;
+
+void tztest_secure_usr_test1()
+{
+    DEBUG_MSG("Entered\n");
+    myglobal++;
+//    DEBUG_MSG("myglobal = %d\n", myglobal);
+    __svc(1,0);
+    DEBUG_MSG("Exiting\n");
+    RETURN(0);
+}
+
 void tztest_nonsecure_usr_main()
 {
     DEBUG_MSG("Entered\n");
@@ -47,7 +60,7 @@ void tztest_nonsecure_usr_main()
 
     DEBUG_MSG("Next\n");
 
-    //CALL(tztest_secure_usr_test1);
+    CALL(tztest_secure_usr_test1);
 
     DEBUG_MSG("Exiting\n");
     

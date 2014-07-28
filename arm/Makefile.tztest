@@ -9,11 +9,10 @@ TZNSECLOAD		= $(ARCH)/tztest_nonsecure.lds
 TZSECOBJS		= $(ARCH)/sm_asm.o \
 			  	  $(ARCH)/sm.o \
 			  	  $(ARCH)/secure_init.o \
-			  	  $(ARCH)/tztest_secure_svc.o \
-			  	  $(ARCH)/tztest_secure_usr.o
+			  	  $(ARCH)/tztest_secure_svc.o
 TZNSECOBJS		= $(ARCH)/nonsecure_init.o \
 			  	  $(ARCH)/tztest_nonsecure_svc.o \
-			  	  $(ARCH)/tztest_nonsecure_usr.o
+			  	  $(ARCH)/tztest.o
 TZOBJS			= $(ARCH)/tztest_mmu.o
 LIBCFLAT_OBJS	+= $(LIBCFLAT_objdir)/devicetree.o \
 			  	   $(LIBCFLAT_objdir)/virtio.o \
