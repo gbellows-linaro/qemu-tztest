@@ -25,7 +25,6 @@ typedef struct {
     int result;
 } test_desc_t;
 
-#define DEBUG 1
 #ifdef DEBUG
 #define DEBUG_MSG(_str, ...) \
     printf("[DEBUG] %s: " _str, __FUNCTION__, ##__VA_ARGS__)
