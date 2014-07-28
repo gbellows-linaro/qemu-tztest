@@ -19,7 +19,7 @@ TARGET(binary)
 /* SRAM is mapped from 0x14000000 to 0x16000000.  Our Data section must be
  * located here so it can be written.
  */
-RAM_BASE = 0x80000000;
+RAM_SEC_BASE = 0x80000000;
 RAM_NSEC_BASE = 0x88000000;
 
 /* Start our stack at the top of sram so that it moves toward the data section.
@@ -33,8 +33,8 @@ SECTIONS
  _eboot = .;
 
  _flash_sectext_start = .;
- . = RAM_BASE;
- sec_ram_base = .;
+ . = RAM_SEC_BASE;
+ _ram_sec_base = .;
  _ram_sectext_start = .;
  .text : AT ( _flash_sectext_start ) { *(.text); }
  _ram_sectext_end = .;

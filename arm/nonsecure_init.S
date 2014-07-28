@@ -113,14 +113,12 @@ nonsecure_mmu_init:
     mcr p15, 0, r10, c3, c0, 0
 
     /* This function will return the initialized base address */
-    ldr r10, =nsec_l1_page_table
-    mov r0, r10
-    ldr r1, =_ram_nsec_base
-    bl pagetable_init
+    bl tztest_nonsecure_pagetable_init
 
     /* Set TTBR0 to the initialized address plus enable shareable write-back 
      * write-allocate.
      */
+    ldr r10, =nsec_l1_page_table
     orr r10, r10, #0xB
     mcr p15, 0, r10, c2, c0, 0
 

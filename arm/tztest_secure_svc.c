@@ -1,6 +1,7 @@
 #include "libcflat.h"
 #include "tztest_builtins.h"
 #include "tztest.h"
+#include "tztest_mmu.h"
 #include "sm.h"
 #include "arm32.h"
 
@@ -15,6 +16,28 @@ volatile int sec_test_count = 0;
 
 void dispatch_secure_usr(int);
 void tztest_secure_svc_loop(int initial_r0, int initial_r1);
+extern uint32_t sec_l1_page_table;
+extern uint32_t _ram_sec_base;
+
+pagetable_map_entry_t sec_pagetable_entries[] = {
+    {.va = (uint32_t)&_ram_sec_base, .pa = (uint32_t)&_ram_sec_base, 
+     .size = 0x200000,
+     .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_WBA_CACHED | 
+             SECTION_P1_RW | SECTION_P0_RW | SECTION_NONSECURE },
+};
+
+pagetable_map_entry_t nsec_pagetable_entries[] = {
+    {.va = (uint32_t)&_ram_nsec_base, .pa = (uint32_t)&_ram_nsec_base, 
+     .size = 0x200000,
+     .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_WBA_CACHED | 
+             SECTION_P1_RW | SECTION_P0_RW | SECTION_NONSECURE}, 
+};
+
+pagetable_map_entry_t mmio_pagetable_entries[] = {
+    {.va = 0x1c000000, .pa = 0x1c000000, .size = 0x20000000-0x1c000000, 
+     .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_UNCACHED | 
+             SECTION_P1_RW | SECTION_P0_RW | SECTION_NONSECURE },
+};
 
 void sec_svc_handler(svc_op_t op, int data) {
     DEBUG_MSG("Entered\n");
@@ -96,6 +119,7 @@ void tztest_secure_svc_loop(int initial_r0, int initial_r1)
             case 0:
                 dispatch_secure_usr(r1);
                 DEBUG_MSG("Returned from secure USR\n");
+                r0 = 0;
                 break;
             case 1:
                 DEBUG_MSG("Pass %d  r1 = %d\n", loopcnt, r1);
@@ -106,6 +130,20 @@ void tztest_secure_svc_loop(int initial_r0, int initial_r1)
     } 
 
     DEBUG_MSG("Exiting\n");
+}
+
+void tztest_secure_pagetable_init()
+{
+    uint32_t attr;
+    uint32_t *table = &sec_l1_page_table;
+    uint32_t sec_base = (uint32_t)&_ram_sec_base;
+    uint32_t nsec_base = (uint32_t)&_ram_nsec_base;
+
+    pagetable_init(table);
+
+    pagetable_add_sections(table, mmio_pagetable_entries);
+    pagetable_add_sections(table, sec_pagetable_entries);
+    pagetable_add_sections(table, nsec_pagetable_entries);
 }
 
 void tztest_secure_svc_init_monitor()
@@ -121,7 +159,7 @@ void tztest_secure_svc_init_monitor()
      * resumes at initiallizing the nonsecure svc mode.
      */
     nsec_ctx = sm_get_nsec_ctx();
-    nsec_ctx->mon_lr = &_ram_nsec_base;
+    nsec_ctx->mon_lr = (uint32_t)&_ram_nsec_base;
     nsec_ctx->mon_spsr = CPSR_MODE_SVC | CPSR_I;
 }
 

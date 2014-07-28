@@ -46,7 +46,6 @@ void tztest_secure_usr_test1()
 {
     DEBUG_MSG("Entered\n");
     myglobal++;
-//    DEBUG_MSG("myglobal = %d\n", myglobal);
     __svc(1,0);
     DEBUG_MSG("Exiting\n");
     RETURN(0);

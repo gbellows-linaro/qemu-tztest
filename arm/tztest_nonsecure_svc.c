@@ -1,6 +1,7 @@
 #include "libcflat.h"
 #include "tztest_builtins.h"
 #include "tztest.h"
+#include "tztest_mmu.h"
 #include "sm.h"
 #include "arm32.h"
 
@@ -14,6 +15,21 @@ volatile int nsec_test_count = 0;
 
 int tztest_nonsecure_svc_main();
 int tztest_nonsecure_smc_test();
+extern uint32_t nsec_l1_page_table;
+extern uint32_t _ram_nsec_base;
+
+pagetable_map_entry_t nsec_pagetable_entries[] = {
+    {.va = (uint32_t)&_ram_nsec_base, .pa = (uint32_t)&_ram_nsec_base, 
+     .size = 0x200000,
+     .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_WBA_CACHED | 
+             SECTION_P1_RW | SECTION_P0_RW | SECTION_NONSECURE}, 
+};
+
+pagetable_map_entry_t mmio_pagetable_entries[] = {
+    {.va = 0x1c000000, .pa = 0x1c000000, .size = 0x20000000-0x1c000000, 
+     .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_UNCACHED | 
+             SECTION_P1_RW | SECTION_P0_RW | SECTION_NONSECURE },
+};
 
 void nsec_svc_handler(volatile svc_op_t op, volatile int data) {
     volatile int r0, r1, r2, r3;
@@ -59,7 +75,16 @@ int tztest_nonsecure_smc_test()
     DEBUG_MSG("Complete\n");
 }
 
-extern void tztest_secure_usr_test1();
+void tztest_nonsecure_pagetable_init()
+{
+    uint32_t attr;
+    uint32_t *table = &nsec_l1_page_table;
+
+    pagetable_init(table);
+
+    pagetable_add_sections(table, mmio_pagetable_entries);
+    pagetable_add_sections(table, nsec_pagetable_entries);
+}
 
 int tztest_nonsecure_svc_main() 
 {
