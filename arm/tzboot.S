@@ -1,3 +1,5 @@
+#include "platform.h"
+
 .align 5
 /* We use the same vector table for Hyp and Monitor mode, since
  * we will only use each once and they don't overlap.
@@ -17,8 +19,7 @@ init_uart:
 	@
 	@ UART initialisation (38400 8N1)
 	@
-	ldr	r0, =0x1c090000			@ UART base (Versatile Express)
-	@ldr	r0, =0x09000000			@ UART base (QEMU VIRT)
+	ldr	r0,	=UART0_BASE     @ UART base (Versatile Express)
 	mov	r1, #0x10			@ ibrd
 	str	r1, [r0, #0x24]
 	mov	r1, #0xc300
@@ -64,24 +65,7 @@ copy_secdata:
     subs r2, r2, #1
     bne copy_secdata
     
-#if 0
-    mov r11, #0x10000
-    ldm r11!, {r0-r2}
-copy_nsectext:
-    ldrb r10, [r0], #1
-    strb r10, [r1], #1
-    subs r2, r2, #1
-    bne copy_nsectext
-    
-    ldm r11!, {r0-r2}
-copy_nsecdata:
-    ldrb r10, [r0], #1
-    strb r10, [r1], #1
-    subs r2, r2, #1
-    bne copy_nsecdata
-#endif
-
-    mov r0, #0x10000
+    mov r0, #FLASH_NSEC_BASE
     add r0, r0, #0x4
     blx r0
     

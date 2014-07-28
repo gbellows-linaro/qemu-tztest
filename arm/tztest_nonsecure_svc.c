@@ -26,7 +26,7 @@ pagetable_map_entry_t nsec_pagetable_entries[] = {
 };
 
 pagetable_map_entry_t mmio_pagetable_entries[] = {
-    {.va = 0x1c000000, .pa = 0x1c000000, .size = 0x20000000-0x1c000000, 
+    {.va = 0x1c000000, .pa = 0x1c000000, .size = 0x100000,
      .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_UNCACHED | 
              SECTION_P1_RW | SECTION_P0_RW | SECTION_NONSECURE },
 };

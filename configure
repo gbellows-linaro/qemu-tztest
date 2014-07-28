@@ -5,6 +5,7 @@ ld=ld
 objcopy=objcopy
 ar=ar
 arch=arm
+plat=vexpress
 cross_prefix=
 
 usage() {
@@ -13,6 +14,7 @@ usage() {
 
 	Options include:
 	    --arch=ARCH            architecture to compile for ($arch)
+	    --plat=PLATFORM        platform to compile for ($plat)
 	    --processor=PROCESSOR  processor to compile for ($arch)
 	    --cross-prefix=PREFIX  cross compiler prefix
 	    --cc=CC		   c compiler to use ($cc)
@@ -29,10 +31,13 @@ while [[ "$1" = -* ]]; do
 	opt="${opt%%=*}"
     fi
     case "$opt" in
-        --arch)
+    --arch)
 	    arch="$arg"
 	    ;;
-        --processor)
+    --plat)
+	    plat="$arg"
+	    ;;
+    --processor)
 	    processor="$arg"
 	    ;;
 	--cross-prefix)
@@ -79,6 +84,7 @@ fi
 # create the config
 cat <<EOF > config.mak
 ARCH=$arch
+PLAT=$plat
 PROCESSOR=$processor
 CC=$cross_prefix$cc
 LD=$cross_prefix$ld

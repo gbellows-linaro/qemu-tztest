@@ -11,20 +11,12 @@ OUTPUT_FORMAT("elf32-littlearm")
 OUTPUT_ARCH(arm)
 TARGET(binary)
 
+#include "platform.h"
+
 /* NORFLASH0 on Vexpress aseries (a15) is mapped from 0x08000000 to 0x0A000000
  * which is 32MB.  It is also aliased to 0x0 (to 0x2000000).
  * It is acceptable to have the text here as it is RO.
  */
-
-/* SRAM is mapped from 0x14000000 to 0x16000000.  Our Data section must be
- * located here so it can be written.
- */
-RAM_NSEC_BASE = 0x88000000;
-FLASH_NSEC_BASE = 0x10000;
-
-/* Start our stack at the top of sram so that it moves toward the data section.
- */
-STACK_SIZE = 0x40000;
 
 SECTIONS
 {

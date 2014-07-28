@@ -40,6 +40,7 @@ CFLAGS += -Wextra
 CFLAGS += -g -O0
 CFLAGS += -Ilib -I$(LIBFDT_srcdir) -I $(LIBCFLAT_srcdir) -I$(LIBCFLAT_archdir)
 CFLAGS += -Ilib -I/usr/arm-linux-gnueabi/include/
+CFLAGS += -Iplatform/$(PLAT)
 CFLAGS += $(call cc-option, -fomit-frame-pointer, "")
 CFLAGS += $(call cc-option, -fno-stack-protector, "")
 CFLAGS += $(call cc-option, -fno-stack-protector-all, "")
