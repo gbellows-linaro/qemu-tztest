@@ -34,13 +34,18 @@ secure_dabort_vec:
 
 secure_svc_vec:
     /* Check if this is a return from USR mode and pop the return address off
-     * the stack.  Otherwise, route handling to the secure svc_handler.
+     * the stack.  If so, we got here through the dispatch mechanism that
+     * pushed the return on the stack which should be secure svc loop.  For
+     * this reason we want to return to SVC mode and not a return from
+     * exception.
+     * Otherwise, route handling to the secure svc_handler.  This is the case
+     * where we came from secure usr mode.
      */
     cmp r0, #0x0
     bne 1f 
-    pop {lr}
-	movs pc, lr
+    pop {pc}
 1:
+    srsdb sp!, #CPSR_MODE_SVC
     bl sec_svc_handler
     rfefd sp!
 
