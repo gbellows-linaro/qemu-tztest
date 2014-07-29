@@ -29,20 +29,22 @@ SECTIONS
  _ram_nsectext_end = .;
  _nsectext_size = SIZEOF(.text);
 
+ . = ALIGN(1M);
  _flash_nsecdata_start = _flash_nsectext_start + _nsectext_size;
  _ram_nsecdata_start = .;
- .rodata : { *(.rodata); }
+ .rodata : AT ( _flash_nsecdata_start ) { *(.rodata); }
  .data : { *(.data); }
  .bss :  { *(.bss); }
  _ram_nsecdata_end =.;
  _nsecdata_size = _ram_nsecdata_end - _ram_nsecdata_start;
 
-. = ALIGN(0x2000);
- nsec_l1_page_table = .;
-
-. = ALIGN(0x2000) + STACK_SIZE;
- nsec_usr_stacktop = .;
+ . = ALIGN(STACK_SIZE);
+ nsec_usr_stacktop = . + STACK_SIZE;
  nsec_und_stacktop = nsec_usr_stacktop + STACK_SIZE;
  nsec_abt_stacktop = nsec_und_stacktop + STACK_SIZE;
  nsec_svc_stacktop = nsec_und_stacktop + STACK_SIZE;
+
+ . = ALIGN(1M);
+ nsec_l1_page_table = .;
+
 }

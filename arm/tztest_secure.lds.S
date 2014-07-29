@@ -28,23 +28,24 @@ SECTIONS
  _sectext_size = SIZEOF(.text);
 
  _flash_secdata_start = _flash_sectext_start + _sectext_size;
+ . = ALIGN(1M);
  _ram_secdata_start = .;
- .rodata : { *(.rodata); }
+ .rodata : AT ( _flash_secdata_start ) { *(.rodata); }
  .data : { *(.data); }
  .bss :  { *(.bss); }
- _ram_secdata_end =.;
+ _ram_secdata_end = .;
  _secdata_size = _ram_secdata_end - _ram_secdata_start;
 
-. = ALIGN(0x2000);
- sec_l1_page_table = .;
-
-. = ALIGN(0x2000) + STACK_SIZE;
+ . = ALIGN(STACK_SIZE);
  sec_usr_stacktop = . + STACK_SIZE;
  sec_und_stacktop = sec_usr_stacktop + STACK_SIZE;
  sec_abt_stacktop = sec_und_stacktop + STACK_SIZE;
  sec_svc_stacktop = sec_und_stacktop + STACK_SIZE;
  boot_stacktop = sec_svc_stacktop;
  mon_stacktop = sec_svc_stacktop + STACK_SIZE;
+
+ . = ALIGN(1M);
+ sec_l1_page_table = .;
 
  _ram_nsec_base = RAM_NSEC_BASE;
 }
