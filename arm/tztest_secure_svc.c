@@ -18,32 +18,33 @@ volatile int sec_test_count = 0;
 void dispatch_secure_usr(int);
 void tztest_secure_svc_loop(int initial_r0, int initial_r1);
 extern uint32_t sec_l1_page_table;
-extern uint32_t _ram_sec_base;
 extern uint32_t _ram_sectext_start;
 extern uint32_t _ram_secdata_start;
 
 pagetable_map_entry_t sec_pagetable_entries[] = {
-    {.va = (uint32_t)&_ram_sectext_start, .pa = (uint32_t)&_ram_sectext_start, 
-     .size = 0x100000,
+    {.va = (uint32_t)&_ram_sectext_start, .pa = (uint32_t)&_ram_sectext_start,
+     .size = SECTION_SIZE,
      .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_WBA_CACHED | 
-             SECTION_P1_RO | SECTION_P0_RO },
+             SECTION_P1_RO | SECTION_P0_RO | SECTION_SECTION },
     {.va = (uint32_t)&_ram_secdata_start, .pa = (uint32_t)&_ram_secdata_start, 
-     .size = 0x200000,
+     .size = SECTION_SIZE * 2,
      .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_WBA_CACHED | 
-             SECTION_P1_RW | SECTION_P0_RW },
+             SECTION_P1_RW | SECTION_P0_RW | SECTION_SECTION },
 };
 
 pagetable_map_entry_t nsec_pagetable_entries[] = {
     {.va = (uint32_t)&_ram_nsec_base, .pa = (uint32_t)&_ram_nsec_base, 
-     .size = 0x200000,
+     .size = SECTION_SIZE * 2,
      .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_WBA_CACHED | 
-             SECTION_P1_RW | SECTION_P0_RW | SECTION_NONSECURE}, 
+             SECTION_P1_RW | SECTION_P0_RW | SECTION_NONSECURE |
+             SECTION_SECTION }, 
 };
 
 pagetable_map_entry_t mmio_pagetable_entries[] = {
-    {.va = UART0_BASE, .pa = UART0_BASE, .size = 0x100000,
+    {.va = UART0_BASE, .pa = UART0_BASE, .size = SECTION_SIZE,
      .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_UNCACHED | 
-             SECTION_P1_RW | SECTION_P0_RW | SECTION_NONSECURE },
+             SECTION_P1_RW | SECTION_P0_RW | SECTION_NONSECURE |
+             SECTION_SECTION },
 };
 
 void sec_svc_handler(svc_op_t op, int data) {
@@ -149,7 +150,7 @@ void tztest_secure_pagetable_init()
     pagetable_add_sections(table, mmio_pagetable_entries, 1);
     count = sizeof(sec_pagetable_entries) / sizeof(sec_pagetable_entries[0]);
     pagetable_add_sections(table, sec_pagetable_entries, count);
-    pagetable_add_sections(table, nsec_pagetable_entries, 1);
+//    pagetable_add_sections(table, nsec_pagetable_entries, 1);
 }
 
 void tztest_secure_svc_init_monitor()

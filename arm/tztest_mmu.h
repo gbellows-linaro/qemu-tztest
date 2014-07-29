@@ -10,6 +10,9 @@
 #define SECTION_SHARED              (1 << 16)
 #define SECTION_NOTGLOBAL           (1 << 17)
 #define SECTION_NONSECURE           (1 << 19)
+#define SECTION_SIZE 0x100000
+#define SECTION_SHIFT 20
+
 /* Fix SCTLR.AFE bit */
 
 #define SECTION_P1_RW               ((0 << 15) | (1 << 10))

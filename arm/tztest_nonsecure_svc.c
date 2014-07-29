@@ -17,25 +17,27 @@ volatile int nsec_test_count = 0;
 int tztest_nonsecure_svc_main();
 int tztest_nonsecure_smc_test();
 extern uint32_t nsec_l1_page_table;
-extern uint32_t _ram_nsec_base;
 extern uint32_t _ram_nsectext_start;
 extern uint32_t _ram_nsecdata_start;
 
 pagetable_map_entry_t nsec_pagetable_entries[] = {
     {.va = (uint32_t)&_ram_nsectext_start, .pa = (uint32_t)&_ram_nsectext_start,
-     .size = 0x100000,
+     .size = SECTION_SIZE,
      .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_WBA_CACHED | 
-             SECTION_P1_RO | SECTION_P0_RO | SECTION_NONSECURE}, 
+             SECTION_P1_RW | SECTION_P0_RW | SECTION_NONSECURE |
+             SECTION_SECTION }, 
     {.va = (uint32_t)&_ram_nsecdata_start, .pa = (uint32_t)&_ram_nsecdata_start,
-     .size = 0x200000,
+     .size = SECTION_SIZE * 2,
      .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_WBA_CACHED | 
-             SECTION_P1_RW | SECTION_P0_RW | SECTION_NONSECURE}, 
+             SECTION_P1_RW | SECTION_P0_RW | SECTION_NONSECURE |
+             SECTION_SECTION }, 
 };
 
 pagetable_map_entry_t mmio_pagetable_entries[] = {
-    {.va = UART0_BASE, .pa = UART0_BASE, .size = 0x100000,
+    {.va = UART0_BASE, .pa = UART0_BASE, .size = SECTION_SIZE,
      .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_UNCACHED | 
-             SECTION_P1_RW | SECTION_P0_RW | SECTION_NONSECURE },
+             SECTION_P1_RW | SECTION_P0_RW | SECTION_NONSECURE |
+             SECTION_SECTION },
 };
 
 void nsec_svc_handler(volatile svc_op_t op, volatile int data) {
