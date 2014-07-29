@@ -18,9 +18,15 @@ int tztest_nonsecure_svc_main();
 int tztest_nonsecure_smc_test();
 extern uint32_t nsec_l1_page_table;
 extern uint32_t _ram_nsec_base;
+extern uint32_t _ram_nsectext_start;
+extern uint32_t _ram_nsecdata_start;
 
 pagetable_map_entry_t nsec_pagetable_entries[] = {
-    {.va = (uint32_t)&_ram_nsec_base, .pa = (uint32_t)&_ram_nsec_base, 
+    {.va = (uint32_t)&_ram_nsectext_start, .pa = (uint32_t)&_ram_nsectext_start,
+     .size = 0x100000,
+     .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_WBA_CACHED | 
+             SECTION_P1_RO | SECTION_P0_RO | SECTION_NONSECURE}, 
+    {.va = (uint32_t)&_ram_nsecdata_start, .pa = (uint32_t)&_ram_nsecdata_start,
      .size = 0x200000,
      .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_WBA_CACHED | 
              SECTION_P1_RW | SECTION_P0_RW | SECTION_NONSECURE}, 
@@ -78,13 +84,14 @@ int tztest_nonsecure_smc_test()
 
 void tztest_nonsecure_pagetable_init()
 {
-    uint32_t attr;
     uint32_t *table = &nsec_l1_page_table;
+    uint32_t count;
 
     pagetable_init(table);
 
-    pagetable_add_sections(table, mmio_pagetable_entries);
-    pagetable_add_sections(table, nsec_pagetable_entries);
+    pagetable_add_sections(table, mmio_pagetable_entries, 1);
+    count = sizeof(nsec_pagetable_entries) / sizeof(nsec_pagetable_entries[0]);
+    pagetable_add_sections(table, nsec_pagetable_entries,  count);
 }
 
 int tztest_nonsecure_svc_main() 

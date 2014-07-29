@@ -36,6 +36,7 @@ typedef struct {
 } pagetable_map_entry_t;
 
 extern void pagetable_init(uint32_t  *);
-extern void pagetable_add_sections(uint32_t *, pagetable_map_entry_t *);
+extern void pagetable_add_sections(uint32_t *, pagetable_map_entry_t *,
+                                   uint32_t);
 
 #endif
