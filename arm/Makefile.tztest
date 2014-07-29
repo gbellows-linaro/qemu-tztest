@@ -35,13 +35,13 @@ CFLAGS += -I$(ARCH) -DASM
 FLATLIBS = $(LIBCFLAT_archive) $(LIBFDT_archive) $(libgcc) $(libeabi)
 COMMON = $(FLATLIBS) $(TZOBJS)
 
-$(SECTEST): $(TZSECOBJS) $(COMMON) $(TZSECLOAD) $(TZBOOT)
+$(SECTEST): $(TZSECOBJS) $(COMMON) $(TZSECLOAD) $(TZNSECLOAD) $(TZBOOT)
 	$(LD) -o $@ $(TZSECOBJS) $(COMMON) --script=$(TZSECLOAD)
 
 $(SECTESTIMAGE): $(SECTEST)
 	$(OBJCOPY) -O binary $(SECTEST) $(SECTESTIMAGE) 
 
-$(NSECTEST): $(TZNSECOBJS) $(COMMON) $(TZNSECLOAD)
+$(NSECTEST): $(TZNSECOBJS) $(COMMON) $(TZNSECLOAD) $(TZSECLOAD)
 	$(LD) -o $@ $(TZNSECOBJS) $(COMMON) --script=$(TZNSECLOAD)
 
 $(NSECTESTIMAGE): $(NSECTEST)
@@ -55,10 +55,10 @@ $(TZTEST_IMAGE): $(SECTESTIMAGE) $(NSECTESTIMAGE)
 $(TZBOOT): $(ARCH)/tzboot.S
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-$(TZSECLOAD): $(ARCH)/tztest_secure.lds.S Makefile
+$(TZSECLOAD): $(ARCH)/tztest_secure.lds.S Makefile platform/$(PLAT)/
 	$(CC) $(CFLAGS) -E -P -C -o $@ $<
 
-$(TZNSECLOAD): $(ARCH)/tztest_nonsecure.lds.S Makefile
+$(TZNSECLOAD): $(ARCH)/tztest_nonsecure.lds.S Makefile platform/$(PLAT)/
 	$(CC) $(CFLAGS) -E -P -C -o $@ $<
 
 %.o: %.c
