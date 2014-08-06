@@ -6,10 +6,10 @@ TZTEST_IMAGE 	= $(ARCH)/tztest.img
 TZBOOT			= $(ARCH)/tzboot.o
 TZSECLOAD		= $(ARCH)/tztest_secure.lds
 TZNSECLOAD		= $(ARCH)/tztest_nonsecure.lds
-TZSECOBJS		= $(ARCH)/sm_asm.o \
-			  	  $(ARCH)/sm.o \
-			  	  $(ARCH)/secure_init.o \
-			  	  $(ARCH)/tztest_secure_svc.o
+TZSECOBJS		= $(ARCH)/secure_init.o \
+			  	  $(ARCH)/tztest_secure_svc.o \
+                  $(ARCH)/sm_asm.o \
+			  	  $(ARCH)/sm.o
 TZNSECOBJS		= $(ARCH)/nonsecure_init.o \
 			  	  $(ARCH)/tztest_nonsecure_svc.o \
 			  	  $(ARCH)/tztest.o
