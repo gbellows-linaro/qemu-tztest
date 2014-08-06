@@ -11,15 +11,17 @@
  * actually happened.
  */
 extern int _ram_nsec_base;
-volatile int sec_exception = 0;
-volatile int sec_fail_count = 0;
-volatile int sec_test_count = 0;
 
 void dispatch_secure_usr(int);
 void tztest_secure_svc_loop(int initial_r0, int initial_r1);
+void *sec_allocate_secure_memory(int);
 extern uint32_t sec_l1_page_table;
 extern uint32_t _ram_sectext_start;
 extern uint32_t _ram_secdata_start;
+volatile int tztest_exception;
+volatile int tztest_exception_status;
+volatile int tztest_test_count;
+volatile int tztest_fail_count;
 
 pagetable_map_entry_t sec_pagetable_entries[] = {
     {.va = (uint32_t)&_ram_sectext_start, .pa = (uint32_t)&_ram_sectext_start,
@@ -59,17 +61,28 @@ void sec_svc_handler(svc_op_t op, int data) {
 
 void sec_undef_handler() {
     DEBUG_MSG("Undefined exception taken\n");
-    sec_exception = CPSR_MODE_UND;
+    tztest_exception = CPSR_MODE_UND;
 }
 
 void sec_pabort_handler(int status, int addr) {
     DEBUG_MSG("status = %x\taddress = %x\n", status, addr);
-    sec_exception = CPSR_MODE_ABT;
+    tztest_exception = CPSR_MODE_ABT;
 }
 
 void sec_dabort_handler(int status, int addr) {
     DEBUG_MSG("status = %x\taddress = %x\n", status, addr);
-    sec_exception = CPSR_MODE_ABT;
+    tztest_exception = CPSR_MODE_ABT;
+}
+
+int secure_test_var = 42;
+
+void *sec_allocate_secure_memory(int len)
+{
+    DEBUG_MSG("Entered\n");
+    DEBUG_MSG("received len = %d\n", len);
+    DEBUG_MSG("Exiting\n");
+
+    return &secure_test_var;
 }
 
 void check_init_mode() 
@@ -86,39 +99,39 @@ void check_init_mode()
         printf("FAILED\n");
         DEBUG_MSG("current IDPFR1 (%d) != expected IDPFR1 (%d)\n", 
                   (idpfr1 & 0xf0), 0x10);
-        sec_fail_count++;
+        tztest_fail_count++;
     } else {
         printf("PASSED\n");
     }
-    sec_test_count++;
+    tztest_test_count++;
 
     printf("\tInitial processor mode... ");
     if (CPSR_MODE_SVC != (_read_cpsr() & 0x1f)) {
         printf("FAILED\n");
         DEBUG_MSG("current CPSR (%d) != expected CPSR (%d)\n", 
                   (_read_cpsr() & 0x1f), CPSR_MODE_SVC);
-        sec_fail_count++;
+        tztest_fail_count++;
     } else {
         printf("PASSED\n");
     }
-    sec_test_count++;
+    tztest_test_count++;
 
     printf("\tInitial security state... ");
     if (0 != (_read_scr() & SCR_NS)) {
         printf("Failed\n");
         DEBUG_MSG("current SCR.NS (%d) != expected SCR.NS (%d)\n", 
                   (_read_cpsr() & SCR_NS), 0);
-        sec_fail_count++;
+        tztest_fail_count++;
     } else {
         printf("PASSED\n");
     }
-    sec_test_count++;
+    tztest_test_count++;
 }
 
 void tztest_secure_svc_loop(int initial_r0, int initial_r1)
 {
     volatile int r0 = initial_r0, r1 = initial_r1;
-    int r2, r3;
+    volatile int r2, r3;
     static int loopcnt = 0;
     void (*func)();
 
@@ -130,7 +143,12 @@ void tztest_secure_svc_loop(int initial_r0, int initial_r1)
                 r0 = 0;
                 break;
             case 1:
-                DEBUG_MSG("Pass %d  r1 = %d\n", loopcnt, r1);
+                func = (void (*)())r1;
+                func();
+                r0 = 0;
+                break;
+            case 2:
+                r0 = (int)sec_allocate_secure_memory(r1);
                 break;
         }
         loopcnt++;
@@ -150,7 +168,8 @@ void tztest_secure_pagetable_init()
     pagetable_add_sections(table, mmio_pagetable_entries, 1);
     count = sizeof(sec_pagetable_entries) / sizeof(sec_pagetable_entries[0]);
     pagetable_add_sections(table, sec_pagetable_entries, count);
-//    pagetable_add_sections(table, nsec_pagetable_entries, 1);
+    count = sizeof(nsec_pagetable_entries) / sizeof(nsec_pagetable_entries[0]);
+    pagetable_add_sections(table, nsec_pagetable_entries, 1);
 }
 
 void tztest_secure_svc_init_monitor()

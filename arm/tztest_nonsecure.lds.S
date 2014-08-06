@@ -45,6 +45,12 @@ SECTIONS
  nsec_svc_stacktop = nsec_und_stacktop + STACK_SIZE;
 
  . = ALIGN(1M);
+ common_memory_heap = .;
+
+ . = ALIGN(1M);
+ secure_memory_heap = .;
+
+ . = ALIGN(16M);
  nsec_l1_page_table = .;
 
 }

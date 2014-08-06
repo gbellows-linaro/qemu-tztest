@@ -6,19 +6,13 @@
 #include "arm32.h"
 #include "platform.h"
 
-/* Make the below globals volatile as  found that the compiler uses the
- * register value ratherh than the memory value making it look like the writes
- * actually happened.
- */
-volatile int nsec_exception = 0;
-volatile int nsec_fail_count = 0;
-volatile int nsec_test_count = 0;
-
-int tztest_nonsecure_svc_main();
 int tztest_nonsecure_smc_test();
+void nsec_dispatch_secure_usr_function(void (*)());
+void nsec_dispatch_secure_svc_function(void (*)());
 extern uint32_t nsec_l1_page_table;
 extern uint32_t _ram_nsectext_start;
 extern uint32_t _ram_nsecdata_start;
+extern uint32_t secure_memory_heap;
 
 pagetable_map_entry_t nsec_pagetable_entries[] = {
     {.va = (uint32_t)&_ram_nsectext_start, .pa = (uint32_t)&_ram_nsectext_start,
@@ -40,17 +34,21 @@ pagetable_map_entry_t mmio_pagetable_entries[] = {
              SECTION_SECTION },
 };
 
-void nsec_svc_handler(volatile svc_op_t op, volatile int data) {
-    volatile int r0, r1, r2, r3;
+pagetable_map_entry_t heap_pagetable_entries[] = {
+    {.va = (uint32_t)&secure_memory_heap, .pa = (uint32_t)&secure_memory_heap, 
+     .size = SECTION_SIZE,
+     .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_UNCACHED | 
+             SECTION_P1_RW | SECTION_P0_RW | SECTION_SECTION },
+};
 
+void nsec_svc_handler(volatile svc_op_t op, volatile tztest_svc_desc_t *desc)
+{
     switch (op) {
-        case 0:
-            r0 = 0;
-            r1 = data;
-            __smc(r0, r1, r2, r3);
+        case SVC_DISPATCH_SECURE_USR:
+            nsec_dispatch_secure_usr_function(desc->secure_dispatch.func);
             break;
-        case 1:
-            tztest_nonsecure_smc_test();
+        case SVC_DISPATCH_SECURE_SVC:
+            nsec_dispatch_secure_svc_function(desc->secure_dispatch.func);
             break;
     }
     return;
@@ -58,17 +56,40 @@ void nsec_svc_handler(volatile svc_op_t op, volatile int data) {
 
 void nsec_undef_handler() {
     DEBUG_MSG("Undefined exception taken\n");
-    nsec_exception = CPSR_MODE_UND;
+    tztest_exception = CPSR_MODE_UND;
+    tztest_exception_status = 0;
 }
 
 void nsec_pabort_handler(int status, int addr) {
-    DEBUG_MSG("status = %d\taddress = %d\n", status, addr);
-    nsec_exception = CPSR_MODE_ABT;
+    DEBUG_MSG("status = 0x%x\taddress = 0x%x\n", status, addr);
+    tztest_exception = CPSR_MODE_ABT;
+    tztest_exception_status = status & 0x1f;
 }
 
 void nsec_dabort_handler(int status, int addr) {
-    DEBUG_MSG("status = %d\taddress = %d\n", status, addr);
-    nsec_exception = CPSR_MODE_ABT;
+    DEBUG_MSG("Data Abort: %s\n", FAULT_STR(status & 0x1f));
+    DEBUG_MSG("status = 0x%x\taddress = 0x%x\n", 
+              status & 0x1f, addr);
+    tztest_exception = CPSR_MODE_ABT;
+    tztest_exception_status = status & 0x1f;
+}
+
+void nsec_dispatch_secure_usr_function(void (*func)())
+{
+    volatile int r0 = 0, r2 = 0, r3 = 0;
+
+    DEBUG_MSG("Entered\n");
+    __smc(r0, func, r2, r3);
+    DEBUG_MSG("Exiting\n");
+}
+
+void nsec_dispatch_secure_svc_function(void (*func)())
+{
+    volatile int r0 = 1, r2 = 0, r3 = 0;
+
+    DEBUG_MSG("Entered\n");
+    __smc(r0, func, r2, r3);
+    DEBUG_MSG("Exiting\n");
 }
 
 int tztest_nonsecure_smc_test() 
@@ -94,95 +115,7 @@ void tztest_nonsecure_pagetable_init()
     pagetable_add_sections(table, mmio_pagetable_entries, 1);
     count = sizeof(nsec_pagetable_entries) / sizeof(nsec_pagetable_entries[0]);
     pagetable_add_sections(table, nsec_pagetable_entries,  count);
-}
-
-int tztest_nonsecure_svc_main() 
-{
-    test_desc_t test;
-
-#ifdef MMU_ENABLED
-    // Test: Access to secure memory only allowed from secure mode
-    //      pg. B1-1156
-#endif
-#ifdef VIRT_ENABLED
-    // Test: PL2 and secure not combinable
-    //      pg. B1-1157
-    //      "hyp mode is only available when NS=1"
-    // Test: An axception cannot be taken fromsecure mode to nonsecure (2->1)
-    //      pg  B1-1138
-#endif
-#ifdef SIMD_ENABLED
-    // Test: Check that vector ops are undefined if CPACR/NSACR
-#endif
-    // Test: Check that monitor mode has access to secure resource despite NS
-    //      pg. B1-1140
-    // Test: Check that access to banked regs from mon mode depend on NS
-    // Test: Check that smc takes an exception to monitor mode + secure
-    // Test: Check that code residing in secure memory can't be exec from ns
-    //      pg. B1-1147
-    // Test: Check that CPSR.M unpredictable values don't cause entry to sec
-    //      pg. B1-1150
-    //      NS state -> mon mode
-    //      NSACR.RFR=1 + NS state -> FIQ
-    // Test: SCR.FW/AW protects access to CPSR.F/Aa when nonsecure
-    //      pg. B1-1151
-    //      table B1-2
-    // Test: Check that non-banked (shared) regs match between sec and ns
-    //      pg. B1-1157
-    // Test?: Should e check that SC.NS is deprecated in any mode but mon?
-    //      pg. B1-1157
-    // Test: Check that mon mode is only avail if sec ext. present
-    //      pg. B1-1157
-    // Test: Check that smc is only aval if sec. ext. present
-    //      pg. B1-1157
-    // Test: Check that the SCTLR.V bit is banked allowing mix of vectors
-    //      pg. B1-1158
-    // Test: Check that the low exception vecotr base address is banked
-    //      pg. B1-1158
-    // Test: Check that using SCR aborts/irqs/fiqs are routed to mon mode
-    //      pg. B1-1158
-    // Test: Check that using SCR aborts/irqs/fiqs can be masked
-    //      pg. B1-1158
-    // Test: Check that SCR.SIF/SCD are not restrictive when EL2 not present
-    //      pg. B1-1158
-    // Test: Check that distinct vec tables possible for mon/sPL1/nsPL1
-    //      pg. B1-1165
-    // Test: Check that unused vec tables are not used
-    //      table B1-3
-    // Test: Check that irq/fiq interrupts routed to mon mode use mvbar entry
-    //      pg. B1-1168
-    // Test: Check that an exception from mon mode, NS cleared to 0
-    //      pg. B1-1170
-    // Test: Check that an exception taken from sec state is taken to sec state
-    //      in the default mode for the excp.
-    //      pg. B1-1173
-    // Test: Check that an exception taken from ns state is taken to ns state
-    //      in the default mode for the excp.
-    //      pg. B1-1173
-    // Test: Check that undef exceptions are routed properly
-    //      figure: B1-3
-    // Test: Check that svc exceptions are routed properly
-    //      figure: B1-4
-    // Test: Check that prefetch abort exceptions are routed properly
-    //      figure: B1-6
-    // Test: Check that data abort exceptions are routed properly
-    //      figure: B1-7
-    // Test: Check that IRQ exceptions are routed properly
-    //      figure: B1-8
-    // Test: Check that FIQ exceptions are routed properly
-    //      figure: B1-9
-    // Test: Check that CPSR.A/I.F are set to 1 on exception to mon mode
-    //      pg. B1-1182
-    // Test: Check that on reset if sec et present, starts in sec state
-    //      pg. B1-1204
-    // Note: Unaligned access can cause abort in PMSA
-    //
-    
-    printf("\nPassed %d or %d tests\n", 
-           nsec_test_count - nsec_fail_count, nsec_test_count);
-
-exit:
-    return 0;
+    pagetable_add_sections(table, heap_pagetable_entries,  1);
 }
 
 #if 0

@@ -22,15 +22,6 @@ copy_nsecdata:
 
     mov pc, lr
     
-#if 0
-.word _flash_nsectext_start
-.word _ram_nsectext_start
-.word _nsectext_size
-.word _flash_nsecdata_start
-.word _ram_nsecdata_start
-.word _nsecdata_size
-#endif
-
 .align 5
 /* We use the same vector table for Hyp and Monitor mode, since
  * we will only use each once and they don't overlap.
