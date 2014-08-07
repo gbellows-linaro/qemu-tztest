@@ -12,7 +12,7 @@
  */
 extern int _ram_nsec_base;
 
-void dispatch_secure_usr(int);
+int dispatch_secure_usr(int);
 void tztest_secure_svc_loop(int initial_r0, int initial_r1);
 void *sec_allocate_secure_memory(int);
 extern uint32_t sec_l1_page_table;
@@ -128,31 +128,35 @@ void check_init_mode()
     tztest_test_count++;
 }
 
-void tztest_secure_svc_loop(int initial_r0, int initial_r1)
+void tztest_secure_svc_loop(int initial_op, int initial_data)
 {
-    volatile int r0 = initial_r0, r1 = initial_r1;
-    volatile int r2, r3;
-    static int loopcnt = 0;
-    void (*func)();
+    volatile int op = initial_op;
+    tztest_smc_desc_t *data = (tztest_smc_desc_t *)initial_data;
+    int (*func)();
 
-    while (-1 < r0) {
-        switch (r0) {
-            case 0:
-                dispatch_secure_usr(r1);
-                DEBUG_MSG("Returned from secure USR\n");
-                r0 = 0;
+    DEBUG_MSG("Initial call\n");
+
+    while (SMC_EXIT != op) {
+        switch (op) {
+            case SMC_DISPATCH_SECURE_USR:
+                DEBUG_MSG("Dispatching secure USR function\n");
+                data->secure_dispatch.ret = 
+                    dispatch_secure_usr((int)data->secure_dispatch.func);
+                DEBUG_MSG("Returned from secure USR dispatch\n");
                 break;
-            case 1:
-                func = (void (*)())r1;
-                func();
-                r0 = 0;
+            case SMC_DISPATCH_SECURE_SVC:
+                func = (int (*)())data->secure_dispatch.func;
+                DEBUG_MSG("Dispatching secure SVC function\n");
+                data->secure_dispatch.ret = func();
+                DEBUG_MSG("Returned from secure SVC dispatch\n");
                 break;
-            case 2:
-                r0 = (int)sec_allocate_secure_memory(r1);
+            case SMC_ALLOCATE_SECURE_MEMORY:
+//                op = (int)sec_allocate_secure_memory(data);
                 break;
         }
-        loopcnt++;
-        __smc(r0, r1, r2, r3);
+        DEBUG_MSG("Returning from op 0x%x data 0x%x\n", op, data);
+        __smc(op, data);
+        DEBUG_MSG("Handling smc op 0x%x\n", op);
     } 
 
     DEBUG_MSG("Exiting\n");

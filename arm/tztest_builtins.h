@@ -1,27 +1,26 @@
 #ifndef _TZTEST_BUILTINS_H
 #define _TZTEST_BUILTINS_H
 
+#include "tztest.h"
+
 /* SMC intrinsic
  * Need to enable the security extension on v7 or the assembler will complain
  */
-#define __smc(_op, _indata, _ret, _outdata) \
-    asm volatile (                          \
-        ".arch_extension sec\n"             \
-        "mov r0, %[r0]\n"                   \
-        "mov r1, %[r1]\n"                   \
-        "mov r2, %[r2]\n"                   \
-        "mov r3, %[r3]\n"                   \
-        "smc 0\n"                           \
-        : [r0] "+r" (_op), [r1] "+r" (_indata), \
-          [r2] "=r" (_ret), [r3] "=r" (_outdata)  \
+#define __smc(_op, _data)                       \
+    asm volatile (                              \
+        ".arch_extension sec\n"                 \
+        "mov r0, %[r0]\n"                       \
+        "mov r1, %[r1]\n"                       \
+        "smc 0\n"                               \
+        : [r0] "+r" (_op), [r1] "+r" (_data)    \
     )
 
-#define __svc(_r0, _r1)                     \
-    asm volatile (                          \
-        "mov r0, %[r0]\n"                   \
-        "mov r1, %[r1]\n"                   \
-        "svc 0\n"                           \
-        : : [r0] "r" (_r0), [r1] "r" (_r1)  \
+#define __svc(_op, _indata)                     \
+    asm volatile (                              \
+        "mov r0, %[r0]\n"                       \
+        "mov r1, %[r1]\n"                       \
+        "svc 0\n"                               \
+        : : [r0] "r" (_op), [r1] "r" (_indata)  \
     )
 #define __cps(_r0) asm volatile ("cps %[r0]\n":: [r0] "X" (_r0))
 

@@ -2,6 +2,8 @@
 
 .arch_extension sec
 
+.equ SVC_RETURN_FROM_SECURE_USR, 0x0
+
 .align 5
 /* We use the same vector table for Hyp and Monitor mode, since
  * we will only use each once and they don't overlap.
@@ -41,8 +43,9 @@ secure_svc_vec:
      * Otherwise, route handling to the secure svc_handler.  This is the case
      * where we came from secure usr mode.
      */
-    cmp r0, #0x0
+    cmp r0, #SVC_RETURN_FROM_SECURE_USR
     bne 1f 
+    mov r0, r1
     pop {pc}
 1:
     srsdb sp!, #CPSR_MODE_SVC

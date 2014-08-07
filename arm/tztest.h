@@ -6,14 +6,15 @@
 #define STDOUT 1
 
 typedef enum {
-    SMC_SET_SECURE_STATE = 0,
-    SMC_TEST,
-    SMC_CATCH,
-    SMC_NOOP
+    SMC_DISPATCH_SECURE_USR = 0x32000000,
+    SMC_DISPATCH_SECURE_SVC,
+    SMC_ALLOCATE_SECURE_MEMORY,
+    SMC_EXIT 
 } smc_op_t;
 
 typedef enum {
-    SVC_DISPATCH_SECURE_USR = 0,
+    SVC_RETURN_FROM_SECURE_USR = 0,
+    SVC_DISPATCH_SECURE_USR,
     SVC_DISPATCH_SECURE_SVC,
 } svc_op_t;
 
@@ -21,9 +22,19 @@ typedef struct {
     union {
         struct {
             void (*func)();
+            int ret;
         } secure_dispatch;
     };
 } tztest_svc_desc_t;
+
+typedef struct {
+    union {
+        struct {
+            void (*func)();
+            int ret;
+        } secure_dispatch;
+    };
+} tztest_smc_desc_t;
 
 #ifdef DEBUG
 #define DEBUG_MSG(_str, ...) \

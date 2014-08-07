@@ -92,27 +92,32 @@ void tztest_secure_usr_test1()
     DEBUG_MSG("Entered\n");
     __svc(1,0);
     DEBUG_MSG("Exiting\n");
-    RETURN(0);
+    RETURN(0xdeadbabe);
 }
 
-void tztest_secure_svc_test1()
+int tztest_secure_svc_test1()
 {
     DEBUG_MSG("Entered\n");
     DEBUG_MSG("Exiting\n");
+    return 0xdeaddead;
 }
 
 void P0_secure_check()
 {
     tztest_svc_desc_t desc;
-    desc.secure_dispatch.func = P0_secure_check_register_access;
+    desc.secure_dispatch.func = tztest_secure_usr_test1;
+    DEBUG_MSG("Entered\n");
     __svc(SVC_DISPATCH_SECURE_USR, &desc);
+    DEBUG_MSG("Exiting desc.ret = 0x%x\n", desc.secure_dispatch.ret);
 }
 
 void P1_secure_check()
 {
     tztest_svc_desc_t desc;
     desc.secure_dispatch.func = tztest_secure_svc_test1;
+    DEBUG_MSG("Entered\n");
     __svc(SVC_DISPATCH_SECURE_SVC, &desc);
+    DEBUG_MSG("Exiting desc.ret = 0x%x\n", desc.secure_dispatch.ret);
 }
 
 void tztest_nonsecure_usr_main()
@@ -123,10 +128,10 @@ void tztest_nonsecure_usr_main()
     P0_nonsecure_check_register_access();
     P0_nonsecure_check_memory_access();
 
-    //P0_secure_check();
-    //P1_secure_check();
+    P0_secure_check();
+    P1_secure_check();
 
-    printf("Validation complete.  Passed %d of %d tests\n", 
+    printf("\nValidation complete.  Passed %d of %d tests\n", 
            tztest_test_count-tztest_fail_count, tztest_test_count);
 
     DEBUG_MSG("Exiting\n");
