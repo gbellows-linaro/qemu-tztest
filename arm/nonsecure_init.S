@@ -1,4 +1,8 @@
 #include <arm32.h>
+#include <platform.h>
+
+.equ SVC_EXIT, -1
+
 b nonsecure_vectors
 
 nonsecure_load:
@@ -10,7 +14,7 @@ copy_nsectext:
     strb r10, [r1], #1
     subs r2, r2, #1
     bne copy_nsectext
-    
+
     ldr r0, =_flash_nsecdata_start
     ldr r1, =_ram_nsecdata_start
     ldr r2, =_nsecdata_size
@@ -21,7 +25,7 @@ copy_nsecdata:
     bne copy_nsecdata
 
     mov pc, lr
-    
+
 .align 5
 /* We use the same vector table for Hyp and Monitor mode, since
  * we will only use each once and they don't overlap.
@@ -106,7 +110,7 @@ nonsecure_mmu_init:
     /* This function will return the initialized base address */
     bl tztest_nonsecure_pagetable_init
 
-    /* Set TTBR0 to the initialized address plus enable shareable write-back 
+    /* Set TTBR0 to the initialized address plus enable shareable write-back
      * write-allocate.
      */
     ldr r10, =nsec_l1_page_table
@@ -128,6 +132,8 @@ nonsecure_mmu_init:
     cps #CPSR_MODE_USR
 
 	bl      tztest_nonsecure_usr_main
-	
-end:	
+
+end:
+    mov r0, #SVC_EXIT
+    svc #0
     b      end

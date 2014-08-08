@@ -1,4 +1,5 @@
 #include <arm32.h>
+#include <platform.h>
 
 .arch_extension sec
 
@@ -130,9 +131,13 @@ secure_init_monitor:
 
     bl tztest_secure_svc_loop
 
-	/* If we get here we are on the way out */
+	/* If we get here we are on the way out, poweroff the device */
 end:
-    b      end
+    ldr r0, =SYSREG_BASE
+    add r0, r0, #SYSREG_CFGCTRL
+    ldr r1, =SYS_SHUTDOWN
+    str r1, [r0]
+    b end
 
     .globl dispatch_secure_usr
 dispatch_secure_usr:

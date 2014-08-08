@@ -9,13 +9,14 @@ typedef enum {
     SMC_DISPATCH_SECURE_USR = 0x32000000,
     SMC_DISPATCH_SECURE_SVC,
     SMC_ALLOCATE_SECURE_MEMORY,
-    SMC_EXIT
+    SMC_EXIT = -1
 } smc_op_t;
 
 typedef enum {
     SVC_RETURN_FROM_SECURE_USR = 0,
     SVC_DISPATCH_SECURE_USR,
     SVC_DISPATCH_SECURE_SVC,
+    SVC_EXIT = -1
 } svc_op_t;
 
 typedef struct {

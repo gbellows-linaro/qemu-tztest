@@ -68,8 +68,11 @@ void nsec_svc_handler(volatile svc_op_t op, volatile tztest_svc_desc_t *desc)
             DEBUG_MSG("Returning from secure svc function, ret = 0x%x\n",
                       desc->secure_dispatch.ret);
             break;
+        case SVC_EXIT:
+            op = SMC_EXIT;
+            __smc(op, ret);
+            break;
     }
-    return;
 }
 
 void nsec_undef_handler() {
