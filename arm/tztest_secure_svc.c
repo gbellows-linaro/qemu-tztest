@@ -18,35 +18,49 @@ void *sec_allocate_secure_memory(int);
 extern uint32_t sec_l1_page_table;
 extern uint32_t _ram_sectext_start;
 extern uint32_t _ram_secdata_start;
-volatile int tztest_exception;
-volatile int tztest_exception_status;
-volatile int tztest_test_count;
-volatile int tztest_fail_count;
+extern uint32_t _shared_memory_heap_base;
+extern uint32_t _common_memory_heap_base;
+extern volatile int _tztest_exception;
+extern volatile int _tztest_exception_status;
+extern volatile int _tztest_test_count;
+extern volatile int _tztest_fail_count;
+volatile int *tztest_test_count = &_tztest_test_count;
+volatile int *tztest_fail_count = &_tztest_fail_count;
+volatile int *tztest_exception = &_tztest_exception;
+volatile int *tztest_exception_status = &_tztest_exception_status;
 
 pagetable_map_entry_t sec_pagetable_entries[] = {
     {.va = (uint32_t)&_ram_sectext_start, .pa = (uint32_t)&_ram_sectext_start,
      .size = SECTION_SIZE,
-     .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_WBA_CACHED | 
+     .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_WBA_CACHED |
              SECTION_P1_RO | SECTION_P0_RO | SECTION_SECTION },
-    {.va = (uint32_t)&_ram_secdata_start, .pa = (uint32_t)&_ram_secdata_start, 
+    {.va = (uint32_t)&_ram_secdata_start, .pa = (uint32_t)&_ram_secdata_start,
      .size = SECTION_SIZE * 2,
-     .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_WBA_CACHED | 
+     .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_WBA_CACHED |
              SECTION_P1_RW | SECTION_P0_RW | SECTION_SECTION },
 };
 
 pagetable_map_entry_t nsec_pagetable_entries[] = {
-    {.va = (uint32_t)&_ram_nsec_base, .pa = (uint32_t)&_ram_nsec_base, 
+    {.va = (uint32_t)&_ram_nsec_base, .pa = (uint32_t)&_ram_nsec_base,
      .size = SECTION_SIZE * 2,
-     .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_WBA_CACHED | 
+     .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_WBA_CACHED |
              SECTION_P1_RW | SECTION_P0_RW | SECTION_NONSECURE |
-             SECTION_SECTION }, 
+             SECTION_SECTION },
 };
 
 pagetable_map_entry_t mmio_pagetable_entries[] = {
     {.va = UART0_BASE, .pa = UART0_BASE, .size = SECTION_SIZE,
-     .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_UNCACHED | 
+     .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_UNCACHED |
              SECTION_P1_RW | SECTION_P0_RW | SECTION_NONSECURE |
              SECTION_SECTION },
+};
+
+pagetable_map_entry_t heap_pagetable_entries[] = {
+    {.va = (uint32_t)&_shared_memory_heap_base,
+     .pa = (uint32_t)&_shared_memory_heap_base,
+     .size = SECTION_SIZE,
+     .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_UNCACHED |
+             SECTION_P1_RW | SECTION_P0_RW | SECTION_SECTION },
 };
 
 void sec_svc_handler(svc_op_t op, int data) {
@@ -61,17 +75,22 @@ void sec_svc_handler(svc_op_t op, int data) {
 
 void sec_undef_handler() {
     DEBUG_MSG("Undefined exception taken\n");
-    tztest_exception = CPSR_MODE_UND;
+    *tztest_exception = CPSR_MODE_UND;
+    *tztest_exception_status = 0;
 }
 
 void sec_pabort_handler(int status, int addr) {
-    DEBUG_MSG("status = %x\taddress = %x\n", status, addr);
-    tztest_exception = CPSR_MODE_ABT;
+    DEBUG_MSG("status = 0x%x\taddress = 0x%x\n", status, addr);
+    *tztest_exception = CPSR_MODE_ABT;
+    *tztest_exception_status = status & 0x1f;
 }
 
 void sec_dabort_handler(int status, int addr) {
-    DEBUG_MSG("status = %x\taddress = %x\n", status, addr);
-    tztest_exception = CPSR_MODE_ABT;
+    DEBUG_MSG("Data Abort: %s\n", FAULT_STR(status & 0x1f));
+    DEBUG_MSG("status = 0x%x\taddress = 0x%x\n",
+              status & 0x1f, addr);
+    *tztest_exception = CPSR_MODE_ABT;
+    *tztest_exception_status = status & 0x1f;
 }
 
 int secure_test_var = 42;
@@ -85,11 +104,11 @@ void *sec_allocate_secure_memory(int len)
     return &secure_test_var;
 }
 
-void check_init_mode() 
+void check_init_mode()
 {
     printf("\nValidating startup state:\n");
 
-    printf("\tSecurity extension supported...");
+    printf("\tChecking for security extension ...");
     int idpfr1 = 0;
     /* Read the ID_PFR1 CP register and check that it is marked for support of
      * the security extension.
@@ -97,35 +116,32 @@ void check_init_mode()
     __mrc(15, 0, idpfr1, 0, 1, 1);
     if (0x10 != (idpfr1 & 0xf0)) {
         printf("FAILED\n");
-        DEBUG_MSG("current IDPFR1 (%d) != expected IDPFR1 (%d)\n", 
+        DEBUG_MSG("current IDPFR1 (%d) != expected IDPFR1 (%d)\n",
                   (idpfr1 & 0xf0), 0x10);
-        tztest_fail_count++;
+        assert(0x10 == (idpfr1 & 0xf0));
     } else {
         printf("PASSED\n");
     }
-    tztest_test_count++;
 
-    printf("\tInitial processor mode... ");
+    printf("\tChecking initial processor mode... ");
     if (CPSR_MODE_SVC != (_read_cpsr() & 0x1f)) {
         printf("FAILED\n");
-        DEBUG_MSG("current CPSR (%d) != expected CPSR (%d)\n", 
+        DEBUG_MSG("current CPSR (%d) != expected CPSR (%d)\n",
                   (_read_cpsr() & 0x1f), CPSR_MODE_SVC);
-        tztest_fail_count++;
+        assert(CPSR_MODE_SVC == (_read_cpsr() & 0x1f));
     } else {
         printf("PASSED\n");
     }
-    tztest_test_count++;
 
-    printf("\tInitial security state... ");
+    printf("\tChecking initial security state... ");
     if (0 != (_read_scr() & SCR_NS)) {
         printf("Failed\n");
-        DEBUG_MSG("current SCR.NS (%d) != expected SCR.NS (%d)\n", 
+        DEBUG_MSG("current SCR.NS (%d) != expected SCR.NS (%d)\n",
                   (_read_cpsr() & SCR_NS), 0);
-        tztest_fail_count++;
+        assert(0 == (_read_scr() & SCR_NS));
     } else {
         printf("PASSED\n");
     }
-    tztest_test_count++;
 }
 
 void tztest_secure_svc_loop(int initial_op, int initial_data)
@@ -140,7 +156,7 @@ void tztest_secure_svc_loop(int initial_op, int initial_data)
         switch (op) {
             case SMC_DISPATCH_SECURE_USR:
                 DEBUG_MSG("Dispatching secure USR function\n");
-                data->secure_dispatch.ret = 
+                data->secure_dispatch.ret =
                     dispatch_secure_usr((int)data->secure_dispatch.func);
                 DEBUG_MSG("Returned from secure USR dispatch\n");
                 break;
@@ -157,7 +173,7 @@ void tztest_secure_svc_loop(int initial_op, int initial_data)
         DEBUG_MSG("Returning from op 0x%x data 0x%x\n", op, data);
         __smc(op, data);
         DEBUG_MSG("Handling smc op 0x%x\n", op);
-    } 
+    }
 
     DEBUG_MSG("Exiting\n");
 }
@@ -174,6 +190,7 @@ void tztest_secure_pagetable_init()
     pagetable_add_sections(table, sec_pagetable_entries, count);
     count = sizeof(nsec_pagetable_entries) / sizeof(nsec_pagetable_entries[0]);
     pagetable_add_sections(table, nsec_pagetable_entries, 1);
+    pagetable_add_sections(table, heap_pagetable_entries, 1);
 }
 
 void tztest_secure_svc_init_monitor()
@@ -181,7 +198,9 @@ void tztest_secure_svc_init_monitor()
     struct sm_nsec_ctx *nsec_ctx;
     struct sm_sec_ctx *sec_ctx;
 
+#ifdef DEBUG
     check_init_mode();
+#endif
 
     sm_init(0);
 

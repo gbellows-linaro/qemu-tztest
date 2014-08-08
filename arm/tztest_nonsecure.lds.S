@@ -44,13 +44,21 @@ SECTIONS
  nsec_abt_stacktop = nsec_und_stacktop + STACK_SIZE;
  nsec_svc_stacktop = nsec_und_stacktop + STACK_SIZE;
 
- . = ALIGN(1M);
- common_memory_heap = .;
-
- . = ALIGN(1M);
- secure_memory_heap = .;
-
  . = ALIGN(16M);
  nsec_l1_page_table = .;
 
+ . = TZTEST_COMMON_HEAP_BASE;
+ _common_memory_heap_base = .;
+
+ . = TZTEST_SHARED_HEAP_BASE;
+ _shared_memory_heap_base = .;
+ . += 4;
+ _tztest_test_count = .;
+ . += 4;
+ _tztest_fail_count = .;
+ . += 4;
+ _tztest_exception = .;
+ . += 4;
+ _tztest_exception_status = .;
+ . += 4;
 }

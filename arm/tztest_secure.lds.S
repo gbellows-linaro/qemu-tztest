@@ -13,6 +13,8 @@ TARGET(binary)
 
 #include "platform.h"
 
+_ram_nsec_base = RAM_NSEC_BASE;
+
 SECTIONS
 {
  . = FLASH_SEC_BASE;
@@ -45,14 +47,23 @@ SECTIONS
  mon_stacktop = sec_svc_stacktop + STACK_SIZE;
 
  . = ALIGN(1M);
- common_memory_heap = .;
-
- . = ALIGN(1M);
  secure_memory_heap = .;
 
  . = ALIGN(16M);
  sec_l1_page_table = .;
 
- 
- _ram_nsec_base = RAM_NSEC_BASE;
+ . = TZTEST_COMMON_HEAP_BASE;
+ _common_memory_heap_base = .;
+
+ . = TZTEST_SHARED_HEAP_BASE;
+ _shared_memory_heap_base = .;
+ . += 4;
+ _tztest_test_count = .;
+ . += 4;
+ _tztest_fail_count = .;
+ . += 4;
+ _tztest_exception = .;
+ . += 4;
+ _tztest_exception_status = .;
+ . += 4;
 }

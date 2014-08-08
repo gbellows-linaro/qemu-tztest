@@ -19,8 +19,9 @@ secure_vectors:
 	.word 0 /* fiq */
 
 secure_undef_vec:
+    srsdb sp!, #CPSR_MODE_UND
     bl sec_undef_handler
-    mov pc, lr
+    rfefd sp!
 
 secure_pabort_vec:
     mrc p15, 0, r0, c5, c0, 1       /* IFSR */
@@ -44,7 +45,7 @@ secure_svc_vec:
      * where we came from secure usr mode.
      */
     cmp r0, #SVC_RETURN_FROM_SECURE_USR
-    bne 1f 
+    bne 1f
     mov r0, r1
     pop {pc}
 1:
@@ -101,7 +102,7 @@ secure_mmu_init:
     /* Set-up the initial secure page tables */
     bl tztest_secure_pagetable_init
 
-    /* Set TTBR0 to the initialized address plus enable shareable write-back 
+    /* Set TTBR0 to the initialized address plus enable shareable write-back
      * write-allocate.
      */
     ldr r10, =sec_l1_page_table
@@ -130,13 +131,13 @@ secure_init_monitor:
     bl tztest_secure_svc_loop
 
 	/* If we get here we are on the way out */
-end:	
+end:
     b      end
 
     .globl dispatch_secure_usr
 dispatch_secure_usr:
     /* Push the LR onto the stack so we can return immediately from the svc
-     * handler on return.  
+     * handler on return.
      */
     push {lr}
 

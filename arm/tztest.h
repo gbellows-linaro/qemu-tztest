@@ -9,7 +9,7 @@ typedef enum {
     SMC_DISPATCH_SECURE_USR = 0x32000000,
     SMC_DISPATCH_SECURE_SVC,
     SMC_ALLOCATE_SECURE_MEMORY,
-    SMC_EXIT 
+    SMC_EXIT
 } smc_op_t;
 
 typedef enum {
@@ -21,7 +21,7 @@ typedef enum {
 typedef struct {
     union {
         struct {
-            void (*func)();
+            int (*func)();
             int ret;
         } secure_dispatch;
     };
@@ -30,7 +30,7 @@ typedef struct {
 typedef struct {
     union {
         struct {
-            void (*func)();
+            int (*func)();
             int ret;
         } secure_dispatch;
     };
@@ -41,7 +41,7 @@ typedef struct {
     printf("\n[DEBUG] %s: " _str, __FUNCTION__, ##__VA_ARGS__)
 #else
 #define DEBUG_MSG(_str, ...)
-#endif  
+#endif
 
 #define MODE_STR(_mode)             \
     ((_mode == MON) ? "MON" :        \
@@ -70,25 +70,25 @@ typedef struct {
      (0x1e == (_s)) ? "External parity err on table walk" : \
      "Unknown")
 
-void smc_handler(smc_op_t, int) __attribute__ ((interrupt ("SWI")));
-void svc_handler(svc_op_t, int) __attribute__ ((interrupt ("SWI")));
-void undef_handler() __attribute__ ((interrupt ("UNDEF")));
-extern volatile int tztest_exception;
-extern volatile int tztest_exception_status;
-extern volatile int tztest_fail_count;
-extern volatile int tztest_test_count;
+extern volatile int *tztest_exception;
+extern volatile int *tztest_exception_status;
+extern volatile int *tztest_fail_count;
+extern volatile int *tztest_test_count;
+
+#define INC_TEST_COUNT()    (*tztest_test_count += 1)
+#define INC_FAIL_COUNT()    (*tztest_fail_count += 1)
 
 #define TEST_EXCP_COND(_fn, _excp, _op)             \
     do {                                            \
         _fn;                                        \
-        if (tztest_exception _op _excp) {           \
+        if (*tztest_exception _op _excp) {          \
             printf("PASSED\n");                     \
         } else {                                    \
             printf("FAILED\n");                     \
-            tztest_fail_count++;                    \
+            INC_FAIL_COUNT();                       \
         }                                           \
-        tztest_exception = 0;                       \
-        tztest_test_count++;                        \
+        *tztest_exception = 0;                      \
+        INC_TEST_COUNT();                           \
     } while (0)
 
 #define TEST_EXCP_COND_AND_STATUS(_fn, _prefix, _excp, _stat, _op)  \

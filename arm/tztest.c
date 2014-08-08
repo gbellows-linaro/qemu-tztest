@@ -5,25 +5,34 @@
 #define CALL(_f)  __svc(0, _f)
 #define RETURN(_r)  __svc(0,(_r))
 
+#define EXEC_SECURE(_op, _func, _ret)           \
+    do {                                        \
+        tztest_svc_desc_t _desc;                \
+        _desc.secure_dispatch.func = (_func);   \
+        __svc((_op), &_desc);                   \
+        (_ret) = _desc.secure_dispatch.ret;     \
+    } while(0)
+
+#define EXEC_SECURE_USR(_func, _ret)            \
+        EXEC_SECURE(SVC_DISPATCH_SECURE_USR, (_func), (_ret))
+#define EXEC_SECURE_SVC(_func, _ret)            \
+        EXEC_SECURE(SVC_DISPATCH_SECURE_SVC, (_func), (_ret))
+
 /* Make the below globals volatile as  found that the compiler uses the
  * register value ratherh than the memory value making it look like the writes
  * actually happened.
  */
-volatile int tztest_exception = 0;
-volatile int tztest_exception_status = 0;
-volatile int tztest_fail_count = 0;
-volatile int tztest_test_count = 0;
-extern uint32_t secure_memory_heap;
+extern uint32_t _shared_memory_heap_base;
 
 void P0_nonsecure_check_smc()
 {
     printf("\nValidating non-secure P0 smc behavior:\n");
     printf("\tUnprivileged P0 smc call ... ");
-    TEST_EXCP_COND(asm volatile (".arch_extension sec\n" "smc #0\n"), 
+    TEST_EXCP_COND(asm volatile (".arch_extension sec\n" "smc #0\n"),
                    CPSR_MODE_UND, ==);
 }
 
-void P0_nonsecure_check_register_access() 
+void P0_nonsecure_check_register_access()
 {
     /* Set things to non-secure P1 and attempt accesses */
     printf("\nValidating non-secure P0 restricted register access:\n");
@@ -50,7 +59,7 @@ void P0_nonsecure_check_register_access()
     TEST_EXCP_COND(_write_nsacr(0), CPSR_MODE_UND, ==);
 }
 
-void P0_secure_check_register_access() 
+int P0_secure_check_register_access()
 {
     /* Set things to non-secure P1 and attempt accesses */
     printf("\nValidating secure P0 restricted register access:\n");
@@ -75,6 +84,8 @@ void P0_secure_check_register_access()
 
     printf("\tSecure P0 NSACR write ... ");
     TEST_EXCP_COND(_write_nsacr(0), CPSR_MODE_UND, ==);
+
+    RETURN(0);
 }
 
 void P0_nonsecure_check_memory_access()
@@ -82,57 +93,70 @@ void P0_nonsecure_check_memory_access()
     tztest_svc_desc_t desc;
     printf("\nValidating non-secure P0 restricted memory access:\n");
 
-    DEBUG_MSG("Writing %p\n", &secure_memory_heap);
-    *(uint32_t *)&secure_memory_heap = 42;
-
+    DEBUG_MSG("Writing %p\n", &_shared_memory_heap_base);
+    *(uint32_t *)&_shared_memory_heap_base = 42;
 }
 
-void tztest_secure_usr_test1()
+#define TZTEST_SECURE_USR_PATTERN 0x87654321
+#define TZTEST_SECURE_SVC_PATTERN 0x12345678
+int tztest_secure_usr_test1()
 {
     DEBUG_MSG("Entered\n");
     __svc(1,0);
     DEBUG_MSG("Exiting\n");
-    RETURN(0xdeadbabe);
+    RETURN(TZTEST_SECURE_USR_PATTERN);
 }
 
 int tztest_secure_svc_test1()
 {
     DEBUG_MSG("Entered\n");
     DEBUG_MSG("Exiting\n");
-    return 0xdeaddead;
+    return TZTEST_SECURE_SVC_PATTERN;
 }
 
-void P0_secure_check()
+void tztest_check_secure_usr_handshake()
 {
-    tztest_svc_desc_t desc;
-    desc.secure_dispatch.func = tztest_secure_usr_test1;
-    DEBUG_MSG("Entered\n");
-    __svc(SVC_DISPATCH_SECURE_USR, &desc);
-    DEBUG_MSG("Exiting desc.ret = 0x%x\n", desc.secure_dispatch.ret);
+    uint32_t ret = 0;
+    EXEC_SECURE_USR(tztest_secure_usr_test1, ret);
+
+    if (TZTEST_SECURE_USR_PATTERN != ret) {
+        DEBUG_MSG("\n***** Failed secure usr handshake *****\n");
+        assert(TZTEST_SECURE_USR_PATTERN == ret);
+    }
 }
 
-void P1_secure_check()
+void tztest_check_secure_svc_handshake()
 {
-    tztest_svc_desc_t desc;
-    desc.secure_dispatch.func = tztest_secure_svc_test1;
-    DEBUG_MSG("Entered\n");
-    __svc(SVC_DISPATCH_SECURE_SVC, &desc);
-    DEBUG_MSG("Exiting desc.ret = 0x%x\n", desc.secure_dispatch.ret);
+    uint32_t ret = 0;
+    EXEC_SECURE_SVC(tztest_secure_svc_test1, ret);
+
+    if (TZTEST_SECURE_SVC_PATTERN != ret) {
+        DEBUG_MSG("\n***** Failed secure svc handshake *****\n");
+        assert(TZTEST_SECURE_SVC_PATTERN == ret);
+    }
 }
 
 void tztest_nonsecure_usr_main()
 {
+    int ret = 0;
+
     DEBUG_MSG("Entered\n");
+    *tztest_test_count = 0;
+    *tztest_fail_count = 0;
 
     P0_nonsecure_check_smc();
     P0_nonsecure_check_register_access();
-    P0_nonsecure_check_memory_access();
+//    P0_nonsecure_check_memory_access();
 
-    P0_secure_check();
-    P1_secure_check();
+#ifdef DEBUG
+    tztest_check_secure_usr_handshake();
+    tztest_check_secure_svc_handshake();
+#endif
 
-    printf("\nValidation complete.  Passed %d of %d tests\n", 
-           tztest_test_count-tztest_fail_count, tztest_test_count);
+    EXEC_SECURE_USR(P0_secure_check_register_access, ret);
+
+    printf("\nValidation complete.  Passed %d of %d tests\n",
+           *tztest_test_count-*tztest_fail_count, *tztest_test_count);
 
     DEBUG_MSG("Exiting\n");
 }
