@@ -63,10 +63,19 @@ pagetable_map_entry_t heap_pagetable_entries[] = {
              SECTION_P1_RW | SECTION_P0_RW | SECTION_SECTION },
 };
 
-void sec_svc_handler(svc_op_t op, int data) {
+void sec_svc_handler(volatile svc_op_t op, volatile tztest_svc_desc_t *desc)
+{
     DEBUG_MSG("Entered\n");
     switch (op) {
-        case 1:
+        case SVC_READ_REG:
+            desc->reg_read.val = tztest_read_register(desc->reg_read.reg);
+            break;
+        case SVC_CHECK_SECURE_STATE:
+            /* This SVC handler is only accessible from the secure vector
+             * table, so unless something went drastically wrong with the
+             * tables, it should be safe to assume we are in a nonsecure state.
+             */
+            desc->secure_state.state = TZTEST_STATE_SECURE;
             break;
     }
     DEBUG_MSG("Exiting\n");

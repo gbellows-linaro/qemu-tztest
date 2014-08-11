@@ -4,11 +4,14 @@
 #include <arm32.h>
 
 #define STDOUT 1
+#define TZTEST_STATE_SECURE !SCR_NS
+#define TZTEST_STATE_NONSECURE SCR_NS
 
 typedef enum {
     SMC_DISPATCH_SECURE_USR = 0x32000000,
     SMC_DISPATCH_SECURE_SVC,
     SMC_ALLOCATE_SECURE_MEMORY,
+    SMC_READ_REG,
     SMC_EXIT = -1
 } smc_op_t;
 
@@ -16,17 +19,15 @@ typedef enum {
     SVC_RETURN_FROM_SECURE_USR = 0,
     SVC_DISPATCH_SECURE_USR,
     SVC_DISPATCH_SECURE_SVC,
+    SVC_READ_REG,
+    SVC_CHECK_SECURE_STATE,
     SVC_EXIT = -1
 } svc_op_t;
 
-typedef struct {
-    union {
-        struct {
-            int (*func)();
-            int ret;
-        } secure_dispatch;
-    };
-} tztest_svc_desc_t;
+typedef enum {
+    TZTEST_REG_CPSR = 1,
+    TZTEST_REG_SCR
+} tztest_reg_t;
 
 typedef struct {
     union {
@@ -34,6 +35,28 @@ typedef struct {
             int (*func)();
             int ret;
         } secure_dispatch;
+        struct {
+            int reg;
+            int val;
+        } reg_read;
+        struct {
+            int state;
+        } secure_state;
+    };
+} tztest_svc_desc_t;
+
+#define CLEAR_SVC_DESC(_desc) memset(&(_desc), sizeof(tztest_svc_desc_t), 0)
+
+typedef struct {
+    union {
+        struct {
+            int (*func)();
+            int ret;
+        } secure_dispatch;
+        struct {
+            int reg;
+            int val;
+        } reg_read;
     };
 } tztest_smc_desc_t;
 
@@ -75,6 +98,9 @@ extern volatile int *tztest_exception;
 extern volatile int *tztest_exception_status;
 extern volatile int *tztest_fail_count;
 extern volatile int *tztest_test_count;
+extern int tztest_read_register(tztest_reg_t);
+extern int tztest_get_saved_cpsr();
+extern void validate_state(int, int);
 
 #define INC_TEST_COUNT()    (*tztest_test_count += 1)
 #define INC_FAIL_COUNT()    (*tztest_fail_count += 1)

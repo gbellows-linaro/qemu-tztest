@@ -13,7 +13,8 @@ TZSECOBJS		= $(ARCH)/secure_init.o \
 TZNSECOBJS		= $(ARCH)/nonsecure_init.o \
 			  	  $(ARCH)/tztest_nonsecure_svc.o \
 			  	  $(ARCH)/tztest.o
-TZOBJS			= $(ARCH)/tztest_mmu.o
+TZOBJS			= $(ARCH)/tztest_mmu.o \
+                  $(ARCH)/tztest_common.o
 LIBCFLAT_OBJS	+= $(LIBCFLAT_objdir)/devicetree.o \
 			  	   $(LIBCFLAT_objdir)/virtio.o \
 			  	   $(LIBCFLAT_objdir)/virtio-testdev.o \
@@ -39,16 +40,16 @@ $(SECTEST): $(TZSECOBJS) $(COMMON) $(TZSECLOAD) $(TZNSECLOAD) $(TZBOOT)
 	$(LD) -o $@ $(TZSECOBJS) $(COMMON) --script=$(TZSECLOAD)
 
 $(SECTESTIMAGE): $(SECTEST)
-	$(OBJCOPY) -O binary $(SECTEST) $(SECTESTIMAGE) 
+	$(OBJCOPY) -O binary $(SECTEST) $(SECTESTIMAGE)
 
 $(NSECTEST): $(TZNSECOBJS) $(COMMON) $(TZNSECLOAD) $(TZSECLOAD)
 	$(LD) -o $@ $(TZNSECOBJS) $(COMMON) --script=$(TZNSECLOAD)
 
 $(NSECTESTIMAGE): $(NSECTEST)
-	$(OBJCOPY) -O binary $(NSECTEST) $(NSECTESTIMAGE) 
+	$(OBJCOPY) -O binary $(NSECTEST) $(NSECTESTIMAGE)
 
 $(TZTEST_IMAGE): $(SECTESTIMAGE) $(NSECTESTIMAGE)
-	dd if=$(SECTESTIMAGE) of=$@ 2> /dev/null 
+	dd if=$(SECTESTIMAGE) of=$@ 2> /dev/null
 	dd if=$(NSECTESTIMAGE) of=$@ seek=65536 oflag=seek_bytes 2> /dev/null
 	chmod +x $(TZTEST_IMAGE)
 
@@ -67,7 +68,7 @@ $(TZNSECLOAD): $(ARCH)/tztest_nonsecure.lds.S Makefile platform/$(PLAT)/
 $(libeabi): $(eabiobjs)
 	$(AR) rcs $@ $^
 
-arch_clean: libeabi_clean 
+arch_clean: libeabi_clean
 	$(RM) $(TZOBJS) $(TZSECOBJS) $(TZNSECOBJS) \
 		  $(TZSECLOAD) $(TZNSECLOAD) $(TZBOOT) \
 		  $(SECTEST) $(SECTESTIMAGE) $(NSECTEST) $(NSECTESTIMAGE) \

@@ -26,6 +26,7 @@ extern uint32_t _shared_memory_heap_base;
 
 void P0_nonsecure_check_smc()
 {
+    validate_state(CPSR_MODE_USR, TZTEST_STATE_NONSECURE);
     printf("\nValidating non-secure P0 smc behavior:\n");
     printf("\tUnprivileged P0 smc call ... ");
     TEST_EXCP_COND(asm volatile (".arch_extension sec\n" "smc #0\n"),
@@ -34,6 +35,8 @@ void P0_nonsecure_check_smc()
 
 void P0_nonsecure_check_register_access()
 {
+    validate_state(CPSR_MODE_USR, TZTEST_STATE_NONSECURE);
+
     /* Set things to non-secure P1 and attempt accesses */
     printf("\nValidating non-secure P0 restricted register access:\n");
 
@@ -61,6 +64,8 @@ void P0_nonsecure_check_register_access()
 
 int P0_secure_check_register_access()
 {
+    validate_state(CPSR_MODE_USR, TZTEST_STATE_SECURE);
+
     /* Set things to non-secure P1 and attempt accesses */
     printf("\nValidating secure P0 restricted register access:\n");
 
@@ -90,6 +95,8 @@ int P0_secure_check_register_access()
 
 void P0_nonsecure_check_memory_access()
 {
+    validate_state(CPSR_MODE_USR, TZTEST_STATE_NONSECURE);
+
     tztest_svc_desc_t desc;
     printf("\nValidating non-secure P0 restricted memory access:\n");
 

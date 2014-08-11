@@ -27,6 +27,11 @@
 #define __mrs(_r0, _reg) asm volatile ("mrs %[r0], "#_reg"\n" : [r0] "=r" (_r0))
 #define __msr(_reg, _r0) asm volatile ("msr "#_reg", %[r0]\n" :: [r0] "r" (_r0))
 
+#define __srsdb_svc(_mode) asm volatile ("srsdb sp!, #0x13\n")
+
+#define __pop(_r0) \
+    asm volatile ("pop {%[r0]}\n" : [r0] "=r" (_r0))
+
 #define __mrc(_cp, _opc1, _r0, _crm, _crn, _opc2)                           \
     asm volatile (                                                          \
         "mrc p"#_cp", "#_opc1", %[r0], c"#_crm", c"#_crn", "#_opc2"\n"      \
