@@ -85,7 +85,7 @@ FUNC sm_restore_modes_regs , :
 	bx	lr
 END_FUNC sm_restore_modes_regs
 
-LOCAL_FUNC sm_smc_entry , :
+FUNC sm_smc_entry , :
 	srsdb	sp!, #CPSR_MODE_MON
 	push	{r0-r3}
 /* Positions relative to stack pointer */
@@ -184,32 +184,3 @@ LOCAL_FUNC sm_fiq_entry , :
 
 	rfefd	sp!
 END_FUNC sm_fiq_entry
-
-        .align	5
-FUNC sm_vect_table , :
-	b	.		/* Reset			*/
-	b	.		/* Undefined instruction	*/
-	b	sm_smc_entry	/* Secure monitor call		*/
-	b	.		/* Prefetch abort		*/
-	b	.		/* Data abort			*/
-	b	.		/* Reserved			*/
-	b	.		/* IRQ				*/
-	b	sm_fiq_entry	/* FIQ				*/
-END_FUNC sm_vect_table
-
-/* void sm_init(vaddr_t stack_pointer); */
-FUNC sm_init , :
-	push	{r0, lr}
-
-	/* Set monitor stack */
-	mrs	r1, cpsr
-	cps	#CPSR_MODE_MON
-	ldr	sp, =mon_stacktop
-	msr	cpsr, r1
-
-	/* Set monitor vector (MVBAR) */
-	ldr	r0, =sm_vect_table
-	write_mvbar r0
-
-	pop	{r0, pc}
-END_FUNC sm_init

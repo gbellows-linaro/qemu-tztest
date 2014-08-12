@@ -4,11 +4,9 @@
 .arch_extension sec
 
 .equ SVC_RETURN_FROM_SECURE_USR, 0x0
+.equ SMC_DISPATCH_MONITOR, 0x32000000
 
 .align 5
-/* We use the same vector table for Hyp and Monitor mode, since
- * we will only use each once and they don't overlap.
- */
 secure_vectors:
 	b   secure_init         /* reset */
 	b   secure_undef_vec    /* undef */
@@ -53,6 +51,27 @@ secure_svc_vec:
     srsdb sp!, #CPSR_MODE_SVC
     bl sec_svc_handler
     rfefd sp!
+
+.align 5
+monitor_vectors:
+	b	.		/* Reset			*/
+	b	.		/* Undefined instruction	*/
+	b	monitor_smc_vect /* Secure monitor call		*/
+	b	.		/* Prefetch abort		*/
+	b	.		/* Data abort			*/
+	b	.		/* Reserved			*/
+	b	.		/* IRQ				*/
+	b	.       /* FIQ				*/
+
+monitor_smc_vect:
+    cmp r0, #SMC_DISPATCH_MONITOR
+    bne sm_smc_entry
+	srsdb sp!, #CPSR_MODE_MON
+	push {r0-r3}
+    mov r0, r1
+    bl tztest_dispatch_monitor
+	pop	{r0-r3}
+	rfefd sp!
 
     .globl secure_init
 secure_init:
@@ -122,8 +141,24 @@ secure_mmu_init:
     isb
     dsb
 
+#ifdef DEBUG
+    /* Check that are entry state makes sense before initializing the monitor
+     * mode.
+     */
+    bl check_init_mode
+#endif
+
 secure_init_monitor:
-    cps #CPSR_MODE_SVC
+    /* Set-up the monitor stack */
+	mrs	r1, cpsr
+    cps #CPSR_MODE_MON
+    ldr sp, =mon_stacktop
+	msr	cpsr, r1
+
+    /* Set-up mvbar */
+    ldr r0, =monitor_vectors
+    mcr p15, 0, r0, c12, c0, 1
+
     bl tztest_secure_svc_init_monitor
 
     mov r0, #0x0

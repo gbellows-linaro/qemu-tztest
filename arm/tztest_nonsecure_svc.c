@@ -54,6 +54,10 @@ void nsec_svc_handler(volatile svc_op_t op, volatile tztest_svc_desc_t *desc)
 {
     int ret = 0;
     switch (op) {
+        case SVC_DISPATCH_MONITOR:
+            op = SMC_DISPATCH_MONITOR;
+            __smc(op, desc);
+            break;
         case SVC_DISPATCH_SECURE_USR:
             DEBUG_MSG("Dispatching secure usr function\n");
             desc->secure_dispatch.ret =
