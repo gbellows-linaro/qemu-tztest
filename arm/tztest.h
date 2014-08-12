@@ -8,15 +8,16 @@
 #define TZTEST_STATE_NONSECURE SCR_NS
 
 typedef enum {
-    SMC_DISPATCH_SECURE_USR = 0x32000000,
+    SMC_DISPATCH_MONITOR = 0x32000000,
+    SMC_DISPATCH_SECURE_USR,
     SMC_DISPATCH_SECURE_SVC,
     SMC_ALLOCATE_SECURE_MEMORY,
-    SMC_READ_REG,
     SMC_EXIT = -1
 } smc_op_t;
 
 typedef enum {
     SVC_RETURN_FROM_SECURE_USR = 0,
+    SVC_DISPATCH_MONITOR,
     SVC_DISPATCH_SECURE_USR,
     SVC_DISPATCH_SECURE_SVC,
     SVC_READ_REG,
@@ -53,10 +54,6 @@ typedef struct {
             int (*func)();
             int ret;
         } secure_dispatch;
-        struct {
-            int reg;
-            int val;
-        } reg_read;
     };
 } tztest_smc_desc_t;
 

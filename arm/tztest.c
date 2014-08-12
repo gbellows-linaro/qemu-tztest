@@ -17,6 +17,8 @@
         EXEC_SECURE(SVC_DISPATCH_SECURE_USR, (_func), (_ret))
 #define EXEC_SECURE_SVC(_func, _ret)            \
         EXEC_SECURE(SVC_DISPATCH_SECURE_SVC, (_func), (_ret))
+#define EXEC_MONITOR(_func, _ret)            \
+        EXEC_SECURE(SVC_DISPATCH_MONITOR, (_func), (_ret))
 
 /* Make the below globals volatile as  found that the compiler uses the
  * register value ratherh than the memory value making it look like the writes
@@ -142,6 +144,184 @@ void tztest_check_secure_svc_handshake()
         assert(TZTEST_SECURE_SVC_PATTERN == ret);
     }
 }
+int mon_noop()
+{
+    return 0;
+}
+
+int MON_check_state()
+{
+    printf("\nValidating monitor mode:\n");
+
+    printf("\tChecking for monitor mode... ");
+    if (CPSR_MODE_MON != (_read_cpsr() & CPSR_MODE_MASK)) {
+        printf("FAILED\n");
+        INC_FAIL_COUNT();
+    } else {
+        printf("PASSED\n");
+    }
+    INC_TEST_COUNT();
+
+    int scr = _read_scr();
+    int ret = 0;
+
+    /* B1-1211: SMC exceptions from monitor mode cause transition to secure
+     * state.
+     */
+
+    /* Set our security state to secure */
+    _write_scr(scr & ~SCR_NS);
+    EXEC_MONITOR(mon_noop, ret);
+    printf("\tChecking for secure state after secure monitor smc... ");
+    if (!SCR_NS != (_read_scr() & SCR_NS)) {
+        printf("FAILED\n");
+        INC_FAIL_COUNT();
+    } else {
+        printf("PASSED\n");
+    }
+    INC_TEST_COUNT();
+
+    /* Set our security state to nonsecure */
+    _write_scr(scr | SCR_NS);
+    EXEC_MONITOR(mon_noop, ret);
+    printf("\tChecking for secure state after nonsecure monitor smc... ");
+    if (!SCR_NS != (_read_scr() & SCR_NS)) {
+        printf("FAILED\n");
+        INC_FAIL_COUNT();
+    } else {
+        printf("PASSED\n");
+    }
+    INC_TEST_COUNT();
+
+    /* Restore the original SCR */
+    _write_scr(scr);
+
+}
+
+#define TZTEST_SVAL 0xaaaaaaaa
+#define TZTEST_NSVAL ~TZTEST_SVAL
+#define TZTEST_GET_REG_SECURE_BANK(_reg, _val)      \
+    do {                                            \
+        _write_scr(scr & ~SCR_NS);                  \
+        (_val) = _read_##_reg();                    \
+    } while(0)
+
+#define TZTEST_GET_REG_NONSECURE_BANK(_reg, _val)   \
+    do {                                            \
+        _write_scr(scr | SCR_NS);                   \
+        (_val) = _read_##_reg();                    \
+    } while(0)
+
+#define TZTEST_SET_REG_SECURE_BANK(_reg, _val)      \
+    do {                                            \
+        _write_scr(scr & ~SCR_NS);                  \
+        _write_##_reg(_val);                        \
+    } while(0)
+
+#define TZTEST_SET_REG_NONSECURE_BANK(_reg, _val)   \
+    do {                                            \
+        _write_scr(scr | SCR_NS);                   \
+        _write_##_reg(_val);                        \
+    } while(0)
+
+#define TZTEST_GET_REG_BANKS(_reg, _sval, _nsval)   \
+    do {                                            \
+        TZTEST_GET_REG_SECURE_BANK(_reg, _sval);    \
+        TZTEST_GET_REG_NONSECURE_BANK(_reg, _nsval);\
+    } while(0)
+
+#define TZTEST_SET_REG_BANKS(_reg, _sval, _nsval)   \
+    do {                                            \
+        TZTEST_SET_REG_SECURE_BANK(_reg, _sval);    \
+        TZTEST_SET_REG_NONSECURE_BANK(_reg, _nsval);\
+    } while(0)
+
+#define VERIFY_REGISTER_CUSTOM(_reg, _mask, _sval, _nsval)              \
+    do {                                                                \
+        unsigned int sval = 0, nsval = 0;                               \
+        unsigned int _reg[2] = {0,0};                                   \
+        printf("\tChecking %s banks...", #_reg);                        \
+        TZTEST_GET_REG_BANKS(_reg, _reg[!SCR_NS], _reg[SCR_NS]);        \
+        TZTEST_SET_REG_BANKS(_reg, (_sval), (_nsval));                  \
+        TZTEST_GET_REG_SECURE_BANK(_reg, sval);                         \
+        TZTEST_GET_REG_NONSECURE_BANK(_reg, nsval);                     \
+        if ((sval & (_mask)) == (nsval & (_mask)) ||                    \
+            ((_sval)& (_mask)) != (sval & (_mask)) ||              \
+            ((_nsval)& (_mask)) != (nsval & (_mask))) {            \
+            printf("FAILED\n");                                         \
+            DEBUG_MSG("(%s) sval = 0x%x  nsval = 0x%x\n",               \
+                      #_reg, sval, nsval);                              \
+            INC_FAIL_COUNT();                                           \
+        } else {                                                        \
+            printf("PASSED\n");                                         \
+        }                                                               \
+        INC_TEST_COUNT();                                               \
+        TZTEST_SET_REG_BANKS(_reg, _reg[!SCR_NS], _reg[SCR_NS]);        \
+    } while(0)
+
+#define VERIFY_REGISTER(_reg)    \
+    VERIFY_REGISTER_CUSTOM(_reg, 0xFFFFFFFF, TZTEST_SVAL, TZTEST_NSVAL)
+
+extern int nsec_l1_page_table;
+extern int nonsecure_vectors;
+int MON_check_banked_regs()
+{
+    int scr = _read_scr();
+    uint32_t val = 0;
+
+    printf("\nValidate secure state access to banked registers:\n");
+
+    VERIFY_REGISTER_CUSTOM(csselr, 0xF, TZTEST_SVAL, TZTEST_NSVAL);
+    /* Modifying SCTLR is highly disruptive, so the test is heavily restricted
+     * to avoid complications.  We only flip the V-bit for comparison which is
+     * safe unless we take an exception which should be low risk.
+     */
+    val = _read_sctlr();
+    VERIFY_REGISTER_CUSTOM(sctlr, (1 << 13), val, (val| (1 << 13)));
+
+    /* ACTLR is banked but not supported on Vexpress */
+
+    /* For testing purposes we switch the secure world to the nonsecure page
+     * table, so any translations can still be made.  Since we are only working
+     * out of the non-secure mappings we should be safe.  This assumption could
+     * be wrong.
+     */
+    VERIFY_REGISTER_CUSTOM(ttbr0, 0xFFF00000,
+                           (int)&nsec_l1_page_table, TZTEST_NSVAL);
+    VERIFY_REGISTER(ttbr1);
+
+    /* Modifying TTBCR is highly disruptive, so the test is heavily restricted
+     * to avoid complications.  We only use the PD1-bit for comparison as we
+     * are not using ttbr1 at this time.
+     */
+    val = _read_ttbcr();
+
+    VERIFY_REGISTER_CUSTOM(ttbcr, (1 << 5), val, (val | (1 << 5)));
+    /* Leave the bottom 4 bits alone as they will disrupt address translation
+     * otherwise.
+     */
+    VERIFY_REGISTER_CUSTOM(dacr, 0xFFFFFFF0, 0x55555555, 0xAAAAAAA5);
+
+    VERIFY_REGISTER(dfsr);
+    VERIFY_REGISTER(ifsr);
+    VERIFY_REGISTER(dfar);
+    VERIFY_REGISTER(ifar);
+    VERIFY_REGISTER_CUSTOM(par, 0xFFFFF000, TZTEST_SVAL, TZTEST_NSVAL);
+    VERIFY_REGISTER(prrr);
+    VERIFY_REGISTER(nmrr);
+
+    /* The bottome 5 bits are SBZ */
+    VERIFY_REGISTER_CUSTOM(vbar, 0xFFFFFFE0, TZTEST_SVAL, TZTEST_NSVAL);
+
+    VERIFY_REGISTER(fcseidr);
+    VERIFY_REGISTER(contextidr);
+    VERIFY_REGISTER(tpidrurw);
+    VERIFY_REGISTER(tpidruro);
+    VERIFY_REGISTER(tpidrprw);
+
+    /* Restore the SCR to it's original value */
+    _write_scr(scr);
+}
 
 void tztest_nonsecure_usr_main()
 {
@@ -161,6 +341,9 @@ void tztest_nonsecure_usr_main()
 #endif
 
     EXEC_SECURE_USR(P0_secure_check_register_access, ret);
+
+    EXEC_MONITOR(MON_check_state, ret);
+    EXEC_MONITOR(MON_check_banked_regs, ret);
 
     printf("\nValidation complete.  Passed %d of %d tests\n",
            *tztest_test_count-*tztest_fail_count, *tztest_test_count);
@@ -185,7 +368,6 @@ void tztest_nonsecure_usr_main()
     // Test: Check that monitor mode has access to secure resource despite NS
     //      pg. B1-1140
     // Test: Check that access to banked regs from mon mode depend on NS
-    // Test: Check that smc takes an exception to monitor mode + secure
     // Test: Check that code residing in secure memory can't be exec from ns
     //      pg. B1-1147
     // Test: Check that CPSR.M unpredictable values don't cause entry to sec
