@@ -12,7 +12,7 @@
  */
 extern int _ram_nsec_base;
 
-int dispatch_secure_usr(int);
+int dispatch_secure_usr(int, int);
 void tztest_secure_svc_loop(int initial_r0, int initial_r1);
 void *sec_allocate_secure_memory(int);
 extern uint32_t sec_l1_page_table;
@@ -157,7 +157,7 @@ void tztest_secure_svc_loop(int initial_op, int initial_data)
 {
     volatile int op = initial_op;
     tztest_smc_desc_t *data = (tztest_smc_desc_t *)initial_data;
-    int (*func)();
+    uint32_t (*func)(uint32_t);
 
     DEBUG_MSG("Initial call\n");
 
@@ -166,13 +166,14 @@ void tztest_secure_svc_loop(int initial_op, int initial_data)
             case SMC_DISPATCH_SECURE_USR:
                 DEBUG_MSG("Dispatching secure USR function\n");
                 data->dispatch.ret =
-                    dispatch_secure_usr((int)data->dispatch.func);
+                    dispatch_secure_usr((int)data->dispatch.func,
+                                        data->dispatch.arg);
                 DEBUG_MSG("Returned from secure USR dispatch\n");
                 break;
             case SMC_DISPATCH_SECURE_SVC:
-                func = (int (*)())data->dispatch.func;
+                func = (uint32_t (*)())data->dispatch.func;
                 DEBUG_MSG("Dispatching secure SVC function\n");
-                data->dispatch.ret = func();
+                data->dispatch.ret = func(data->dispatch.arg);
                 DEBUG_MSG("Returned from secure SVC dispatch\n");
                 break;
             case SMC_ALLOCATE_SECURE_MEMORY:

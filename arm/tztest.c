@@ -5,22 +5,26 @@
 #define CALL(_f)  __svc(0, _f)
 #define RETURN(_r)  __svc(0,(_r))
 
-#define DISPATCH(_op, _func, _ret)   \
+#define DISPATCH(_op, _func, _arg, _ret)    \
     do {                                    \
         tztest_svc_desc_t _desc;            \
         _desc.dispatch.func = (_func);      \
+        _desc.dispatch.arg = (_arg);        \
         __svc((_op), &_desc);               \
         (_ret) = _desc.dispatch.ret;        \
     } while(0)
 
-#define DISPATCH_SECURE_USR(_func, _ret)            \
-        DISPATCH(SVC_DISPATCH_SECURE_USR, (_func), (_ret))
-#define DISPATCH_SECURE_SVC(_func, _ret)            \
-        DISPATCH(SVC_DISPATCH_SECURE_SVC, (_func), (_ret))
-#define DISPATCH_MONITOR(_func, _ret)            \
-        DISPATCH(SVC_DISPATCH_MONITOR, (_func), (_ret))
-#define DISPATCH_NONSECURE_SVC(_func, _ret)            \
-        DISPATCH(SVC_DISPATCH_NONSECURE_SVC, (_func), (_ret))
+#define SECURE_USR_FUNC(_func)  \
+    uint32_t _func##_wrapper(uint32_t arg) { RETURN(_func(arg)); }
+
+#define DISPATCH_SECURE_USR(_func, _arg, _ret)            \
+        DISPATCH(SVC_DISPATCH_SECURE_USR, (_func##_wrapper), (_arg), (_ret))
+#define DISPATCH_SECURE_SVC(_func, _arg, _ret)            \
+        DISPATCH(SVC_DISPATCH_SECURE_SVC, (_func), (_arg), (_ret))
+#define DISPATCH_MONITOR(_func, _arg, _ret)            \
+        DISPATCH(SVC_DISPATCH_MONITOR, (_func), (_arg), (_ret))
+#define DISPATCH_NONSECURE_SVC(_func, _arg, _ret)            \
+        DISPATCH(SVC_DISPATCH_NONSECURE_SVC, (_func), (_arg), (_ret))
 
 /* Make the below globals volatile as  found that the compiler uses the
  * register value ratherh than the memory value making it look like the writes
@@ -98,8 +102,9 @@ uint32_t P0_secure_check_register_access()
     printf("\tSecure P0 NSACR write ... ");
     TEST_EXCEPTION(_write_nsacr(0), CPSR_MODE_UND);
 
-    RETURN(0);
+    return 0;
 }
+SECURE_USR_FUNC(P0_secure_check_register_access);
 
 uint32_t P0_nonsecure_check_memory_access()
 {
@@ -122,7 +127,7 @@ uint32_t P1_nonsecure_check_mask_bits()
     uint32_t scr = 0;
 
     /* Get current SCR value */
-    DISPATCH_SECURE_SVC(_read_scr, scr);
+    DISPATCH_SECURE_SVC(_read_scr, 0, scr);
 
     /* Test: SCR.FW/AW protects access to CPSR.F/Aa when nonsecure
      *       pg. B1-1151  table B1-2
@@ -144,40 +149,43 @@ uint32_t P1_nonsecure_check_mask_bits()
 
 #define TZTEST_SECURE_USR_PATTERN 0x87654321
 #define TZTEST_SECURE_SVC_PATTERN 0x12345678
-uint32_t tztest_secure_usr_test1()
+
+uint32_t tztest_secure_usr_test1(uint32_t arg)
 {
-    DEBUG_MSG("Entered\n");
+    DEBUG_MSG("Entered arg = 0x%x\n", arg);
     __svc(1,0);
     DEBUG_MSG("Exiting\n");
-    RETURN(TZTEST_SECURE_USR_PATTERN);
+    return arg/2;
 }
+SECURE_USR_FUNC(tztest_secure_usr_test1);
 
-uint32_t tztest_secure_svc_test1()
+uint32_t tztest_secure_svc_test1(uint32_t arg)
 {
-    DEBUG_MSG("Entered\n");
-    DEBUG_MSG("Exiting\n");
-    return TZTEST_SECURE_SVC_PATTERN;
+    DEBUG_MSG("arg = 0x%x\n", arg);
+    return arg*2;
 }
 
-void tztest_check_secure_usr_handshake()
+uint32_t tztest_check_secure_usr_handshake()
 {
     uint32_t ret = 0;
-    DISPATCH_SECURE_USR(tztest_secure_usr_test1, ret);
+    DISPATCH_SECURE_USR(tztest_secure_usr_test1,
+                        TZTEST_SECURE_USR_PATTERN, ret);
 
-    if (TZTEST_SECURE_USR_PATTERN != ret) {
+    if (TZTEST_SECURE_USR_PATTERN/2 != ret) {
         DEBUG_MSG("\n***** Failed secure usr handshake *****\n");
-        assert(TZTEST_SECURE_USR_PATTERN == ret);
+        assert(TZTEST_SECURE_USR_PATTERN/2 == ret);
     }
 }
 
-void tztest_check_secure_svc_handshake()
+uint32_t tztest_check_secure_svc_handshake()
 {
     uint32_t ret = 0;
-    DISPATCH_SECURE_SVC(tztest_secure_svc_test1, ret);
+    DISPATCH_SECURE_SVC(tztest_secure_svc_test1,
+                        TZTEST_SECURE_SVC_PATTERN, ret);
 
-    if (TZTEST_SECURE_SVC_PATTERN != ret) {
+    if (TZTEST_SECURE_SVC_PATTERN*2 != ret) {
         DEBUG_MSG("\n***** Failed secure svc handshake *****\n");
-        assert(TZTEST_SECURE_SVC_PATTERN == ret);
+        assert(TZTEST_SECURE_SVC_PATTERN*2 == ret);
     }
 }
 
@@ -202,13 +210,13 @@ uint32_t MON_check_state()
 
     /* Set our security state to secure */
     _write_scr(scr & ~SCR_NS);
-    DISPATCH_MONITOR(mon_noop, ret);
+    DISPATCH_MONITOR(mon_noop, 0, ret);
     printf("\tChecking state after secure monitor... ");
     TEST_CONDITION(!SCR_NS == ((_read_scr() & SCR_NS)));
 
     /* Set our security state to nonsecure */
     _write_scr(scr | SCR_NS);
-    DISPATCH_MONITOR(mon_noop, ret);
+    DISPATCH_MONITOR(mon_noop, 0, ret);
     printf("\tChecking state after nonsecure monitor... ");
     TEST_CONDITION(!SCR_NS == ((_read_scr() & SCR_NS)));
 
@@ -351,12 +359,12 @@ void tztest_nonsecure_usr_main()
     tztest_check_secure_svc_handshake();
 #endif
 
-    DISPATCH_SECURE_USR(P0_secure_check_register_access, ret);
+    DISPATCH_SECURE_USR(P0_secure_check_register_access, 0, ret);
 
-    DISPATCH_MONITOR(MON_check_state, ret);
-    DISPATCH_MONITOR(MON_check_banked_regs, ret);
+    DISPATCH_MONITOR(MON_check_state, 0, ret);
+    DISPATCH_MONITOR(MON_check_banked_regs, 0, ret);
 
-    DISPATCH_NONSECURE_SVC(P1_nonsecure_check_mask_bits, ret);
+    DISPATCH_NONSECURE_SVC(P1_nonsecure_check_mask_bits, 0, ret);
 
     printf("\nValidation complete.  Passed %d of %d tests\n",
            *tztest_test_count-*tztest_fail_count, *tztest_test_count);

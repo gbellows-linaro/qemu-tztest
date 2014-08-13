@@ -6,8 +6,8 @@
 #include "arm32.h"
 #include "platform.h"
 
-uint32_t nsec_dispatch_secure_usr_function(uint32_t (*)());
-uint32_t nsec_dispatch_secure_svc_function(uint32_t (*)());
+uint32_t nsec_dispatch_secure_usr_function(uint32_t (*)(uint32_t), uint32_t);
+uint32_t nsec_dispatch_secure_svc_function(uint32_t (*)(uint32_t), uint32_t);
 extern uint32_t nsec_l1_page_table;
 extern uint32_t _ram_nsectext_start;
 extern uint32_t _ram_nsecdata_start;
@@ -61,20 +61,22 @@ void nsec_svc_handler(volatile svc_op_t op, volatile tztest_svc_desc_t *desc)
         case SVC_DISPATCH_SECURE_USR:
             DEBUG_MSG("Dispatching secure usr function\n");
             desc->dispatch.ret =
-                nsec_dispatch_secure_usr_function(desc->dispatch.func);
+                nsec_dispatch_secure_usr_function(desc->dispatch.func,
+                                                  desc->dispatch.arg);
             DEBUG_MSG("Returning from secure usr function, ret = 0x%x\n",
                       desc->dispatch.ret);
             break;
         case SVC_DISPATCH_SECURE_SVC:
             DEBUG_MSG("Dispatching secure svc function\n");
             desc->dispatch.ret =
-                nsec_dispatch_secure_svc_function(desc->dispatch.func);
+                nsec_dispatch_secure_svc_function(desc->dispatch.func,
+                                                  desc->dispatch.arg);
             DEBUG_MSG("Returning from secure svc function, ret = 0x%x\n",
                       desc->dispatch.ret);
             break;
         case SVC_DISPATCH_NONSECURE_SVC:
             DEBUG_MSG("Dispatching nonsecure svc function\n");
-            desc->dispatch.ret = desc->dispatch.func();
+            desc->dispatch.ret = desc->dispatch.func(desc->dispatch.arg);
             DEBUG_MSG("Returning from nonsecure svc function, ret = 0x%x\n",
                       desc->dispatch.ret);
             break;
@@ -117,24 +119,28 @@ void nsec_dabort_handler(int status, int addr) {
 }
 
 tztest_smc_desc_t smc_desc;
-uint32_t nsec_dispatch_secure_usr_function(uint32_t (*func)())
+uint32_t nsec_dispatch_secure_usr_function(uint32_t (*func)(uint32_t),
+                                           uint32_t arg)
 {
     volatile int r0 = SMC_DISPATCH_SECURE_USR;
     tztest_smc_desc_t *desc_p = &smc_desc;
 
     smc_desc.dispatch.func = func;
+    smc_desc.dispatch.arg = arg;
     DEBUG_MSG("Entered\n");
     __smc(r0, desc_p);
     DEBUG_MSG("Exiting, func = 0x%x\n", smc_desc.dispatch.func);
     return smc_desc.dispatch.ret;
 }
 
-uint32_t nsec_dispatch_secure_svc_function(uint32_t (*func)())
+uint32_t nsec_dispatch_secure_svc_function(uint32_t (*func)(uint32_t),
+                                           uint32_t arg)
 {
     volatile int op = SMC_DISPATCH_SECURE_SVC;
     tztest_smc_desc_t desc, *desc_p = &desc;
 
     desc.dispatch.func = func;
+    desc.dispatch.arg = arg;
     DEBUG_MSG("Entered op = %x\n", op);
     __smc(op, desc_p);
     DEBUG_MSG("Exiting\n");

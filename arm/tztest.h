@@ -35,7 +35,8 @@ typedef enum {
 typedef struct {
     union {
         struct {
-            uint32_t (*func)();
+            uint32_t (*func)(uint32_t);
+            uint32_t arg;
             uint32_t ret;
         } dispatch;
         struct {
@@ -53,7 +54,8 @@ typedef struct {
 typedef struct {
     union {
         struct {
-            uint32_t (*func)();
+            uint32_t (*func)(uint32_t);
+            uint32_t arg;
             uint32_t ret;
         } dispatch;
     };
