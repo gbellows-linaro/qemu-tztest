@@ -165,14 +165,14 @@ void tztest_secure_svc_loop(int initial_op, int initial_data)
         switch (op) {
             case SMC_DISPATCH_SECURE_USR:
                 DEBUG_MSG("Dispatching secure USR function\n");
-                data->secure_dispatch.ret =
-                    dispatch_secure_usr((int)data->secure_dispatch.func);
+                data->dispatch.ret =
+                    dispatch_secure_usr((int)data->dispatch.func);
                 DEBUG_MSG("Returned from secure USR dispatch\n");
                 break;
             case SMC_DISPATCH_SECURE_SVC:
-                func = (int (*)())data->secure_dispatch.func;
+                func = (int (*)())data->dispatch.func;
                 DEBUG_MSG("Dispatching secure SVC function\n");
-                data->secure_dispatch.ret = func();
+                data->dispatch.ret = func();
                 DEBUG_MSG("Returned from secure SVC dispatch\n");
                 break;
             case SMC_ALLOCATE_SECURE_MEMORY:
@@ -217,7 +217,7 @@ void tztest_secure_svc_init_monitor()
 
 void tztest_dispatch_monitor(tztest_smc_desc_t *desc)
 {
-    int (*func)() = desc->secure_dispatch.func;
+    uint32_t (*func)() = desc->dispatch.func;
     DEBUG_MSG("Entered\n");
     func();
     DEBUG_MSG("Exiting\n");

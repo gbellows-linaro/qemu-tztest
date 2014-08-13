@@ -2,6 +2,7 @@
 #define _TZTEST_H
 
 #include <arm32.h>
+#include "libcflat.h"
 
 #define STDOUT 1
 #define TZTEST_STATE_SECURE !SCR_NS
@@ -20,6 +21,7 @@ typedef enum {
     SVC_DISPATCH_MONITOR,
     SVC_DISPATCH_SECURE_USR,
     SVC_DISPATCH_SECURE_SVC,
+    SVC_DISPATCH_NONSECURE_SVC,
     SVC_READ_REG,
     SVC_CHECK_SECURE_STATE,
     SVC_EXIT = -1
@@ -33,15 +35,15 @@ typedef enum {
 typedef struct {
     union {
         struct {
-            int (*func)();
-            int ret;
-        } secure_dispatch;
+            uint32_t (*func)();
+            uint32_t ret;
+        } dispatch;
         struct {
-            int reg;
-            int val;
+            uint32_t reg;
+            uint32_t val;
         } reg_read;
         struct {
-            int state;
+            uint32_t state;
         } secure_state;
     };
 } tztest_svc_desc_t;
@@ -51,9 +53,9 @@ typedef struct {
 typedef struct {
     union {
         struct {
-            int (*func)();
-            int ret;
-        } secure_dispatch;
+            uint32_t (*func)();
+            uint32_t ret;
+        } dispatch;
     };
 } tztest_smc_desc_t;
 
@@ -97,37 +99,32 @@ extern volatile int *tztest_fail_count;
 extern volatile int *tztest_test_count;
 extern int tztest_read_register(tztest_reg_t);
 extern int tztest_get_saved_cpsr();
-extern void validate_state(int, int);
+extern void validate_state(uint32_t, uint32_t);
 
 #define INC_TEST_COUNT()    (*tztest_test_count += 1)
 #define INC_FAIL_COUNT()    (*tztest_fail_count += 1)
 
-#define TEST_EXCP_COND(_fn, _excp, _op)             \
-    do {                                            \
-        _fn;                                        \
-        if (*tztest_exception _op _excp) {          \
-            printf("PASSED\n");                     \
-        } else {                                    \
-            printf("FAILED\n");                     \
-            INC_FAIL_COUNT();                       \
-        }                                           \
-        *tztest_exception = 0;                      \
-        INC_TEST_COUNT();                           \
-    } while (0)
+#define TEST_CONDITION(_cond)                           \
+    do {                                                \
+        if (!(_cond)) {                                 \
+            printf("FAILED\n");                         \
+            INC_FAIL_COUNT();                           \
+        } else {                                        \
+            printf("PASSED\n");                         \
+        }                                               \
+        INC_TEST_COUNT();                               \
+    } while(0)
 
-#define TEST_EXCP_COND_AND_STATUS(_fn, _prefix, _excp, _stat, _op)  \
-    do {                                                            \
-        _fn;                                                        \
-        if (_prefix##_exception _op _excp &&                        \
-            _prefix##_exception_status _op _excp) {                 \
-            printf("PASSED\n");                                     \
-        } else {                                                    \
-            printf("FAILED\n");                                     \
-            _prefix##_fail_count++;                                 \
-        }                                                           \
-        _prefix##_exception = 0;                                    \
-        _prefix##_exception_status = 0;                             \
-        _prefix##_test_count++;                                     \
+#define TEST_FUNCTION(_fn, _cond)                       \
+    do {                                                \
+        _fn;                                            \
+        TEST_CONDITION(_cond);                          \
+    } while(0)
+
+#define TEST_EXCEPTION(_fn, _excp)                      \
+    do {                                                \
+        TEST_FUNCTION(_fn, *tztest_exception == (_excp));   \
+        *tztest_exception = 0;                          \
     } while (0)
 
 #endif

@@ -159,6 +159,11 @@ secure_init_monitor:
     ldr r0, =monitor_vectors
     mcr p15, 0, r0, c12, c0, 1
 
+/*
+    mov r0, #0x0
+    mcr p15, 0, r0, c1, c1, 0
+*/
+
     bl tztest_secure_svc_init_monitor
 
     mov r0, #0x0

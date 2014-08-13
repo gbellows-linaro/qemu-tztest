@@ -38,7 +38,7 @@ int tztest_read_register(tztest_reg_t reg)
 }
 
 #ifdef DEBUG
-void validate_state(int mode, int state)
+void validate_state(uint32_t mode, uint32_t state)
 {
     tztest_svc_desc_t desc;
 
@@ -51,6 +51,6 @@ void validate_state(int mode, int state)
     assert(desc.secure_state.state == state);
 }
 #else
-void validate_state(int mode, int state) {}
+void validate_state(uint32_t mode, uint32_t state) {}
 #endif
 

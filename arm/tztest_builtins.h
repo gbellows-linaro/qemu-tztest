@@ -2,6 +2,7 @@
 #define _TZTEST_BUILTINS_H
 
 #include "tztest.h"
+#include "libcflat.h"
 
 /* SMC intrinsic
  * Need to enable the security extension on v7 or the assembler will complain
@@ -45,14 +46,14 @@
     )
 
 #define _READCP(_reg, _cp, _opc1, _crm, _crn, _opc2)    \
-    static inline int _read_##_reg() {                  \
+    static inline uint32_t _read_##_reg() {             \
         volatile int _r0 = -1;                          \
         __mrc(_cp, _opc1, _r0, _crm, _crn, _opc2);      \
         return _r0;                                     \
     }
 
 #define _WRITECP(_reg, _cp, _opc1, _crm, _crn, _opc2)   \
-    static inline void  _write_##_reg(int _r0) {        \
+    static inline void  _write_##_reg(uint32_t _r0) {   \
         __mcr(_cp, _opc1, _r0, _crm, _crn, _opc2);      \
     }
 
@@ -87,13 +88,13 @@ _RWCP(tpidrurw, 15, 0, 13, 0, 2)     /* _read/write_tpidrurw */
 _RWCP(tpidruro, 15, 0, 13, 0, 3)     /* _read/write_tpidruro */
 _RWCP(tpidrprw, 15, 0, 13, 0, 4)     /* _read/write_tpidrprw */
 
-static inline int _read_cpsr() {
-    int r0 = -1;
+static inline uint32_t _read_cpsr() {
+    uint32_t r0 = 0;
     __mrs(r0, cpsr);
     return r0;
 }
 
-static inline void _write_cpsr(int val) {
+static inline void _write_cpsr(uint32_t val) {
     __msr(cpsr, val);
 }
 #endif
