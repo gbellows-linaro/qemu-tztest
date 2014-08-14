@@ -42,9 +42,7 @@ void validate_state(uint32_t mode, uint32_t state)
 {
     tztest_svc_desc_t desc;
 
-    desc.reg_read.reg = TZTEST_REG_CPSR;
-    __svc(SVC_READ_REG, &desc);
-    assert((desc.reg_read.val & CPSR_MODE_MASK) == mode);
+    assert((_read_cpsr() & CPSR_MODE_MASK) == mode);
 
     CLEAR_SVC_DESC(desc);
     __svc(SVC_CHECK_SECURE_STATE, &desc);

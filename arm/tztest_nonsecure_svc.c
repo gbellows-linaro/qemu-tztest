@@ -80,10 +80,6 @@ void nsec_svc_handler(volatile svc_op_t op, volatile tztest_svc_desc_t *desc)
             DEBUG_MSG("Returning from nonsecure svc function, ret = 0x%x\n",
                       desc->dispatch.ret);
             break;
-            break;
-        case SVC_READ_REG:
-            desc->reg_read.val = tztest_read_register(desc->reg_read.reg);
-            break;
         case SVC_CHECK_SECURE_STATE:
             /* This SVC handler is only accessible from the nonsecure vector
              * table, so unless something went drastically wrong with the
