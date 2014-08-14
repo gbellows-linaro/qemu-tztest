@@ -53,7 +53,7 @@
     }
 
 #define _WRITECP(_reg, _cp, _opc1, _crm, _crn, _opc2)   \
-    static inline void  _write_##_reg(uint32_t _r0) {   \
+    static inline uint32_t  _write_##_reg(uint32_t _r0) {   \
         __mcr(_cp, _opc1, _r0, _crm, _crn, _opc2);      \
     }
 
@@ -95,6 +95,6 @@ static inline uint32_t _read_cpsr() {
 }
 
 static inline void _write_cpsr(uint32_t val) {
-    __msr(cpsr, val);
+    __msr(cpsr_fsxc, val);
 }
 #endif

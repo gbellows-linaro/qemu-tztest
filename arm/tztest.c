@@ -125,23 +125,51 @@ uint32_t P1_nonsecure_check_mask_bits()
 
     uint32_t cpsr = _read_cpsr();
     uint32_t scr = 0;
-
-    /* Get current SCR value */
-    DISPATCH_SECURE_SVC(_read_scr, 0, scr);
+    uint32_t ret = 0;
+    tztest_svc_desc_t desc;
 
     /* Test: SCR.FW/AW protects access to CPSR.F/Aa when nonsecure
      *       pg. B1-1151  table B1-2
      */
-    printf("\nValidating SCR AW/FW control behavior:\n");
+    printf("\nValidating nonsecure accessiblilty of CPSR:\n");
 
-    printf("\tChecking nonsecure access of CPSR.F... ");
-    TEST_FUNCTION(_write_cpsr(cpsr | (1 << 6)), (cpsr == _read_cpsr()));
+    /* It is safe to assume that we are in nonsecure state as we validated
+     * this on entry.  Set the SCR FW and AW bits and preserve the NS bit.
+     * This SCR setting should allow the CPSR to be written from nonsecure
+     * state.
+     */
+    DISPATCH_MONITOR(_write_scr, (SCR_AW | SCR_FW | SCR_NS), ret);
+
+    printf("\tChecking CPSR.F with SCR.FW enabled... ");
+    TEST_FUNCTION(_write_cpsr(cpsr | (1 << 6)),
+                  ((cpsr | (1 << 6)) == _read_cpsr()));
 
     /* Restore CPSR to its original value before next test. */
     _write_cpsr(cpsr);
 
-    printf("\tChecking nonsecure access of CPSR.A... ");
-    TEST_FUNCTION(_write_cpsr(cpsr | (1 << 8)), cpsr == _read_cpsr());
+    printf("\tChecking CPSR.A with SCR.AW enabled... ");
+    TEST_FUNCTION(_write_cpsr(cpsr | (1 << 8)),
+                  (cpsr | (1 << 8)) == _read_cpsr());
+
+    /* Restore CPSR to its original value before next test. */
+    _write_cpsr(cpsr);
+
+    /* Switch SCR back to what we likely started with and retry the CPSR
+     * writes.  At this point the setting of these bits should be blocked due
+     * to the AW and FW bits being clear.
+     */
+    DISPATCH_MONITOR(_write_scr, SCR_NS, ret);
+
+    printf("\tChecking CPSR.F with SCR.FW disabled... ");
+    TEST_FUNCTION(_write_cpsr(cpsr | (1 << 6)),
+                  (cpsr == _read_cpsr()));
+
+    /* Restore CPSR to its original value before next test. */
+    _write_cpsr(cpsr);
+
+    printf("\tChecking CPSR.A with SCR.AW disabled... ");
+    TEST_FUNCTION(_write_cpsr(cpsr | (1 << 8)),
+                  (cpsr == _read_cpsr()));
 
     /* Restore CPSR to its original value */
     _write_cpsr(cpsr);
