@@ -32,13 +32,26 @@
  */
 extern uint32_t _shared_memory_heap_base;
 
+uint32_t mon_noop() { return 0; }
+
+/* Function for dispatching an empty SMC call.  Inteded fo use from P0 or P1
+ * mode.
+ */
+static inline uint32_t smc_noop()
+{
+    asm volatile(".arch_extension sec\n"
+                 "push {lr}\n"
+                 "mov r0, #0\n"
+                 "smc #0\n"
+                 "pop {lr}\n");
+}
+
 uint32_t P0_nonsecure_check_smc()
 {
     validate_state(CPSR_MODE_USR, TZTEST_STATE_NONSECURE);
     printf("\nValidating non-secure P0 smc behavior:\n");
     printf("\tUnprivileged P0 smc call ... ");
-    TEST_EXCEPTION(asm volatile (".arch_extension sec\n" "smc #0\n"),
-                   CPSR_MODE_UND);
+    TEST_EXCEPTION(smc_noop(), CPSR_MODE_UND);
 
     return 0;
 }
@@ -217,11 +230,6 @@ uint32_t tztest_check_secure_svc_handshake()
     }
 }
 
-uint32_t mon_noop()
-{
-    return 0;
-}
-
 uint32_t MON_check_state()
 {
     printf("\nValidating monitor mode:\n");
@@ -233,24 +241,44 @@ uint32_t MON_check_state()
     uint32_t ret = 0;
 
     /* B1-1211: SMC exceptions from monitor mode cause transition to secure
-     * state.
+     *          state.
+     * Test: Check that an exception from mon mode, NS cleared to 0
+     *       pg. B1-1170
      */
 
     /* Set our security state to secure */
     _write_scr(scr & ~SCR_NS);
-    DISPATCH_MONITOR(mon_noop, 0, ret);
     printf("\tChecking state after secure monitor... ");
-    TEST_CONDITION(!SCR_NS == ((_read_scr() & SCR_NS)));
+    TEST_FUNCTION(smc_noop(), !SCR_NS == ((_read_scr() & SCR_NS)));
 
     /* Set our security state to nonsecure */
     _write_scr(scr | SCR_NS);
-    DISPATCH_MONITOR(mon_noop, 0, ret);
     printf("\tChecking state after nonsecure monitor... ");
-    TEST_CONDITION(!SCR_NS == ((_read_scr() & SCR_NS)));
+    TEST_FUNCTION(smc_noop(), !SCR_NS == ((_read_scr() & SCR_NS)));
 
     /* Restore the original SCR */
     _write_scr(scr);
 
+}
+
+uint32_t P1_nonsecure_novirt_behavior()
+{
+    int ret = 0;
+    validate_state(CPSR_MODE_SVC, TZTEST_STATE_NONSECURE);
+
+    printf("\nValidating non-virtualized behavior:\n");
+
+    DISPATCH_MONITOR(_write_scr, (SCR_SCD | SCR_NS), ret);
+
+    // Check that SCR.SIF/SCD are not restrictive when EL2 not present
+    //  pg. B1-1158
+    printf("\tChecking SCR.SCD has no effect... ");
+    TEST_EXCEPTION(smc_noop(), 0);
+
+    /* Restore SCR to just the nonsecure state */
+    DISPATCH_MONITOR(_write_scr, SCR_NS, ret);
+
+    return 0;
 }
 
 #define TZTEST_SVAL 0xaaaaaaaa
@@ -394,6 +422,8 @@ void tztest_nonsecure_usr_main()
 
     DISPATCH_NONSECURE_SVC(P1_nonsecure_check_mask_bits, 0, ret);
 
+    DISPATCH_NONSECURE_SVC(P1_nonsecure_novirt_behavior, 0, ret);
+
     printf("\nValidation complete.  Passed %d of %d tests\n",
            *tztest_test_count-*tztest_fail_count, *tztest_test_count);
 
@@ -403,6 +433,8 @@ void tztest_nonsecure_usr_main()
 #ifdef MMU_ENABLED
     // Test: Access to secure memory only allowed from secure mode
     //      pg. B1-1156
+    // Test: Check that monitor mode has access to secure resource despite NS
+    //      pg. B1-1140
 #endif
 #ifdef VIRT_ENABLED
     // Test: PL2 and secure not combinable
@@ -414,40 +446,36 @@ void tztest_nonsecure_usr_main()
 #ifdef SIMD_ENABLED
     // Test: Check that vector ops are undefined if CPACR/NSACR
 #endif
-    // Test: Check that monitor mode has access to secure resource despite NS
-    //      pg. B1-1140
-    // Test: Check that code residing in secure memory can't be exec from ns
-    //      pg. B1-1147
+#ifdef IRQ_ENABLED
     // Test: Check that CPSR.M unpredictable values don't cause entry to sec
     //      pg. B1-1150
     //      NS state -> mon mode
     //      NSACR.RFR=1 + NS state -> FIQ
-    // Test: Check that non-banked (shared) regs match between sec and ns
-    //      pg. B1-1157
-    // Test?: Should e check that SC.NS is deprecated in any mode but mon?
-    //      pg. B1-1157
-    // Test: Check that mon mode is only avail if sec ext. present
-    //      pg. B1-1157
-    // Test: Check that smc is only aval if sec. ext. present
-    //      pg. B1-1157
-    // Test: Check that the SCTLR.V bit is banked allowing mix of vectors
-    //      pg. B1-1158
-    // Test: Check that the low exception vecotr base address is banked
-    //      pg. B1-1158
     // Test: Check that using SCR aborts/irqs/fiqs are routed to mon mode
     //      pg. B1-1158
     // Test: Check that using SCR aborts/irqs/fiqs can be masked
     //      pg. B1-1158
-    // Test: Check that SCR.SIF/SCD are not restrictive when EL2 not present
-    //      pg. B1-1158
-    // Test: Check that distinct vec tables possible for mon/sPL1/nsPL1
-    //      pg. B1-1165
-    // Test: Check that unused vec tables are not used
-    //      table B1-3
     // Test: Check that irq/fiq interrupts routed to mon mode use mvbar entry
     //      pg. B1-1168
-    // Test: Check that an exception from mon mode, NS cleared to 0
-    //      pg. B1-1170
+#endif
+#ifdef NONTZ_TEST
+    // Test: Check that mon mode is only avail if sec ext. present
+    //      pg. B1-1157
+    // Test: Check that smc is only aval if sec. ext. present
+    //      pg. B1-1157
+#endif
+#ifdef FRAMEWORK_TESTED
+    // Test: Check that distinct vec tables possible for mon/sPL1/nsPL1
+    //      pg. B1-1165
+    // Test: SCR.SIF does not disallow secure exec of nonsecure memory when the
+    //       virt extesnion is not present.
+#endif
+    // Test?: Check that code residing in secure memory can't be exec from ns
+    //      pg. B1-1147
+    // Test: Check that the SCTLR.V bit is banked allowing mix of vectors
+    //      pg. B1-1158
+    // Test: Check that the low exception vecotr base address is banked
+    //      pg. B1-1158
     // Test: Check that an exception taken from sec state is taken to sec state
     //      in the default mode for the excp.
     //      pg. B1-1173

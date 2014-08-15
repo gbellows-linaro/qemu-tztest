@@ -4,7 +4,9 @@
 .arch_extension sec
 
 .equ SVC_RETURN_FROM_SECURE_USR, 0x0
-.equ SMC_DISPATCH_MONITOR, 0x32000000
+.equ SMC_NOOP, 0x0
+.equ SMC_DISPATCH_MONITOR, 0x1
+.equ SMC_YIELD, 0x32000000
 
 .align 5
 secure_vectors:
@@ -64,14 +66,16 @@ monitor_vectors:
 	b	.       /* FIQ				*/
 
 monitor_smc_vect:
-    cmp r0, #SMC_DISPATCH_MONITOR
-    bne sm_smc_entry
+    cmp r0, #SMC_YIELD
+    bge sm_smc_entry
 	srsdb sp!, #CPSR_MODE_MON
+    cmp r0, #SMC_NOOP
+    beq 1f
 	push {r0-r3}
     mov r0, r1
     bl tztest_dispatch_monitor
 	pop	{r0-r3}
-	rfefd sp!
+1:  rfefd sp!
 
     .globl secure_init
 secure_init:
@@ -159,14 +163,9 @@ secure_init_monitor:
     ldr r0, =monitor_vectors
     mcr p15, 0, r0, c12, c0, 1
 
-/*
-    mov r0, #0x0
-    mcr p15, 0, r0, c1, c1, 0
-*/
-
     bl tztest_secure_svc_init_monitor
 
-    mov r0, #0x0
+    mov r0, #SMC_YIELD
     smc #0
 
     bl tztest_secure_svc_loop

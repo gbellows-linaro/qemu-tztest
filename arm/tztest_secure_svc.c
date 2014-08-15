@@ -177,7 +177,6 @@ void tztest_secure_svc_loop(int initial_op, int initial_data)
 //                op = (int)sec_allocate_secure_memory(data);
                 break;
         }
-        DEBUG_MSG("Returning from op 0x%x data 0x%x\n", op, data);
         __smc(op, data);
         DEBUG_MSG("Handling smc op 0x%x\n", op);
     }

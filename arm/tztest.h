@@ -9,11 +9,13 @@
 #define TZTEST_STATE_NONSECURE SCR_NS
 
 typedef enum {
-    SMC_DISPATCH_MONITOR = 0x32000000,
+    SMC_NOOP = 0,
+    SMC_DISPATCH_MONITOR = 1,
+    SMC_YIELD = 0x32000000,
     SMC_DISPATCH_SECURE_USR,
     SMC_DISPATCH_SECURE_SVC,
     SMC_ALLOCATE_SECURE_MEMORY,
-    SMC_EXIT = -1
+    SMC_EXIT
 } smc_op_t;
 
 typedef enum {
@@ -23,7 +25,7 @@ typedef enum {
     SVC_DISPATCH_SECURE_SVC,
     SVC_DISPATCH_NONSECURE_SVC,
     SVC_CHECK_SECURE_STATE,
-    SVC_EXIT = -1
+    SVC_EXIT
 } svc_op_t;
 
 typedef enum {
@@ -32,12 +34,14 @@ typedef enum {
 } tztest_reg_t;
 
 typedef struct {
+    uint32_t (*func)(uint32_t);
+    uint32_t arg;
+    uint32_t ret;
+} tztest_dispatch_t;
+
+typedef struct {
     union {
-        struct {
-            uint32_t (*func)(uint32_t);
-            uint32_t arg;
-            uint32_t ret;
-        } dispatch;
+        tztest_dispatch_t dispatch;
         struct {
             uint32_t reg;
             uint32_t val;
@@ -52,11 +56,7 @@ typedef struct {
 
 typedef struct {
     union {
-        struct {
-            uint32_t (*func)(uint32_t);
-            uint32_t arg;
-            uint32_t ret;
-        } dispatch;
+        tztest_dispatch_t dispatch;
     };
 } tztest_smc_desc_t;
 
