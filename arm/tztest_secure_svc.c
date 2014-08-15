@@ -1,10 +1,4 @@
-#include "libcflat.h"
-#include "tztest_builtins.h"
 #include "tztest.h"
-#include "tztest_mmu.h"
-#include "sm.h"
-#include "arm32.h"
-#include "platform.h"
 
 /* Make the below globals volatile as  found that the compiler uses the
  * register value ratherh than the memory value making it look like the writes
@@ -27,6 +21,7 @@ extern volatile int _tztest_fail_count;
 volatile int *tztest_test_count = &_tztest_test_count;
 volatile int *tztest_fail_count = &_tztest_fail_count;
 volatile int *tztest_exception = &_tztest_exception;
+volatile int *tztest_exception_addr = 0;
 volatile int *tztest_exception_status = &_tztest_exception_status;
 
 pagetable_map_entry_t sec_pagetable_entries[] = {
@@ -63,11 +58,11 @@ pagetable_map_entry_t heap_pagetable_entries[] = {
              SECTION_P1_RW | SECTION_P0_RW | SECTION_SECTION },
 };
 
-void sec_svc_handler(volatile svc_op_t op, volatile tztest_svc_desc_t *desc)
+void sec_svc_handler(volatile uint32_t op, volatile tztest_svc_desc_t *desc)
 {
     DEBUG_MSG("Entered\n");
     switch (op) {
-        case SVC_CHECK_SECURE_STATE:
+        case SVC_GET_SECURE_STATE:
             /* This SVC handler is only accessible from the secure vector
              * table, so unless something went drastically wrong with the
              * tables, it should be safe to assume we are in a nonsecure state.
@@ -88,6 +83,7 @@ void sec_undef_handler() {
 void sec_pabort_handler(int status, int addr) {
     DEBUG_MSG("status = 0x%x\taddress = 0x%x\n", status, addr);
     *tztest_exception = CPSR_MODE_ABT;
+    *tztest_exception_addr = addr;
     *tztest_exception_status = status & 0x1f;
 }
 
@@ -96,19 +92,11 @@ void sec_dabort_handler(int status, int addr) {
     DEBUG_MSG("status = 0x%x\taddress = 0x%x\n",
               status & 0x1f, addr);
     *tztest_exception = CPSR_MODE_ABT;
+    *tztest_exception_addr = addr;
     *tztest_exception_status = status & 0x1f;
 }
 
 int secure_test_var = 42;
-
-void *sec_allocate_secure_memory(int len)
-{
-    DEBUG_MSG("Entered\n");
-    DEBUG_MSG("received len = %d\n", len);
-    DEBUG_MSG("Exiting\n");
-
-    return &secure_test_var;
-}
 
 void check_init_mode()
 {
@@ -172,9 +160,6 @@ void tztest_secure_svc_loop(int initial_op, int initial_data)
                 DEBUG_MSG("Dispatching secure SVC function\n");
                 data->dispatch.ret = func(data->dispatch.arg);
                 DEBUG_MSG("Returned from secure SVC dispatch\n");
-                break;
-            case SMC_ALLOCATE_SECURE_MEMORY:
-//                op = (int)sec_allocate_secure_memory(data);
                 break;
         }
         __smc(op, data);

@@ -1,30 +1,4 @@
 #include "tztest.h"
-#include "tztest_builtins.h"
-#include "libcflat.h"
-
-#define CALL(_f)  __svc(0, _f)
-#define RETURN(_r)  __svc(0,(_r))
-
-#define DISPATCH(_op, _func, _arg, _ret)    \
-    do {                                    \
-        tztest_svc_desc_t _desc;            \
-        _desc.dispatch.func = (_func);      \
-        _desc.dispatch.arg = (_arg);        \
-        __svc((_op), &_desc);               \
-        (_ret) = _desc.dispatch.ret;        \
-    } while(0)
-
-#define SECURE_USR_FUNC(_func)  \
-    uint32_t _func##_wrapper(uint32_t arg) { RETURN(_func(arg)); }
-
-#define DISPATCH_SECURE_USR(_func, _arg, _ret)            \
-        DISPATCH(SVC_DISPATCH_SECURE_USR, (_func##_wrapper), (_arg), (_ret))
-#define DISPATCH_SECURE_SVC(_func, _arg, _ret)            \
-        DISPATCH(SVC_DISPATCH_SECURE_SVC, (_func), (_arg), (_ret))
-#define DISPATCH_MONITOR(_func, _arg, _ret)            \
-        DISPATCH(SVC_DISPATCH_MONITOR, (_func), (_arg), (_ret))
-#define DISPATCH_NONSECURE_SVC(_func, _arg, _ret)            \
-        DISPATCH(SVC_DISPATCH_NONSECURE_SVC, (_func), (_arg), (_ret))
 
 /* Make the below globals volatile as  found that the compiler uses the
  * register value ratherh than the memory value making it look like the writes
@@ -44,6 +18,7 @@ static inline uint32_t smc_noop()
                  "mov r0, #0\n"
                  "smc #0\n"
                  "pop {lr}\n");
+    return 0;
 }
 
 uint32_t P0_nonsecure_check_smc()
@@ -56,33 +31,43 @@ uint32_t P0_nonsecure_check_smc()
     return 0;
 }
 
+uint32_t P0_check_register_access(int state)
+{
+    char *state_str[2] = {"Secure", "Nonsecure"};
+
+    /* Set things to non-secure P1 and attempt accesses */
+    printf("\nValidating %s P0 restricted register access:\n",
+           (state == TZTEST_STATE_NONSECURE) ? "nonsecure" : "secure");
+
+    printf("\t%s P0 SCR read ... ", state_str[state]);
+    TEST_EXCEPTION(_read_scr(), CPSR_MODE_UND);
+
+    printf("\t%s P0 SCR write ... ", state_str[state]);
+    TEST_EXCEPTION(_write_scr(0), CPSR_MODE_UND);
+
+    printf("\t%s P0 SDER read ... ", state_str[state]);
+    TEST_EXCEPTION(_read_sder(), CPSR_MODE_UND);
+
+    printf("\t%s P0 SDER write ... ", state_str[state]);
+    TEST_EXCEPTION(_write_sder(0), CPSR_MODE_UND);
+
+    printf("\t%s P0 MVBAR read ... ", state_str[state]);
+    TEST_EXCEPTION(_read_mvbar(), CPSR_MODE_UND);
+
+    printf("\t%s P0 MVBAR write ... ", state_str[state]);
+    TEST_EXCEPTION(_write_mvbar(0), CPSR_MODE_UND);
+
+    printf("\t%s P0 NSACR write ... ", state_str[state]);
+    TEST_EXCEPTION(_write_nsacr(0), CPSR_MODE_UND);
+
+    return 0;
+}
+
 uint32_t P0_nonsecure_check_register_access()
 {
     validate_state(CPSR_MODE_USR, TZTEST_STATE_NONSECURE);
 
-    /* Set things to non-secure P1 and attempt accesses */
-    printf("\nValidating non-secure P0 restricted register access:\n");
-
-    printf("\tNonsecure P0 SCR read ... ");
-    TEST_EXCEPTION(_read_scr(), CPSR_MODE_UND);
-
-    printf("\tNonsecure P0 SCR write ... ");
-    TEST_EXCEPTION(_write_scr(0), CPSR_MODE_UND);
-
-    printf("\tNonsecure P0 SDER read ... ");
-    TEST_EXCEPTION(_read_sder(), CPSR_MODE_UND);
-
-    printf("\tNonsecure P0 SDER write ... ");
-    TEST_EXCEPTION(_write_sder(0), CPSR_MODE_UND);
-
-    printf("\tNonsecure P0 MVBAR read ... ");
-    TEST_EXCEPTION(_read_mvbar(), CPSR_MODE_UND);
-
-    printf("\tNonsecure P0 MVBAR write ... ");
-    TEST_EXCEPTION(_write_mvbar(0), CPSR_MODE_UND);
-
-    printf("\tNonsecure P0 NSACR write ... ");
-    TEST_EXCEPTION(_write_nsacr(0), CPSR_MODE_UND);
+    P0_check_register_access(TZTEST_STATE_NONSECURE);
 
     return 0;
 }
@@ -91,29 +76,7 @@ uint32_t P0_secure_check_register_access()
 {
     validate_state(CPSR_MODE_USR, TZTEST_STATE_SECURE);
 
-    /* Set things to non-secure P1 and attempt accesses */
-    printf("\nValidating secure P0 restricted register access:\n");
-
-    printf("\tSecure P0 SCR read ... ");
-    TEST_EXCEPTION(_read_scr(), CPSR_MODE_UND);
-
-    printf("\tSecure P0 SCR write ... ");
-    TEST_EXCEPTION(_write_scr(0), CPSR_MODE_UND);
-
-    printf("\tSecure P0 SDER read ... ");
-    TEST_EXCEPTION(_read_sder(), CPSR_MODE_UND);
-
-    printf("\tSecure P0 SDER write ... ");
-    TEST_EXCEPTION(_write_sder(0), CPSR_MODE_UND);
-
-    printf("\tSecure P0 MVBAR read ... ");
-    TEST_EXCEPTION(_read_mvbar(), CPSR_MODE_UND);
-
-    printf("\tSecure P0 MVBAR write ... ");
-    TEST_EXCEPTION(_write_mvbar(0), CPSR_MODE_UND);
-
-    printf("\tSecure P0 NSACR write ... ");
-    TEST_EXCEPTION(_write_nsacr(0), CPSR_MODE_UND);
+    P0_check_register_access(TZTEST_STATE_SECURE);
 
     return 0;
 }
@@ -123,7 +86,6 @@ uint32_t P0_nonsecure_check_memory_access()
 {
     validate_state(CPSR_MODE_USR, TZTEST_STATE_NONSECURE);
 
-    tztest_svc_desc_t desc;
     printf("\nValidating non-secure P0 restricted memory access:\n");
 
     DEBUG_MSG("Writing %p\n", &_shared_memory_heap_base);
@@ -134,12 +96,11 @@ uint32_t P0_nonsecure_check_memory_access()
 
 uint32_t P1_nonsecure_check_mask_bits()
 {
+    uint32_t ret = 0;
+
     validate_state(CPSR_MODE_SVC, TZTEST_STATE_NONSECURE);
 
     uint32_t cpsr = _read_cpsr();
-    uint32_t scr = 0;
-    uint32_t ret = 0;
-    tztest_svc_desc_t desc;
 
     /* Test: SCR.FW/AW protects access to CPSR.F/Aa when nonsecure
      *       pg. B1-1151  table B1-2
@@ -186,6 +147,8 @@ uint32_t P1_nonsecure_check_mask_bits()
 
     /* Restore CPSR to its original value */
     _write_cpsr(cpsr);
+
+    return ret;
 }
 
 #define TZTEST_SECURE_USR_PATTERN 0x87654321
@@ -196,6 +159,7 @@ uint32_t tztest_secure_usr_test1(uint32_t arg)
     DEBUG_MSG("Entered arg = 0x%x\n", arg);
     __svc(1,0);
     DEBUG_MSG("Exiting\n");
+
     return arg/2;
 }
 SECURE_USR_FUNC(tztest_secure_usr_test1);
@@ -216,6 +180,8 @@ uint32_t tztest_check_secure_usr_handshake()
         DEBUG_MSG("\n***** Failed secure usr handshake *****\n");
         assert(TZTEST_SECURE_USR_PATTERN/2 == ret);
     }
+
+    return ret;
 }
 
 uint32_t tztest_check_secure_svc_handshake()
@@ -228,6 +194,8 @@ uint32_t tztest_check_secure_svc_handshake()
         DEBUG_MSG("\n***** Failed secure svc handshake *****\n");
         assert(TZTEST_SECURE_SVC_PATTERN*2 == ret);
     }
+
+    return ret;
 }
 
 uint32_t MON_check_state()
@@ -238,7 +206,6 @@ uint32_t MON_check_state()
     TEST_CONDITION(CPSR_MODE_MON == ((_read_cpsr() & CPSR_MODE_MASK)));
 
     uint32_t scr = _read_scr();
-    uint32_t ret = 0;
 
     /* B1-1211: SMC exceptions from monitor mode cause transition to secure
      *          state.
@@ -259,11 +226,13 @@ uint32_t MON_check_state()
     /* Restore the original SCR */
     _write_scr(scr);
 
+    return 0;
 }
 
 uint32_t P1_nonsecure_novirt_behavior()
 {
     int ret = 0;
+
     validate_state(CPSR_MODE_SVC, TZTEST_STATE_NONSECURE);
 
     printf("\nValidating non-virtualized behavior:\n");
@@ -278,7 +247,7 @@ uint32_t P1_nonsecure_novirt_behavior()
     /* Restore SCR to just the nonsecure state */
     DISPATCH_MONITOR(_write_scr, SCR_NS, ret);
 
-    return 0;
+    return ret;
 }
 
 #define TZTEST_SVAL 0xaaaaaaaa
@@ -352,7 +321,7 @@ uint32_t MON_check_banked_regs()
      * safe unless we take an exception which should be low risk.
      */
     val = _read_sctlr();
-    VERIFY_REGISTER_CUSTOM(sctlr, (1 << 13), val, (val| (1 << 13)));
+    VERIFY_REGISTER_CUSTOM(sctlr, (1 << 13), val, (val | (1 << 13)));
 
     /* ACTLR is banked but not supported on Vexpress */
 
@@ -396,9 +365,11 @@ uint32_t MON_check_banked_regs()
 
     /* Restore the SCR to it's original value */
     _write_scr(scr);
+
+    return 0;
 }
 
-void tztest_nonsecure_usr_main()
+uint32_t tztest_nonsecure_usr_main()
 {
     uint32_t ret = 0;
 
@@ -408,7 +379,6 @@ void tztest_nonsecure_usr_main()
 
     P0_nonsecure_check_smc();
     P0_nonsecure_check_register_access();
-//    P0_nonsecure_check_memory_access();
 
 #ifdef DEBUG
     tztest_check_secure_usr_handshake();
@@ -428,6 +398,8 @@ void tztest_nonsecure_usr_main()
            *tztest_test_count-*tztest_fail_count, *tztest_test_count);
 
     DEBUG_MSG("Exiting\n");
+
+    return ret;
 }
 
 #ifdef MMU_ENABLED

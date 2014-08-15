@@ -1,7 +1,4 @@
-#include <arm32.h>
-#include <platform.h>
-
-.equ SVC_EXIT, -1
+#include "tztest_asm.h"
 
 b nonsecure_vectors
 

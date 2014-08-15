@@ -1,8 +1,7 @@
 #ifndef _TZTEST_BUILTINS_H
 #define _TZTEST_BUILTINS_H
 
-#include "tztest.h"
-#include "libcflat.h"
+#include "sm.h"
 
 /* SMC intrinsic
  * Need to enable the security extension on v7 or the assembler will complain
@@ -52,9 +51,10 @@
         return _r0;                                     \
     }
 
-#define _WRITECP(_reg, _cp, _opc1, _crm, _crn, _opc2)   \
+#define _WRITECP(_reg, _cp, _opc1, _crm, _crn, _opc2)       \
     static inline uint32_t  _write_##_reg(uint32_t _r0) {   \
-        __mcr(_cp, _opc1, _r0, _crm, _crn, _opc2);      \
+        __mcr(_cp, _opc1, _r0, _crm, _crn, _opc2);          \
+        return 0;                                           \
     }
 
 #define _RWCP(_reg, _cp, _opc1, _crm, _crn, _opc2)  \

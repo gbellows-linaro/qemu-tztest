@@ -1,6 +1,8 @@
 
 #ifndef _TZTEST_MMU_H
-#define _TZTEST_H
+#define _TZTEST_MMU_H
+
+#include "sm.h"
 
 #define SECTION_SECTION             (1 << 1)
 #define SECTION_B                   (1 << 2)
@@ -21,7 +23,7 @@
 #define SECTION_P0_RO               ((0 << 15) | (2 << 10))
 #define SECTION_P0_NONE             ((0 << 15) | (1 << 10))
 
-/* These remap description describe the memory region if SCTLR.TRE = 0 
+/* These remap description describe the memory region if SCTLR.TRE = 0
  * (no region atrribute remap).
  */
 #define SECTION_DEVICE_SHAREABLE    (SECTION_B)

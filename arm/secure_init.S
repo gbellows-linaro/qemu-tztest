@@ -1,12 +1,6 @@
-#include <arm32.h>
-#include <platform.h>
+#include "tztest_asm.h"
 
 .arch_extension sec
-
-.equ SVC_RETURN_FROM_SECURE_USR, 0x0
-.equ SMC_NOOP, 0x0
-.equ SMC_DISPATCH_MONITOR, 0x1
-.equ SMC_YIELD, 0x32000000
 
 .align 5
 secure_vectors:
