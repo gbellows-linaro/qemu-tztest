@@ -1,37 +1,11 @@
 #ifndef _TZTEST_H
 #define _TZTEST_H
 
-#include <arm32.h>
+#include "tztest_asm.h"
+#include "tztest_builtins.h"
+#include "tztest_mmu.h"
+#include "sm.h"
 #include "libcflat.h"
-
-#define STDOUT 1
-#define TZTEST_STATE_SECURE !SCR_NS
-#define TZTEST_STATE_NONSECURE SCR_NS
-
-typedef enum {
-    SMC_NOOP = 0,
-    SMC_DISPATCH_MONITOR = 1,
-    SMC_YIELD = 0x32000000,
-    SMC_DISPATCH_SECURE_USR,
-    SMC_DISPATCH_SECURE_SVC,
-    SMC_ALLOCATE_SECURE_MEMORY,
-    SMC_EXIT
-} smc_op_t;
-
-typedef enum {
-    SVC_RETURN_FROM_SECURE_USR = 0,
-    SVC_DISPATCH_MONITOR,
-    SVC_DISPATCH_SECURE_USR,
-    SVC_DISPATCH_SECURE_SVC,
-    SVC_DISPATCH_NONSECURE_SVC,
-    SVC_CHECK_SECURE_STATE,
-    SVC_EXIT
-} svc_op_t;
-
-typedef enum {
-    TZTEST_REG_CPSR = 1,
-    TZTEST_REG_SCR
-} tztest_reg_t;
 
 typedef struct {
     uint32_t (*func)(uint32_t);
@@ -63,8 +37,10 @@ typedef struct {
 #ifdef DEBUG
 #define DEBUG_MSG(_str, ...) \
     printf("\n[DEBUG] %s: " _str, __FUNCTION__, ##__VA_ARGS__)
+#define DEBUG_ARG
 #else
 #define DEBUG_MSG(_str, ...)
+#define DEBUG_ARG __attribute__ ((unused))
 #endif
 
 #define MODE_STR(_mode)             \
@@ -94,13 +70,29 @@ typedef struct {
      (0x1e == (_s)) ? "External parity err on table walk" : \
      "Unknown")
 
-extern volatile int *tztest_exception;
-extern volatile int *tztest_exception_status;
-extern volatile int *tztest_fail_count;
-extern volatile int *tztest_test_count;
-extern int tztest_read_register(tztest_reg_t);
-extern int tztest_get_saved_cpsr();
-extern void validate_state(uint32_t, uint32_t);
+#define CALL(_f)  __svc(0, _f)
+#define RETURN(_r)  __svc(0,(_r))
+
+#define DISPATCH(_op, _func, _arg, _ret)    \
+    do {                                    \
+        tztest_svc_desc_t _desc;            \
+        _desc.dispatch.func = (_func);      \
+        _desc.dispatch.arg = (_arg);        \
+        __svc((_op), &_desc);               \
+        (_ret) = _desc.dispatch.ret;        \
+    } while(0)
+
+#define SECURE_USR_FUNC(_func)  \
+    uint32_t _func##_wrapper(uint32_t arg) { RETURN(_func(arg)); return 0; }
+
+#define DISPATCH_SECURE_USR(_func, _arg, _ret)            \
+        DISPATCH(SVC_DISPATCH_SECURE_USR, (_func##_wrapper), (_arg), (_ret))
+#define DISPATCH_SECURE_SVC(_func, _arg, _ret)            \
+        DISPATCH(SVC_DISPATCH_SECURE_SVC, (_func), (_arg), (_ret))
+#define DISPATCH_MONITOR(_func, _arg, _ret)            \
+        DISPATCH(SVC_DISPATCH_MONITOR, (_func), (_arg), (_ret))
+#define DISPATCH_NONSECURE_SVC(_func, _arg, _ret)            \
+        DISPATCH(SVC_DISPATCH_NONSECURE_SVC, (_func), (_arg), (_ret))
 
 #define INC_TEST_COUNT()    (*tztest_test_count += 1)
 #define INC_FAIL_COUNT()    (*tztest_fail_count += 1)
@@ -127,5 +119,69 @@ extern void validate_state(uint32_t, uint32_t);
         TEST_FUNCTION(_fn, *tztest_exception == (_excp));   \
         *tztest_exception = 0;                          \
     } while (0)
+
+#define TZTEST_SVAL 0xaaaaaaaa
+#define TZTEST_NSVAL ~TZTEST_SVAL
+#define TZTEST_GET_REG_SECURE_BANK(_reg, _val)      \
+    do {                                            \
+        _write_scr(scr & ~SCR_NS);                  \
+        (_val) = _read_##_reg();                    \
+    } while(0)
+
+#define TZTEST_GET_REG_NONSECURE_BANK(_reg, _val)   \
+    do {                                            \
+        _write_scr(scr | SCR_NS);                   \
+        (_val) = _read_##_reg();                    \
+    } while(0)
+
+#define TZTEST_SET_REG_SECURE_BANK(_reg, _val)      \
+    do {                                            \
+        _write_scr(scr & ~SCR_NS);                  \
+        _write_##_reg(_val);                        \
+    } while(0)
+
+#define TZTEST_SET_REG_NONSECURE_BANK(_reg, _val)   \
+    do {                                            \
+        _write_scr(scr | SCR_NS);                   \
+        _write_##_reg(_val);                        \
+    } while(0)
+
+#define TZTEST_GET_REG_BANKS(_reg, _sval, _nsval)   \
+    do {                                            \
+        TZTEST_GET_REG_SECURE_BANK(_reg, _sval);    \
+        TZTEST_GET_REG_NONSECURE_BANK(_reg, _nsval);\
+    } while(0)
+
+#define TZTEST_SET_REG_BANKS(_reg, _sval, _nsval)   \
+    do {                                            \
+        TZTEST_SET_REG_SECURE_BANK(_reg, _sval);    \
+        TZTEST_SET_REG_NONSECURE_BANK(_reg, _nsval);\
+    } while(0)
+
+#define VERIFY_REGISTER_CUSTOM(_reg, _mask, _sval, _nsval)              \
+    do {                                                                \
+        uint32_t sval = 0, nsval = 0;                                   \
+        uint32_t _reg[2] = {0,0};                                       \
+        printf("\tChecking %s banks... ", #_reg);                       \
+        TZTEST_GET_REG_BANKS(_reg, _reg[!SCR_NS], _reg[SCR_NS]);        \
+        TZTEST_SET_REG_BANKS(_reg, (_sval), (_nsval));                  \
+        TZTEST_GET_REG_SECURE_BANK(_reg, sval);                         \
+        TZTEST_GET_REG_NONSECURE_BANK(_reg, nsval);                     \
+        TEST_CONDITION(((sval & (_mask)) != (nsval & (_mask))) &&       \
+                       (((_sval) & (_mask)) == (sval & (_mask))) &&     \
+                       (((_nsval) & (_mask)) == (nsval & (_mask))));    \
+        TZTEST_SET_REG_BANKS(_reg, _reg[!SCR_NS], _reg[SCR_NS]);        \
+    } while(0)
+
+#define VERIFY_REGISTER(_reg)    \
+    VERIFY_REGISTER_CUSTOM(_reg, 0xFFFFFFFF, TZTEST_SVAL, TZTEST_NSVAL)
+
+extern volatile int *tztest_exception;
+extern volatile int *tztest_exception_status;
+extern volatile int *tztest_fail_count;
+extern volatile int *tztest_test_count;
+extern void validate_state(uint32_t, uint32_t);
+extern uint32_t _shared_memory_heap_base;
+extern uint32_t nsec_l1_page_table;
 
 #endif
