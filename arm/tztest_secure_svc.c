@@ -96,8 +96,6 @@ void sec_dabort_handler(int status, int addr) {
     *tztest_exception_status = status & 0x1f;
 }
 
-int secure_test_var = 42;
-
 void check_init_mode()
 {
     printf("\nValidating startup state:\n");
@@ -184,7 +182,7 @@ void tztest_secure_pagetable_init()
     pagetable_add_sections(table, heap_pagetable_entries, 1);
 }
 
-void tztest_secure_svc_init_monitor()
+void tztest_secure_svc_init_monitor(uint32_t entry_point)
 {
     struct sm_nsec_ctx *nsec_ctx;
 
@@ -193,7 +191,7 @@ void tztest_secure_svc_init_monitor()
      * resumes at initiallizing the nonsecure svc mode.
      */
     nsec_ctx = sm_get_nsec_ctx();
-    nsec_ctx->mon_lr = (uint32_t)&_ram_nsec_base;
+    nsec_ctx->mon_lr = entry_point;
     nsec_ctx->mon_spsr = CPSR_MODE_SVC | CPSR_I;
 }
 

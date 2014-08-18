@@ -42,7 +42,7 @@ init_cpu:
     ldr r11, =boot_vectors
     mcr p15, 0, r11, c12, c0, 0
     isb
-    
+
     /* Start by setting up the boot stack*/
 	ldr sp, =boot_stacktop
 
@@ -55,7 +55,7 @@ copy_sectext:
     strb r10, [r1], #1
     subs r2, r2, #1
     bne copy_sectext
-    
+
     ldr r0, =_flash_secdata_start
     ldr r1, =_ram_secdata_start
     ldr r2, =_secdata_size
@@ -64,12 +64,11 @@ copy_secdata:
     strb r10, [r1], #1
     subs r2, r2, #1
     bne copy_secdata
-    
+
     mov r0, #FLASH_NSEC_BASE
-    add r0, r0, #0x4
     blx r0
-    
+
     bl secure_init
-	
-end:	
+
+end:
     b      end

@@ -73,6 +73,10 @@ monitor_smc_vect:
 
     .globl secure_init
 secure_init:
+    /* We enter with R0 pointing to the nonsecure entry point.  Put it in R11
+     * for now to avoid overwriting it on calls. */
+    mov r11, r0
+
     /* Disable interrupts for now */
     mrs r10, cpsr
     orr r10, r10, #0xc0     @ Mask IRQ and FIQ
@@ -84,8 +88,8 @@ secure_init:
     mcr p15, 0, r10, c1, c0, 0
 
     /* Set up secure VBAR */
-    ldr r11, =secure_vectors
-    mcr p15, 0, r11, c12, c0, 0
+    ldr r10, =secure_vectors
+    mcr p15, 0, r10, c12, c0, 0
     isb
 
 secure_stack_init:
@@ -148,15 +152,20 @@ secure_mmu_init:
 
 secure_init_monitor:
     /* Set-up the monitor stack */
-	mrs	r1, cpsr
+	mrs	r10, cpsr
     cps #CPSR_MODE_MON
     ldr sp, =mon_stacktop
-	msr	cpsr, r1
+	msr	cpsr, r10
 
     /* Set-up mvbar */
-    ldr r0, =monitor_vectors
-    mcr p15, 0, r0, c12, c0, 1
+    ldr r10, =monitor_vectors
+    mcr p15, 0, r10, c12, c0, 1
 
+    /* Call to set the nonsecure entry point to be the save r0 value passed in
+     * by the boot code.  This will be the initial entry point on the first
+     * monitor context switch.
+     */
+    mov r0, r11
     bl tztest_secure_svc_init_monitor
 
     mov r0, #SMC_YIELD

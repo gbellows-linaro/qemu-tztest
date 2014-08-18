@@ -1,7 +1,10 @@
 #include "tztest_asm.h"
 
-b nonsecure_vectors
-
+/* The nonsecure image load code must be placed at the beginning of the image
+ * as this is the starting point for the boot code to load.  The loader code
+ * will pass the initial starting point back to the boot code for later
+ * execution.
+ */
 nonsecure_load:
     ldr r0, =_flash_nsectext_start
     ldr r1, =_ram_nsectext_start
@@ -21,6 +24,7 @@ copy_nsecdata:
     subs r2, r2, #1
     bne copy_nsecdata
 
+    ldr r0, =nonsecure_init
     mov pc, lr
 
 .align 5
