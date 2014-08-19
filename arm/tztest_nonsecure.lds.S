@@ -61,4 +61,6 @@ SECTIONS
  . += 4;
  _tztest_exception_status = .;
  . += 4;
+ _tztest_exception_addr = .;
+ . += 4;
 }

@@ -9,11 +9,13 @@ extern uint32_t _shared_memory_heap_base;
 extern uint32_t _common_memory_heap_base;
 extern volatile int _tztest_test_count;
 extern volatile int _tztest_fail_count;
-volatile int *tztest_test_count = &_tztest_test_count;
-volatile int *tztest_fail_count = &_tztest_fail_count;
 extern volatile int _tztest_exception;
 extern volatile int _tztest_exception_status;
+extern volatile int _tztest_exception_addr;
+volatile int *tztest_test_count = &_tztest_test_count;
+volatile int *tztest_fail_count = &_tztest_fail_count;
 volatile int *tztest_exception = &_tztest_exception;
+volatile int *tztest_exception_addr = &_tztest_exception_addr;
 volatile int *tztest_exception_status = &_tztest_exception_status;
 
 pagetable_map_entry_t nsec_pagetable_entries[] = {

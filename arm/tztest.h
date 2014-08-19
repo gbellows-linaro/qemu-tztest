@@ -177,6 +177,7 @@ typedef struct {
     VERIFY_REGISTER_CUSTOM(_reg, 0xFFFFFFFF, TZTEST_SVAL, TZTEST_NSVAL)
 
 extern volatile int *tztest_exception;
+extern volatile int *tztest_exception_addr;
 extern volatile int *tztest_exception_status;
 extern volatile int *tztest_fail_count;
 extern volatile int *tztest_test_count;
