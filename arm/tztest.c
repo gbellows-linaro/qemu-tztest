@@ -198,8 +198,28 @@ uint32_t MON_check_state()
 {
     printf("\nValidating monitor mode:\n");
 
+    uint32_t cpsr = _read_cpsr();
+
     printf("\tChecking monitor mode... ");
-    TEST_CONDITION(CPSR_MODE_MON == ((_read_cpsr() & CPSR_MODE_MASK)));
+    TEST_CONDITION(CPSR_MODE_MON == (cpsr & CPSR_MODE_MASK));
+
+    // Test: Check that CPSR.A/I.F are set to 1 on exception to mon mode
+    //      pg. B1-1182
+    printf("\tChecking monitor mode CPSR.F value... ");
+    TEST_CONDITION(CPSR_F == (CPSR_F & cpsr));
+
+    printf("\tChecking monitor mode CPSR.I value... ");
+    TEST_CONDITION(CPSR_I == (CPSR_I & cpsr));
+
+    printf("\tChecking monitor mode CPSR.A value... ");
+    TEST_CONDITION(CPSR_A == (CPSR_A & cpsr));
+
+    return 0;
+}
+
+uint32_t MON_check_exceptions()
+{
+    printf("\nValidating monitor mode exception:\n");
 
     uint32_t scr = _read_scr();
 
@@ -208,8 +228,7 @@ uint32_t MON_check_state()
      * Test: Check that an exception from mon mode, NS cleared to 0
      *       pg. B1-1170
      */
-
-    /* Set our security state to secure */
+    /* Set our starting security state to secure */
     _write_scr(scr & ~SCR_NS);
     printf("\tChecking state after secure monitor... ");
     TEST_FUNCTION(smc_noop(), !SCR_NS == ((_read_scr() & SCR_NS)));
@@ -326,6 +345,7 @@ uint32_t tztest_nonsecure_usr_main()
     DISPATCH_SECURE_USR(P0_secure_check_register_access, 0, ret);
 
     DISPATCH_MONITOR(MON_check_state, 0, ret);
+    DISPATCH_MONITOR(MON_check_exceptions, 0, ret);
     DISPATCH_MONITOR(MON_check_banked_regs, 0, ret);
 
     DISPATCH_NONSECURE_SVC(P1_nonsecure_check_mask_bits, 0, ret);
@@ -367,6 +387,10 @@ uint32_t tztest_nonsecure_usr_main()
     //      pg. B1-1158
     // Test: Check that irq/fiq interrupts routed to mon mode use mvbar entry
     //      pg. B1-1168
+    // Test: Check that IRQ exceptions are routed properly
+    //      figure: B1-8
+    // Test: Check that FIQ exceptions are routed properly
+    //      figure: B1-9
 #endif
 #ifdef NONTZ_TEST
     // Test: Check that mon mode is only avail if sec ext. present
@@ -400,13 +424,3 @@ uint32_t tztest_nonsecure_usr_main()
     //      figure: B1-6
     // Test: Check that data abort exceptions are routed properly
     //      figure: B1-7
-    // Test: Check that IRQ exceptions are routed properly
-    //      figure: B1-8
-    // Test: Check that FIQ exceptions are routed properly
-    //      figure: B1-9
-    // Test: Check that CPSR.A/I.F are set to 1 on exception to mon mode
-    //      pg. B1-1182
-    // Test: Check that on reset if sec et present, starts in sec state
-    //      pg. B1-1204
-    // Note: Unaligned access can cause abort in PMSA
-    //
