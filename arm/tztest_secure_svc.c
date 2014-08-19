@@ -63,6 +63,10 @@ void sec_svc_handler(volatile uint32_t op, volatile tztest_svc_desc_t *desc)
 {
     DEBUG_MSG("Entered\n");
     switch (op) {
+        case SVC_DISPATCH_MONITOR:
+            op = SMC_DISPATCH_MONITOR;
+            __smc(op, desc);
+            break;
         case SVC_GET_SECURE_STATE:
             /* This SVC handler is only accessible from the secure vector
              * table, so unless something went drastically wrong with the
@@ -202,6 +206,6 @@ void tztest_dispatch_monitor(tztest_smc_desc_t *desc)
 {
     uint32_t (*func)(uint32_t) = desc->dispatch.func;
     DEBUG_MSG("Entered\n");
-    func(desc->dispatch.arg);
+    desc->dispatch.ret = func(desc->dispatch.arg);
     DEBUG_MSG("Exiting\n");
 }
