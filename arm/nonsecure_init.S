@@ -114,7 +114,7 @@ nonsecure_mmu_init:
     /* Set TTBR0 to the initialized address plus enable shareable write-back
      * write-allocate.
      */
-    ldr r10, =nsec_l1_page_table
+    ldr r10, =_nsec_l1_page_table
     orr r10, r10, #0xB
     mcr p15, 0, r10, c2, c0, 0
 

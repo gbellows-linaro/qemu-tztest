@@ -244,7 +244,7 @@ uint32_t MON_check_banked_regs()
      * be wrong.
      */
     VERIFY_REGISTER_CUSTOM(ttbr0, 0xFFF00000,
-                           (uint32_t)&nsec_l1_page_table, TZTEST_NSVAL);
+                           (uint32_t)nsec_l1_page_table, TZTEST_NSVAL);
     VERIFY_REGISTER(ttbr1);
 
     /* Modifying TTBCR is highly disruptive, so the test is heavily restricted

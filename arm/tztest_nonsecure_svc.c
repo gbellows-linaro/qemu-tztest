@@ -2,9 +2,14 @@
 
 uint32_t nsec_dispatch_secure_usr_function(uint32_t (*)(uint32_t), uint32_t);
 uint32_t nsec_dispatch_secure_svc_function(uint32_t (*)(uint32_t), uint32_t);
-extern uint32_t nsec_l1_page_table;
+extern uint32_t _nsec_l1_page_table;
+uint32_t *nsec_l1_page_table = &_nsec_l1_page_table;
 extern uint32_t _ram_nsectext_start;
 extern uint32_t _ram_nsecdata_start;
+extern uint32_t _nsecstack_start;
+extern uint32_t _nsectext_size;
+extern uint32_t _nsecdata_size;
+extern uint32_t _nsecstack_size;
 extern uint32_t _shared_memory_heap_base;
 extern uint32_t _common_memory_heap_base;
 extern volatile int _tztest_test_count;
@@ -17,34 +22,12 @@ volatile int *tztest_fail_count = &_tztest_fail_count;
 volatile int *tztest_exception = &_tztest_exception;
 volatile int *tztest_exception_addr = &_tztest_exception_addr;
 volatile int *tztest_exception_status = &_tztest_exception_status;
-
-pagetable_map_entry_t nsec_pagetable_entries[] = {
-    {.va = (uint32_t)&_ram_nsectext_start, .pa = (uint32_t)&_ram_nsectext_start,
-     .size = SECTION_SIZE,
-     .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_WBA_CACHED |
-             SECTION_P1_RW | SECTION_P0_RW | SECTION_NONSECURE |
-             SECTION_SECTION },
-    {.va = (uint32_t)&_ram_nsecdata_start, .pa = (uint32_t)&_ram_nsecdata_start,
-     .size = SECTION_SIZE * 2,
-     .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_WBA_CACHED |
-             SECTION_P1_RW | SECTION_P0_RW | SECTION_NONSECURE |
-             SECTION_SECTION },
-};
-
-pagetable_map_entry_t mmio_pagetable_entries[] = {
-    {.va = UART0_BASE, .pa = UART0_BASE, .size = SECTION_SIZE,
-     .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_UNCACHED |
-             SECTION_P1_RW | SECTION_P0_RW | SECTION_NONSECURE |
-             SECTION_SECTION },
-};
-
-pagetable_map_entry_t heap_pagetable_entries[] = {
-    {.va = (uint32_t)&_shared_memory_heap_base,
-     .pa = (uint32_t)&_shared_memory_heap_base,
-     .size = SECTION_SIZE,
-     .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_UNCACHED |
-             SECTION_P1_RW | SECTION_P0_RW | SECTION_SECTION },
-};
+uint32_t ram_nsectext_start = (uint32_t)&_ram_nsectext_start;
+uint32_t ram_nsecdata_start = (uint32_t)&_ram_nsecdata_start;
+uint32_t nsecstack_start = (uint32_t)&_nsecstack_start;
+uint32_t nsectext_size = (uint32_t)&_nsectext_size;
+uint32_t nsecdata_size = (uint32_t)&_nsecdata_size;
+uint32_t nsecstack_size = (uint32_t)&_nsecstack_size;
 
 void nsec_svc_handler(volatile uint32_t op, volatile tztest_svc_desc_t *desc)
 {
@@ -141,13 +124,24 @@ uint32_t nsec_dispatch_secure_svc_function(uint32_t (*func)(uint32_t),
 
 void tztest_nonsecure_pagetable_init()
 {
-    uint32_t *table = &nsec_l1_page_table;
-    uint32_t count;
+    pagetable_map_entry_t nsec_pagetable_entries[] = {
+        {.va = (uint32_t)ram_nsectext_start, .pa = (uint32_t)ram_nsectext_start,
+         .type = PAGE, .len = nsectext_size,
+         .attr = SHARED | NOTGLOBAL | WBA_CACHED | P1_R | P1_X | P0_R | P0_X |
+                 NONSECURE },
+        {.va = (uint32_t)ram_nsecdata_start, .pa = (uint32_t)ram_nsecdata_start,
+         .type = PAGE, .len = nsecdata_size,
+         .attr = SHARED | NOTGLOBAL | WBA_CACHED | P1_R | P1_W | P0_R | P0_W |
+                 NONSECURE },
+        {.va = (uint32_t)nsecstack_start, .pa = (uint32_t)nsecstack_start,
+         .type = PAGE, .len = nsecstack_size,
+         .attr = SHARED | NOTGLOBAL | WBA_CACHED | P1_R | P1_W | P0_R | P0_W |
+                 NONSECURE },
+    };
 
-    pagetable_init(table);
+    pagetable_init(nsec_l1_page_table);
 
-    pagetable_add_sections(table, mmio_pagetable_entries, 1);
-    count = sizeof(nsec_pagetable_entries) / sizeof(nsec_pagetable_entries[0]);
-    pagetable_add_sections(table, nsec_pagetable_entries,  count);
-    pagetable_add_sections(table, heap_pagetable_entries,  1);
+    PT_ADD_ENTRIES(nsec_l1_page_table, nsec_pagetable_entries);
+
+    pagetable_init_common(nsec_l1_page_table);
 }

@@ -183,6 +183,7 @@ extern volatile int *tztest_fail_count;
 extern volatile int *tztest_test_count;
 extern void validate_state(uint32_t, uint32_t);
 extern uint32_t _shared_memory_heap_base;
-extern uint32_t nsec_l1_page_table;
+extern uint32_t *nsec_l1_page_table;
+extern uint32_t *nsec_l2_page_table;
 
 #endif

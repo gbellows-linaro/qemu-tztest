@@ -39,18 +39,20 @@ SECTIONS
  _secdata_size = _ram_secdata_end - _ram_secdata_start;
 
  . = ALIGN(STACK_SIZE);
+ _secstack_start = .;
  sec_usr_stacktop = . + STACK_SIZE;
  sec_und_stacktop = sec_usr_stacktop + STACK_SIZE;
  sec_abt_stacktop = sec_und_stacktop + STACK_SIZE;
  sec_svc_stacktop = sec_und_stacktop + STACK_SIZE;
  boot_stacktop = sec_svc_stacktop;
  mon_stacktop = sec_svc_stacktop + STACK_SIZE;
+ _secstack_size = mon_stacktop - _secstack_start;
 
  . = ALIGN(1M);
  secure_memory_heap = .;
 
  . = ALIGN(16M);
- sec_l1_page_table = .;
+ _sec_l1_page_table = .;
 
  . = TZTEST_COMMON_HEAP_BASE;
  _common_memory_heap_base = .;

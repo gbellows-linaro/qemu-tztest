@@ -9,9 +9,14 @@ extern int _ram_nsec_base;
 int dispatch_secure_usr(int, int);
 void tztest_secure_svc_loop(int initial_r0, int initial_r1);
 void *sec_allocate_secure_memory(int);
-extern uint32_t sec_l1_page_table;
+extern uint32_t _sec_l1_page_table;
+uint32_t *sec_l1_page_table = &_sec_l1_page_table;
 extern uint32_t _ram_sectext_start;
 extern uint32_t _ram_secdata_start;
+extern uint32_t _secstack_start;
+extern uint32_t _sectext_size;
+extern uint32_t _secdata_size;
+extern uint32_t _secstack_size;
 extern uint32_t _shared_memory_heap_base;
 extern uint32_t _common_memory_heap_base;
 extern volatile int _tztest_exception;
@@ -24,39 +29,25 @@ volatile int *tztest_fail_count = &_tztest_fail_count;
 volatile int *tztest_exception = &_tztest_exception;
 volatile int *tztest_exception_addr = &_tztest_exception_addr;
 volatile int *tztest_exception_status = &_tztest_exception_status;
-
-pagetable_map_entry_t sec_pagetable_entries[] = {
-    {.va = (uint32_t)&_ram_sectext_start, .pa = (uint32_t)&_ram_sectext_start,
-     .size = SECTION_SIZE,
-     .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_WBA_CACHED |
-             SECTION_P1_RO | SECTION_P0_RO | SECTION_SECTION },
-    {.va = (uint32_t)&_ram_secdata_start, .pa = (uint32_t)&_ram_secdata_start,
-     .size = SECTION_SIZE * 2,
-     .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_WBA_CACHED |
-             SECTION_P1_RW | SECTION_P0_RW | SECTION_SECTION },
-};
+uint32_t ram_sectext_start = (uint32_t)&_ram_sectext_start;
+uint32_t ram_secdata_start = (uint32_t)&_ram_secdata_start;
+uint32_t secstack_start = (uint32_t)&_secstack_start;
+uint32_t sectext_size = (uint32_t)&_sectext_size;
+uint32_t secdata_size = (uint32_t)&_secdata_size;
+uint32_t secstack_size = (uint32_t)&_secstack_size;
 
 pagetable_map_entry_t nsec_pagetable_entries[] = {
     {.va = (uint32_t)&_ram_nsec_base, .pa = (uint32_t)&_ram_nsec_base,
-     .size = SECTION_SIZE * 2,
-     .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_WBA_CACHED |
-             SECTION_P1_RW | SECTION_P0_RW | SECTION_NONSECURE |
-             SECTION_SECTION },
+     .type = SECTION, .len = SECTION_SIZE * 2,
+     .attr = SHARED | NOTGLOBAL | WBA_CACHED | P1_R | P1_W | P1_X | P0_R |
+             P0_W | P0_X | NONSECURE },
 };
 
-pagetable_map_entry_t mmio_pagetable_entries[] = {
-    {.va = UART0_BASE, .pa = UART0_BASE, .size = SECTION_SIZE,
-     .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_UNCACHED |
-             SECTION_P1_RW | SECTION_P0_RW | SECTION_NONSECURE |
-             SECTION_SECTION },
-};
-
-pagetable_map_entry_t heap_pagetable_entries[] = {
-    {.va = (uint32_t)&_shared_memory_heap_base,
-     .pa = (uint32_t)&_shared_memory_heap_base,
-     .size = SECTION_SIZE,
-     .attr = SECTION_SHARED | SECTION_NOTGLOBAL | SECTION_UNCACHED |
-             SECTION_P1_RW | SECTION_P0_RW | SECTION_SECTION },
+pagetable_map_entry_t sysreg_pagetable_entries[] = {
+    {.va = SYSREG_BASE, .pa = SYSREG_BASE,
+     .type = PAGE, .len = 0x1000,
+     .attr = SHARED | NOTGLOBAL | UNCACHED | P1_R | P1_W | P0_R | P0_W |
+             NONSECURE },
 };
 
 void sec_svc_handler(volatile uint32_t op, volatile tztest_svc_desc_t *desc)
@@ -176,17 +167,25 @@ void tztest_secure_svc_loop(int initial_op, int initial_data)
 
 void tztest_secure_pagetable_init()
 {
-    uint32_t *table = &sec_l1_page_table;
-    uint32_t count;
+    pagetable_map_entry_t sec_pagetable_entries[] = {
+        {.va = (uint32_t)ram_sectext_start, .pa = (uint32_t)ram_sectext_start,
+         .type = PAGE, .len = sectext_size,
+         .attr = SHARED | NOTGLOBAL | WBA_CACHED | P1_R | P1_X | P0_R | P0_X },
+        {.va = (uint32_t)ram_secdata_start, .pa = (uint32_t)ram_secdata_start,
+         .type = PAGE, .len = secdata_size,
+         .attr = SHARED | NOTGLOBAL | WBA_CACHED | P1_R | P1_W | P0_R | P0_W },
+        {.va = (uint32_t)secstack_start, .pa = (uint32_t)secstack_start,
+         .type = PAGE, .len = secstack_size,
+         .attr = SHARED | NOTGLOBAL | WBA_CACHED | P1_R | P1_W | P0_R | P0_W },
+    };
 
-    pagetable_init(table);
+    pagetable_init(sec_l1_page_table);
 
-    pagetable_add_sections(table, mmio_pagetable_entries, 1);
-    count = sizeof(sec_pagetable_entries) / sizeof(sec_pagetable_entries[0]);
-    pagetable_add_sections(table, sec_pagetable_entries, count);
-    count = sizeof(nsec_pagetable_entries) / sizeof(nsec_pagetable_entries[0]);
-    pagetable_add_sections(table, nsec_pagetable_entries, 1);
-    pagetable_add_sections(table, heap_pagetable_entries, 1);
+    PT_ADD_ENTRIES(sec_l1_page_table, sysreg_pagetable_entries);
+    PT_ADD_ENTRIES(sec_l1_page_table, sec_pagetable_entries);
+    PT_ADD_ENTRIES(sec_l1_page_table, nsec_pagetable_entries);
+
+    pagetable_init_common(sec_l1_page_table);
 }
 
 void tztest_secure_svc_init_monitor(uint32_t entry_point)
