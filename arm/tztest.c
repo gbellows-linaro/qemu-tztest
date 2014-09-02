@@ -1,5 +1,10 @@
 #include "tztest.h"
 
+extern volatile int _tztest_fail_count;
+extern volatile int _tztest_test_count;
+volatile int *tztest_fail_count = &_tztest_fail_count;
+volatile int *tztest_test_count = &_tztest_test_count;
+
 /* Make the below globals volatile as  found that the compiler uses the
  * register value ratherh than the memory value making it look like the writes
  * actually happened.

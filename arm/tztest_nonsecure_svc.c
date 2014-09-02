@@ -12,13 +12,9 @@ extern uint32_t _nsecdata_size;
 extern uint32_t _nsecstack_size;
 extern uint32_t _shared_memory_heap_base;
 extern uint32_t _common_memory_heap_base;
-extern volatile int _tztest_test_count;
-extern volatile int _tztest_fail_count;
 extern volatile int _tztest_exception;
 extern volatile int _tztest_exception_status;
 extern volatile int _tztest_exception_addr;
-volatile int *tztest_test_count = &_tztest_test_count;
-volatile int *tztest_fail_count = &_tztest_fail_count;
 volatile int *tztest_exception = &_tztest_exception;
 volatile int *tztest_exception_addr = &_tztest_exception_addr;
 volatile int *tztest_exception_status = &_tztest_exception_status;
@@ -137,6 +133,9 @@ void tztest_nonsecure_pagetable_init()
          .type = PAGE, .len = nsecstack_size,
          .attr = SHARED | NOTGLOBAL | WBA_CACHED | P1_R | P1_W | P0_R | P0_W |
                  NONSECURE },
+        {.va = (uint32_t)nsec_l1_page_table, .pa = (uint32_t)nsec_l1_page_table,
+         .type = SECTION, .len = 16*1024*1024,
+         .attr = SHARED | NOTGLOBAL | WBA_CACHED | P1_R | P1_W },
     };
 
     pagetable_init(nsec_l1_page_table);

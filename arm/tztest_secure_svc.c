@@ -22,10 +22,6 @@ extern uint32_t _common_memory_heap_base;
 extern volatile int _tztest_exception;
 extern volatile int _tztest_exception_addr;
 extern volatile int _tztest_exception_status;
-extern volatile int _tztest_test_count;
-extern volatile int _tztest_fail_count;
-volatile int *tztest_test_count = &_tztest_test_count;
-volatile int *tztest_fail_count = &_tztest_fail_count;
 volatile int *tztest_exception = &_tztest_exception;
 volatile int *tztest_exception_addr = &_tztest_exception_addr;
 volatile int *tztest_exception_status = &_tztest_exception_status;
@@ -158,6 +154,7 @@ void tztest_secure_svc_loop(int initial_op, int initial_data)
                 DEBUG_MSG("Returned from secure SVC dispatch\n");
                 break;
         }
+        op = SMC_YIELD;
         __smc(op, data);
         DEBUG_MSG("Handling smc op 0x%x\n", op);
     }
@@ -177,6 +174,9 @@ void tztest_secure_pagetable_init()
         {.va = (uint32_t)secstack_start, .pa = (uint32_t)secstack_start,
          .type = PAGE, .len = secstack_size,
          .attr = SHARED | NOTGLOBAL | WBA_CACHED | P1_R | P1_W | P0_R | P0_W },
+        {.va = (uint32_t)sec_l1_page_table, .pa = (uint32_t)sec_l1_page_table,
+         .type = SECTION, .len = 16*1024*1024,
+         .attr = SHARED | NOTGLOBAL | WBA_CACHED | P1_R | P1_W },
     };
 
     pagetable_init(sec_l1_page_table);
