@@ -12,6 +12,8 @@
         "mov r0, %[r0]\n"                       \
         "mov r1, %[r1]\n"                       \
         "smc 0\n"                               \
+        "mov %[r0], r0\n"                       \
+        "mov %[r1], r1\n"                       \
         : [r0] "+r" (_op), [r1] "+r" (_data)    \
     )
 
