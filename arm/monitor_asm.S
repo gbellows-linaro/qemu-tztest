@@ -21,7 +21,7 @@ monitor_smc_vect:
     beq 1f
 	push {r0-r3}
     mov r0, r1
-    bl tztest_dispatch_monitor
+    bl monitor_dispatch
 	pop	{r0-r3}
 1:  rfefd sp!
 

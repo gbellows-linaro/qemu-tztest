@@ -7,7 +7,7 @@ TZBOOT			= $(ARCH)/tzboot.o
 TZSECLOAD		= $(ARCH)/tztest_secure.lds
 TZNSECLOAD		= $(ARCH)/tztest_nonsecure.lds
 TZSECOBJS		= $(ARCH)/secure_init.o \
-			  	  $(ARCH)/tztest_secure_svc.o \
+			  	  $(ARCH)/secure_svc.o \
 			  	  $(ARCH)/secure_asm.o \
                   $(ARCH)/monitor.o \
                   $(ARCH)/monitor_asm.o \

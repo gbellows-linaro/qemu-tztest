@@ -7,7 +7,7 @@
 extern int _ram_nsec_base;
 
 int secure_dispatch_usr(int, int);
-void tztest_secure_svc_loop(int initial_r0, int initial_r1);
+void secure_svc_loop(int initial_r0, int initial_r1);
 void *sec_allocate_secure_memory(int);
 extern uint32_t _sec_l1_page_table;
 uint32_t *sec_l1_page_table = &_sec_l1_page_table;
@@ -50,7 +50,7 @@ pagetable_map_entry_t sysreg_pagetable_entries[] = {
              NONSECURE },
 };
 
-void sec_svc_handler(volatile uint32_t op, volatile tztest_svc_desc_t *desc)
+void secure_svc_handler(volatile uint32_t op, volatile tztest_svc_desc_t *desc)
 {
     DEBUG_MSG("Entered\n");
     switch (op) {
@@ -70,20 +70,20 @@ void sec_svc_handler(volatile uint32_t op, volatile tztest_svc_desc_t *desc)
     return;
 }
 
-void sec_undef_handler() {
+void secure_undef_handler() {
     DEBUG_MSG("Undefined exception taken\n");
     *tztest_exception = CPSR_MODE_UND;
     *tztest_exception_status = 0;
 }
 
-void sec_pabort_handler(int status, int addr) {
+void secure_pabort_handler(int status, int addr) {
     DEBUG_MSG("status = 0x%x\taddress = 0x%x\n", status, addr);
     *tztest_exception = CPSR_MODE_ABT;
     *tztest_exception_addr = addr;
     *tztest_exception_status = status & 0x1f;
 }
 
-void sec_dabort_handler(int status, int addr) {
+void secure_dabort_handler(int status, int addr) {
     DEBUG_MSG("Data Abort: %s\n", FAULT_STR(status & 0x1f));
     DEBUG_MSG("status = 0x%x\taddress = 0x%x\n",
               status & 0x1f, addr);
@@ -92,7 +92,7 @@ void sec_dabort_handler(int status, int addr) {
     *tztest_exception_status = status & 0x1f;
 }
 
-void check_init_mode()
+void secure_check_init()
 {
     printf("\nValidating startup state:\n");
 
@@ -134,7 +134,7 @@ void check_init_mode()
     }
 }
 
-void tztest_secure_svc_loop(int initial_op, int initial_data)
+void secure_svc_loop(int initial_op, int initial_data)
 {
     volatile int op = initial_op;
     tztest_smc_desc_t *data = (tztest_smc_desc_t *)initial_data;
@@ -166,7 +166,7 @@ void tztest_secure_svc_loop(int initial_op, int initial_data)
     DEBUG_MSG("Exiting\n");
 }
 
-void tztest_secure_pagetable_init()
+void secure_pagetable_init()
 {
     pagetable_map_entry_t sec_pagetable_entries[] = {
         {.va = (uint32_t)0xFFFF0000, .pa = (uint32_t)ram_secvecs_start,
@@ -193,12 +193,4 @@ void tztest_secure_pagetable_init()
     PT_ADD_ENTRIES(sec_l1_page_table, nsec_pagetable_entries);
 
     pagetable_init_common(sec_l1_page_table);
-}
-
-void tztest_dispatch_monitor(tztest_smc_desc_t *desc)
-{
-    uint32_t (*func)(uint32_t) = desc->dispatch.func;
-    DEBUG_MSG("Entered\n");
-    desc->dispatch.ret = func(desc->dispatch.arg);
-    DEBUG_MSG("Exiting\n");
 }

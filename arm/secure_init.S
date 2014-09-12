@@ -16,7 +16,7 @@ secure_vectors:
 secure_undef_vec:
     srsdb sp!, #CPSR_MODE_UND
     push {r10}
-    ldr r10, =sec_undef_handler
+    ldr r10, =secure_undef_handler
     blx r10
     pop {r10}
     rfefd sp!
@@ -24,13 +24,13 @@ secure_undef_vec:
 secure_pabort_vec:
     mrc p15, 0, r0, c5, c0, 1       /* IFSR */
     mrc p15, 0, r1, c6, c0, 2       /* IFAR */
-    bl sec_pabort_handler
+    bl secure_pabort_handler
     b end
 
 secure_dabort_vec:
     mrc p15, 0, r0, c5, c0, 0       /* DFSR */
     mrc p15, 0, r1, c6, c0, 0       /* DFAR */
-    bl sec_dabort_handler
+    bl secure_dabort_handler
     b end
 
 secure_svc_vec:
@@ -49,7 +49,7 @@ secure_svc_vec:
 1:
     srsdb sp!, #CPSR_MODE_SVC
     push {r10}
-    ldr r10, =sec_svc_handler
+    ldr r10, =secure_svc_handler
     blx r10
     pop {r10}
     rfefd sp!
@@ -106,7 +106,7 @@ secure_mmu_init:
     mcr p15, 0, r10, c3, c0, 0
 
     /* Set-up the initial secure page tables */
-    bl tztest_secure_pagetable_init
+    bl secure_pagetable_init
 
     /* Set TTBR0 to the initialized address plus enable shareable write-back
      * write-allocate.
@@ -139,7 +139,7 @@ secure_remap_vecs:
     /* Check that are entry state makes sense before initializing the monitor
      * mode.
      */
-    bl check_init_mode
+    bl secure_check_init
 #endif
 
 secure_init_monitor:
@@ -159,7 +159,7 @@ secure_init_monitor:
      * secure-side monitor loop.  The only way out is to issue an EXIT SMC call
      * to the secure world.
      */
-    bl tztest_secure_svc_loop
+    bl secure_svc_loop
 
 	/* If we get here we are on the way out, poweroff the device */
 end:
