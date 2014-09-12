@@ -6,7 +6,7 @@
  */
 extern int _ram_nsec_base;
 
-int dispatch_secure_usr(int, int);
+int secure_dispatch_usr(int, int);
 void tztest_secure_svc_loop(int initial_r0, int initial_r1);
 void *sec_allocate_secure_memory(int);
 extern uint32_t _sec_l1_page_table;
@@ -147,7 +147,7 @@ void tztest_secure_svc_loop(int initial_op, int initial_data)
             case SMC_DISPATCH_SECURE_USR:
                 DEBUG_MSG("Dispatching secure USR function\n");
                 data->dispatch.ret =
-                    dispatch_secure_usr((int)data->dispatch.func,
+                    secure_dispatch_usr((int)data->dispatch.func,
                                         data->dispatch.arg);
                 DEBUG_MSG("Returned from secure USR dispatch\n");
                 break;
