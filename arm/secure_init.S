@@ -55,30 +55,6 @@ secure_svc_vec:
     rfefd sp!
 
 .section .text
-.align 5
-monitor_vectors:
-	b	.		/* Reset			*/
-	b	.		/* Undefined instruction	*/
-	b	monitor_smc_vect /* Secure monitor call		*/
-	b	.		/* Prefetch abort		*/
-	b	.		/* Data abort			*/
-	b	.		/* Reserved			*/
-	b	.		/* IRQ				*/
-	b	.       /* FIQ				*/
-
-monitor_smc_vect:
-    cmp r0, #SMC_YIELD
-    bge sm_smc_entry
-	srsdb sp!, #CPSR_MODE_MON
-    cmp r0, #SMC_NOOP
-    beq 1f
-	push {r0-r3}
-    mov r0, r1
-    bl tztest_dispatch_monitor
-	pop	{r0-r3}
-1:  rfefd sp!
-
-    .globl secure_init
 secure_init:
     /* We enter with R0 pointing to the nonsecure entry point.  Put it in R11
      * for now to avoid overwriting it on calls. */
@@ -86,17 +62,17 @@ secure_init:
 
     /* Disable interrupts for now */
     mrs r10, cpsr
-    orr r10, r10, #0xc0     @ Mask IRQ and FIQ
+    orr r10, r10, #0xc0     /* Mask IRQ and FIQ */
     msr cpsr, r10
 
     /* During startup, before the MMU is enabled we'll set-up the vecs in low
      * mem.
      */
     mrc p15, 0, r10, c1, c0, 0
-    bic r10, r10, #0x2000           @ SCTLR.V = 0
+    bic r10, r10, #0x2000           /* SCTLR.V = 0 */
     mcr p15, 0, r10, c1, c0, 0
     ldr r10, =secure_vectors
-    mcr p15, 0, r10, c12, c0, 0     @ VBAR = secure_vectors
+    mcr p15, 0, r10, c12, c0, 0     /* VBAR = secure_vectors */
 
     isb
 
@@ -167,26 +143,22 @@ secure_remap_vecs:
 #endif
 
 secure_init_monitor:
-    /* Set-up the monitor stack */
-	mrs	r10, cpsr
-    cps #CPSR_MODE_MON
-    ldr sp, =mon_stacktop
-	msr	cpsr, r10
-
-    /* Set-up mvbar */
-    ldr r10, =monitor_vectors
-    mcr p15, 0, r10, c12, c0, 1
-
-    /* Call to set the nonsecure entry point to be the save r0 value passed in
-     * by the boot code.  This will be the initial entry point on the first
-     * monitor context switch.
+    /* Call monitor mode initialization and pass to it the non-secure execution
+     * entry point.
      */
     mov r0, r11
-    bl tztest_secure_svc_init_monitor
+    bl monitor_init
 
+    /* Once monitor mode is set-up, we yield to non-secure execution.  The
+     * non-secure entrypoint was established in monitor init.
+     */
     mov r0, #SMC_YIELD
     smc #0
 
+    /* The first return to the secure world will set us off into our
+     * secure-side monitor loop.  The only way out is to issue an EXIT SMC call
+     * to the secure world.
+     */
     bl tztest_secure_svc_loop
 
 	/* If we get here we are on the way out, poweroff the device */

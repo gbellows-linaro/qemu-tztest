@@ -195,19 +195,6 @@ void tztest_secure_pagetable_init()
     pagetable_init_common(sec_l1_page_table);
 }
 
-void tztest_secure_svc_init_monitor(uint32_t entry_point)
-{
-    struct sm_nsec_ctx *nsec_ctx;
-
-
-    /* Set-up the non-secure context so that the switch to nonsecure state
-     * resumes at initiallizing the nonsecure svc mode.
-     */
-    nsec_ctx = sm_get_nsec_ctx();
-    nsec_ctx->mon_lr = entry_point;
-    nsec_ctx->mon_spsr = CPSR_MODE_SVC | CPSR_I;
-}
-
 void tztest_dispatch_monitor(tztest_smc_desc_t *desc)
 {
     uint32_t (*func)(uint32_t) = desc->dispatch.func;

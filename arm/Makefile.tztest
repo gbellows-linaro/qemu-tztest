@@ -9,6 +9,8 @@ TZNSECLOAD		= $(ARCH)/tztest_nonsecure.lds
 TZSECOBJS		= $(ARCH)/secure_init.o \
 			  	  $(ARCH)/tztest_secure_svc.o \
 			  	  $(ARCH)/secure_asm.o \
+                  $(ARCH)/monitor.o \
+                  $(ARCH)/monitor_asm.o \
                   $(ARCH)/sm_asm.o \
 			  	  $(ARCH)/sm.o
 TZNSECOBJS		= $(ARCH)/nonsecure_init.o \
