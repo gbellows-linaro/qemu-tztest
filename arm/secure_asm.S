@@ -1,5 +1,5 @@
 
-#include "tztest_asm.h"
+#include "common_defs.h"
 
 .global secure_dispatch_usr
 secure_dispatch_usr:

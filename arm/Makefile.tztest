@@ -16,8 +16,8 @@ TZSECOBJS		= $(ARCH)/secure_init.o \
 TZNSECOBJS		= $(ARCH)/nonsecure_init.o \
 			  	  $(ARCH)/nonsecure_svc.o \
 			  	  $(ARCH)/tztest.o
-TZOBJS			= $(ARCH)/tztest_mmu.o \
-                  $(ARCH)/tztest_common.o
+TZOBJS			= $(ARCH)/common_mmu.o \
+                  $(ARCH)/common_svc.o
 LIBCFLAT_OBJS	+= $(LIBCFLAT_objdir)/devicetree.o \
 			  	   $(LIBCFLAT_objdir)/virtio.o \
 			  	   $(LIBCFLAT_objdir)/virtio-testdev.o \

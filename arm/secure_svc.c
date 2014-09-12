@@ -1,32 +1,20 @@
-#include "tztest.h"
+#include "secure_loader.h"
+#include "common_svc.h"
+#include "common_mmu.h"
+#include "common_defs.h"
 
 /* Make the below globals volatile as  found that the compiler uses the
  * register value ratherh than the memory value making it look like the writes
  * actually happened.
  */
-extern int _ram_nsec_base;
 
 int secure_dispatch_usr(int, int);
 void secure_svc_loop(int initial_r0, int initial_r1);
-void *sec_allocate_secure_memory(int);
-extern uint32_t _sec_l1_page_table;
+
+volatile uint32_t *exception = &_tztest_exception;
+volatile uint32_t *exception_addr = &_tztest_exception_addr;
+volatile uint32_t *exception_status = &_tztest_exception_status;
 uint32_t *sec_l1_page_table = &_sec_l1_page_table;
-extern uint32_t _ram_secvecs_start;
-extern uint32_t _ram_sectext_start;
-extern uint32_t _ram_secdata_start;
-extern uint32_t _secstack_start;
-extern uint32_t _secvecs_size;
-extern uint32_t _sectext_size;
-extern uint32_t _secdata_size;
-extern uint32_t _secstack_size;
-extern uint32_t _shared_memory_heap_base;
-extern uint32_t _common_memory_heap_base;
-extern volatile int _tztest_exception;
-extern volatile int _tztest_exception_addr;
-extern volatile int _tztest_exception_status;
-volatile int *tztest_exception = &_tztest_exception;
-volatile int *tztest_exception_addr = &_tztest_exception_addr;
-volatile int *tztest_exception_status = &_tztest_exception_status;
 uint32_t ram_secvecs_start = (uint32_t)&_ram_secvecs_start;
 uint32_t ram_sectext_start = (uint32_t)&_ram_sectext_start;
 uint32_t ram_secdata_start = (uint32_t)&_ram_secdata_start;
@@ -72,24 +60,24 @@ void secure_svc_handler(volatile uint32_t op, volatile tztest_svc_desc_t *desc)
 
 void secure_undef_handler() {
     DEBUG_MSG("Undefined exception taken\n");
-    *tztest_exception = CPSR_MODE_UND;
-    *tztest_exception_status = 0;
+    *exception = CPSR_MODE_UND;
+    *exception_status = 0;
 }
 
 void secure_pabort_handler(int status, int addr) {
     DEBUG_MSG("status = 0x%x\taddress = 0x%x\n", status, addr);
-    *tztest_exception = CPSR_MODE_ABT;
-    *tztest_exception_addr = addr;
-    *tztest_exception_status = status & 0x1f;
+    *exception = CPSR_MODE_ABT;
+    *exception_addr = addr;
+    *exception_status = status & 0x1f;
 }
 
 void secure_dabort_handler(int status, int addr) {
     DEBUG_MSG("Data Abort: %s\n", FAULT_STR(status & 0x1f));
     DEBUG_MSG("status = 0x%x\taddress = 0x%x\n",
               status & 0x1f, addr);
-    *tztest_exception = CPSR_MODE_ABT;
-    *tztest_exception_addr = addr;
-    *tztest_exception_status = status & 0x1f;
+    *exception = CPSR_MODE_ABT;
+    *exception_addr = addr;
+    *exception_status = status & 0x1f;
 }
 
 void secure_check_init()

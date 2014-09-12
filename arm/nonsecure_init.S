@@ -1,4 +1,4 @@
-#include "tztest_asm.h"
+#include "common_defs.h"
 
 /* The nonsecure image load code must be placed at the beginning of the image
  * as this is the starting point for the boot code to load.  The loader code

@@ -1,20 +1,11 @@
-#include "tztest.h"
+#include "nonsecure_loader.h"
+#include "common_svc.h"
+#include "common_mmu.h"
+#include "common_defs.h"
 
-uint32_t nonsecure_dispatch_secure_usr_function(uint32_t (*)(uint32_t), uint32_t);
-uint32_t nonsecure_dispatch_secure_svc_function(uint32_t (*)(uint32_t), uint32_t);
-extern uint32_t _nsec_l1_page_table;
+uint32_t nonsecure_dispatch_sec_usr_function(uint32_t (*)(uint32_t), uint32_t);
+uint32_t nonsecure_dispatch_sec_svc_function(uint32_t (*)(uint32_t), uint32_t);
 uint32_t *nsec_l1_page_table = &_nsec_l1_page_table;
-extern uint32_t _ram_nsectext_start;
-extern uint32_t _ram_nsecdata_start;
-extern uint32_t _nsecstack_start;
-extern uint32_t _nsectext_size;
-extern uint32_t _nsecdata_size;
-extern uint32_t _nsecstack_size;
-extern uint32_t _shared_memory_heap_base;
-extern uint32_t _common_memory_heap_base;
-extern volatile int _tztest_exception;
-extern volatile int _tztest_exception_status;
-extern volatile int _tztest_exception_addr;
 volatile int *tztest_exception = &_tztest_exception;
 volatile int *tztest_exception_addr = &_tztest_exception_addr;
 volatile int *tztest_exception_status = &_tztest_exception_status;
@@ -38,16 +29,16 @@ void nonsecure_svc_handler(volatile uint32_t op,
         case SVC_DISPATCH_SECURE_USR:
             DEBUG_MSG("Dispatching secure usr function\n");
             desc->dispatch.ret =
-                nonsecure_dispatch_secure_usr_function(desc->dispatch.func,
-                                                       desc->dispatch.arg);
+                nonsecure_dispatch_sec_usr_function(desc->dispatch.func,
+                                                    desc->dispatch.arg);
             DEBUG_MSG("Returning from secure usr function, ret = 0x%x\n",
                       desc->dispatch.ret);
             break;
         case SVC_DISPATCH_SECURE_SVC:
             DEBUG_MSG("Dispatching secure svc function\n");
             desc->dispatch.ret =
-                nonsecure_dispatch_secure_svc_function(desc->dispatch.func,
-                                                       desc->dispatch.arg);
+                nonsecure_dispatch_sec_svc_function(desc->dispatch.func,
+                                                    desc->dispatch.arg);
             DEBUG_MSG("Returning from secure svc function, ret = 0x%x\n",
                       desc->dispatch.ret);
             break;
@@ -91,8 +82,8 @@ void nonsecure_dabort_handler(int status, DEBUG_ARG int addr) {
     *tztest_exception_status = status & 0x1f;
 }
 
-uint32_t nonsecure_dispatch_secure_usr_function(uint32_t (*func)(uint32_t),
-                                           uint32_t arg)
+uint32_t nonsecure_dispatch_sec_usr_function(uint32_t (*func)(uint32_t),
+                                             uint32_t arg)
 {
     volatile int r0 = SMC_DISPATCH_SECURE_USR;
     tztest_smc_desc_t *desc_p = &smc_desc;
@@ -105,8 +96,8 @@ uint32_t nonsecure_dispatch_secure_usr_function(uint32_t (*func)(uint32_t),
     return smc_desc.dispatch.ret;
 }
 
-uint32_t nonsecure_dispatch_secure_svc_function(uint32_t (*func)(uint32_t),
-                                           uint32_t arg)
+uint32_t nonsecure_dispatch_sec_svc_function(uint32_t (*func)(uint32_t),
+                                             uint32_t arg)
 {
     volatile int op = SMC_DISPATCH_SECURE_SVC;
     tztest_smc_desc_t desc, *desc_p = &desc;

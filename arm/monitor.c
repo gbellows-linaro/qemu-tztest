@@ -1,5 +1,6 @@
 
-#include "tztest.h"
+#include "common_svc.h"
+#include "common_defs.h"
 
 void monitor_init_ns_entry(uint32_t entry_point)
 {

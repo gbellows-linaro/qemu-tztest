@@ -1,4 +1,7 @@
-#include "tztest.h"
+#include "common_svc.h"
+#include "common_mmu.h"
+#include "common_defs.h"
+#include "sm.h"
 
 extern uint32_t _shared_memory_heap_base;
 

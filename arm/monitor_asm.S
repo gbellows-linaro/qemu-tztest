@@ -1,5 +1,5 @@
 
-#include "tztest_asm.h"
+#include "common_defs.h"
 
 .align 5
 .global monitor_vectors

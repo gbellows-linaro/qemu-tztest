@@ -1,7 +1,5 @@
 #include "tztest.h"
 
-extern volatile int _tztest_fail_count;
-extern volatile int _tztest_test_count;
 volatile int *tztest_fail_count = &_tztest_fail_count;
 volatile int *tztest_test_count = &_tztest_test_count;
 

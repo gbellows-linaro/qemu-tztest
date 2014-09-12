@@ -1,4 +1,4 @@
-#include "tztest_asm.h"
+#include "common_defs.h"
 
 .arch_extension sec
 

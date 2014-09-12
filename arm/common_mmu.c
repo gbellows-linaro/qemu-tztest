@@ -1,5 +1,6 @@
-#include "tztest.h"
-#include "tztest_mmu.h"
+#include "common_svc.h"
+#include "common_mmu.h"
+#include "common_defs.h"
 
 void pagetable_add_section_entries(uint32_t *ttbr, pagetable_map_entry_t *pe)
 {
