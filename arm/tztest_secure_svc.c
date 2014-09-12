@@ -11,9 +11,11 @@ void tztest_secure_svc_loop(int initial_r0, int initial_r1);
 void *sec_allocate_secure_memory(int);
 extern uint32_t _sec_l1_page_table;
 uint32_t *sec_l1_page_table = &_sec_l1_page_table;
+extern uint32_t _ram_secvecs_start;
 extern uint32_t _ram_sectext_start;
 extern uint32_t _ram_secdata_start;
 extern uint32_t _secstack_start;
+extern uint32_t _secvecs_size;
 extern uint32_t _sectext_size;
 extern uint32_t _secdata_size;
 extern uint32_t _secstack_size;
@@ -25,9 +27,11 @@ extern volatile int _tztest_exception_status;
 volatile int *tztest_exception = &_tztest_exception;
 volatile int *tztest_exception_addr = &_tztest_exception_addr;
 volatile int *tztest_exception_status = &_tztest_exception_status;
+uint32_t ram_secvecs_start = (uint32_t)&_ram_secvecs_start;
 uint32_t ram_sectext_start = (uint32_t)&_ram_sectext_start;
 uint32_t ram_secdata_start = (uint32_t)&_ram_secdata_start;
 uint32_t secstack_start = (uint32_t)&_secstack_start;
+uint32_t secvecs_size = (uint32_t)&_secvecs_size;
 uint32_t sectext_size = (uint32_t)&_sectext_size;
 uint32_t secdata_size = (uint32_t)&_secdata_size;
 uint32_t secstack_size = (uint32_t)&_secstack_size;
@@ -165,6 +169,9 @@ void tztest_secure_svc_loop(int initial_op, int initial_data)
 void tztest_secure_pagetable_init()
 {
     pagetable_map_entry_t sec_pagetable_entries[] = {
+        {.va = (uint32_t)0xFFFF0000, .pa = (uint32_t)ram_secvecs_start,
+         .type = PAGE, .len = secvecs_size,
+         .attr = SHARED | NOTGLOBAL | WBA_CACHED | P1_R | P1_X | P0_R | P0_X },
         {.va = (uint32_t)ram_sectext_start, .pa = (uint32_t)ram_sectext_start,
          .type = PAGE, .len = sectext_size,
          .attr = SHARED | NOTGLOBAL | WBA_CACHED | P1_R | P1_X | P0_R | P0_X },

@@ -2,7 +2,7 @@
 
 .arch_extension sec
 
-.align 5
+.section .vectors, "ax"
 secure_vectors:
 	b   secure_init         /* reset */
 	b   secure_undef_vec    /* undef */
@@ -15,7 +15,10 @@ secure_vectors:
 
 secure_undef_vec:
     srsdb sp!, #CPSR_MODE_UND
-    bl sec_undef_handler
+    push {r10}
+    ldr r10, =sec_undef_handler
+    blx r10
+    pop {r10}
     rfefd sp!
 
 secure_pabort_vec:
@@ -45,9 +48,13 @@ secure_svc_vec:
     pop {pc}
 1:
     srsdb sp!, #CPSR_MODE_SVC
-    bl sec_svc_handler
+    push {r10}
+    ldr r10, =sec_svc_handler
+    blx r10
+    pop {r10}
     rfefd sp!
 
+.section .text
 .align 5
 monitor_vectors:
 	b	.		/* Reset			*/
@@ -82,14 +89,15 @@ secure_init:
     orr r10, r10, #0xc0     @ Mask IRQ and FIQ
     msr cpsr, r10
 
-    /* Make sure secure vectors are based at 0 */
+    /* During startup, before the MMU is enabled we'll set-up the vecs in low
+     * mem.
+     */
     mrc p15, 0, r10, c1, c0, 0
     bic r10, r10, #0x2000           @ SCTLR.V = 0
     mcr p15, 0, r10, c1, c0, 0
-
-    /* Set up secure VBAR */
     ldr r10, =secure_vectors
-    mcr p15, 0, r10, c12, c0, 0
+    mcr p15, 0, r10, c12, c0, 0     @ VBAR = secure_vectors
+
     isb
 
 secure_stack_init:
@@ -142,6 +150,14 @@ secure_mmu_init:
     mcr p15, 0, r10, c1, c0, 0
     isb
     dsb
+
+secure_remap_vecs:
+    /* Now that we have enabled the MMU, move the mapping of the secure vector
+     * table to high mem.
+     * No need to set up VBAR as we'll be using hivec */
+    mrc p15, 0, r10, c1, c0, 0
+    orr r10, r10, #0x2000           @ SCTLR.V = 1
+    mcr p15, 0, r10, c1, c0, 0
 
 #ifdef DEBUG
     /* Check that are entry state makes sense before initializing the monitor

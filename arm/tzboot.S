@@ -47,6 +47,17 @@ init_cpu:
 	ldr sp, =boot_stacktop
 
 load_images:
+    /* First copy the vector section text into RAM */
+    ldr r0, =_flash_secvecs_start
+    ldr r1, =_ram_secvecs_start
+    ldr r2, =_secvecs_size
+copy_secvecs:
+    ldrb r10, [r0], #1
+    strb r10, [r1], #1
+    subs r2, r2, #1
+    bne copy_secvecs
+
+    /* Next copy the text section into RAM */
     ldr r0, =_flash_sectext_start
     ldr r1, =_ram_sectext_start
     ldr r2, =_sectext_size
@@ -56,6 +67,7 @@ copy_sectext:
     subs r2, r2, #1
     bne copy_sectext
 
+    /* Last copy the text section into RAM */
     ldr r0, =_flash_secdata_start
     ldr r1, =_ram_secdata_start
     ldr r2, =_secdata_size
@@ -65,10 +77,18 @@ copy_secdata:
     subs r2, r2, #1
     bne copy_secdata
 
+    /* Branch to the nonsecure image base.  It should be set-up so that this is
+     * the image loader which returns the starting execution point.
+     */
     mov r0, #FLASH_NSEC_BASE
     blx r0
 
-    bl secure_init
+    /* Branch to the starting point of the secure image in RAM which should
+     * kick off initialization.
+     */
+    mov r1, #RAM_SEC_BASE
+    bx r1
 
+    /* We shouldn't get here as the secure image will shutdown */
 end:
     b      end
