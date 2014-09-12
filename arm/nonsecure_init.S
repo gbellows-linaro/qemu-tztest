@@ -43,24 +43,24 @@ nonsecure_vectors:
 
 nonsecure_undef_vec:
     srsdb sp!, #CPSR_MODE_UND
-    bl nsec_undef_handler
+    bl nonsecure_undef_handler
     rfefd sp!
 
 nonsecure_pabort_vec:
     mrc p15, 0, r0, c5, c0, 1       /* IFSR */
     mrc p15, 0, r1, c6, c0, 2       /* IFAR */
-    bl nsec_pabort_handler
+    bl nonsecure_pabort_handler
     b end
 
 nonsecure_dabort_vec:
     mrc p15, 0, r0, c5, c0, 0       /* DFSR */
     mrc p15, 0, r1, c6, c0, 0       /* DFAR */
-    bl nsec_dabort_handler
+    bl nonsecure_dabort_handler
     b end
 
 nonsecure_svc_vec:
     srsdb sp!, #CPSR_MODE_SVC
-    bl nsec_svc_handler
+    bl nonsecure_svc_handler
     rfefd sp!
 
 nonsecure_init:
@@ -109,7 +109,7 @@ nonsecure_mmu_init:
     mcr p15, 0, r10, c3, c0, 0
 
     /* This function will return the initialized base address */
-    bl tztest_nonsecure_pagetable_init
+    bl nonsecure_pagetable_init
 
     /* Set TTBR0 to the initialized address plus enable shareable write-back
      * write-allocate.

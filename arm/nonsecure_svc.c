@@ -1,7 +1,7 @@
 #include "tztest.h"
 
-uint32_t nsec_dispatch_secure_usr_function(uint32_t (*)(uint32_t), uint32_t);
-uint32_t nsec_dispatch_secure_svc_function(uint32_t (*)(uint32_t), uint32_t);
+uint32_t nonsecure_dispatch_secure_usr_function(uint32_t (*)(uint32_t), uint32_t);
+uint32_t nonsecure_dispatch_secure_svc_function(uint32_t (*)(uint32_t), uint32_t);
 extern uint32_t _nsec_l1_page_table;
 uint32_t *nsec_l1_page_table = &_nsec_l1_page_table;
 extern uint32_t _ram_nsectext_start;
@@ -24,8 +24,10 @@ uint32_t nsecstack_start = (uint32_t)&_nsecstack_start;
 uint32_t nsectext_size = (uint32_t)&_nsectext_size;
 uint32_t nsecdata_size = (uint32_t)&_nsecdata_size;
 uint32_t nsecstack_size = (uint32_t)&_nsecstack_size;
+tztest_smc_desc_t smc_desc;
 
-void nsec_svc_handler(volatile uint32_t op, volatile tztest_svc_desc_t *desc)
+void nonsecure_svc_handler(volatile uint32_t op,
+                           volatile tztest_svc_desc_t *desc)
 {
     int ret = 0;
     switch (op) {
@@ -36,16 +38,16 @@ void nsec_svc_handler(volatile uint32_t op, volatile tztest_svc_desc_t *desc)
         case SVC_DISPATCH_SECURE_USR:
             DEBUG_MSG("Dispatching secure usr function\n");
             desc->dispatch.ret =
-                nsec_dispatch_secure_usr_function(desc->dispatch.func,
-                                                  desc->dispatch.arg);
+                nonsecure_dispatch_secure_usr_function(desc->dispatch.func,
+                                                       desc->dispatch.arg);
             DEBUG_MSG("Returning from secure usr function, ret = 0x%x\n",
                       desc->dispatch.ret);
             break;
         case SVC_DISPATCH_SECURE_SVC:
             DEBUG_MSG("Dispatching secure svc function\n");
             desc->dispatch.ret =
-                nsec_dispatch_secure_svc_function(desc->dispatch.func,
-                                                  desc->dispatch.arg);
+                nonsecure_dispatch_secure_svc_function(desc->dispatch.func,
+                                                       desc->dispatch.arg);
             DEBUG_MSG("Returning from secure svc function, ret = 0x%x\n",
                       desc->dispatch.ret);
             break;
@@ -69,19 +71,19 @@ void nsec_svc_handler(volatile uint32_t op, volatile tztest_svc_desc_t *desc)
     }
 }
 
-void nsec_undef_handler() {
+void nonsecure_undef_handler() {
     DEBUG_MSG("Undefined exception taken\n");
     *tztest_exception = CPSR_MODE_UND;
     *tztest_exception_status = 0;
 }
 
-void nsec_pabort_handler(int status, DEBUG_ARG int addr) {
+void nonsecure_pabort_handler(int status, DEBUG_ARG int addr) {
     DEBUG_MSG("status = 0x%x\taddress = 0x%x\n", status, addr);
     *tztest_exception = CPSR_MODE_ABT;
     *tztest_exception_status = status & 0x1f;
 }
 
-void nsec_dabort_handler(int status, DEBUG_ARG int addr) {
+void nonsecure_dabort_handler(int status, DEBUG_ARG int addr) {
     DEBUG_MSG("Data Abort: %s\n", FAULT_STR(status & 0x1f));
     DEBUG_MSG("status = 0x%x\taddress = 0x%x\n",
               status & 0x1f, addr);
@@ -89,8 +91,7 @@ void nsec_dabort_handler(int status, DEBUG_ARG int addr) {
     *tztest_exception_status = status & 0x1f;
 }
 
-tztest_smc_desc_t smc_desc;
-uint32_t nsec_dispatch_secure_usr_function(uint32_t (*func)(uint32_t),
+uint32_t nonsecure_dispatch_secure_usr_function(uint32_t (*func)(uint32_t),
                                            uint32_t arg)
 {
     volatile int r0 = SMC_DISPATCH_SECURE_USR;
@@ -104,7 +105,7 @@ uint32_t nsec_dispatch_secure_usr_function(uint32_t (*func)(uint32_t),
     return smc_desc.dispatch.ret;
 }
 
-uint32_t nsec_dispatch_secure_svc_function(uint32_t (*func)(uint32_t),
+uint32_t nonsecure_dispatch_secure_svc_function(uint32_t (*func)(uint32_t),
                                            uint32_t arg)
 {
     volatile int op = SMC_DISPATCH_SECURE_SVC;
@@ -118,7 +119,7 @@ uint32_t nsec_dispatch_secure_svc_function(uint32_t (*func)(uint32_t),
     return desc.dispatch.ret;
 }
 
-void tztest_nonsecure_pagetable_init()
+void nonsecure_pagetable_init()
 {
     pagetable_map_entry_t nsec_pagetable_entries[] = {
         {.va = (uint32_t)ram_nsectext_start, .pa = (uint32_t)ram_nsectext_start,

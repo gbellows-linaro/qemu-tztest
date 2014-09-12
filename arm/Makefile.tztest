@@ -14,7 +14,7 @@ TZSECOBJS		= $(ARCH)/secure_init.o \
                   $(ARCH)/sm_asm.o \
 			  	  $(ARCH)/sm.o
 TZNSECOBJS		= $(ARCH)/nonsecure_init.o \
-			  	  $(ARCH)/tztest_nonsecure_svc.o \
+			  	  $(ARCH)/nonsecure_svc.o \
 			  	  $(ARCH)/tztest.o
 TZOBJS			= $(ARCH)/tztest_mmu.o \
                   $(ARCH)/tztest_common.o
