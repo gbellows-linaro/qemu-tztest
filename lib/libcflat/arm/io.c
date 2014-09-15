@@ -13,6 +13,7 @@
 #include "virtio-testdev.h"
 #include "asm/spinlock.h"
 #include "asm/io.h"
+#include "platform.h"
 
 extern void halt(int code);
 
@@ -22,7 +23,7 @@ extern void halt(int code);
  * base address that we read from the device tree later.
  */
 //#define QEMU_MACH_VIRT_PL011_BASE 0x09000000UL
-#define QEMU_MACH_VIRT_PL011_BASE 0x1c090000UL
+#define QEMU_MACH_VIRT_PL011_BASE UART0_BASE
 
 static struct spinlock uart_lock;
 static volatile u8 *uart0_base = (u8 *)QEMU_MACH_VIRT_PL011_BASE;

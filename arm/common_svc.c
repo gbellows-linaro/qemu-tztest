@@ -14,7 +14,7 @@ pagetable_map_entry_t uart_pagetable_entries[] = {
 pagetable_map_entry_t heap_pagetable_entries[] = {
     {.va = (uint32_t)&_shared_memory_heap_base,
      .pa = (uint32_t)&_shared_memory_heap_base,
-     .type = SECTION, .len = SECTION_SIZE,
+     .type = PAGE, .len = 0x1000,
      .attr = SHARED | NOTGLOBAL | UNCACHED | P1_R | P1_W | P0_R | P0_W },
 };
 
