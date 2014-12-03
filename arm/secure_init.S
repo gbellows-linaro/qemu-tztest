@@ -135,12 +135,10 @@ secure_remap_vecs:
     orr r10, r10, #0x2000           @ SCTLR.V = 1
     mcr p15, 0, r10, c1, c0, 0
 
-#ifdef DEBUG
     /* Check that are entry state makes sense before initializing the monitor
      * mode.
      */
     bl secure_check_init
-#endif
 
 secure_init_monitor:
     /* Call monitor mode initialization and pass to it the non-secure execution

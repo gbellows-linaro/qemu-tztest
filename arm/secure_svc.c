@@ -94,7 +94,7 @@ void secure_check_init()
         printf("FAILED\n");
         DEBUG_MSG("current IDPFR1 (%d) != expected IDPFR1 (%d)\n",
                   (idpfr1 & 0xf0), 0x10);
-        assert(0x10 == (idpfr1 & 0xf0));
+        exit(1);
     } else {
         printf("PASSED\n");
     }
