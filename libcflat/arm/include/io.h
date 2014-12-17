@@ -1,7 +1,6 @@
 #ifndef _ASMARM_IO_H_
 #define _ASMARM_IO_H_
 #include "libcflat.h"
-#include "asm/barrier.h"
 
 #define __iomem
 #define __force

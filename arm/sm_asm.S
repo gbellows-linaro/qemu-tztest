@@ -28,7 +28,6 @@
 #include <asm.S>
 #include <arm32.h>
 #include <arm32_macros.S>
-//#include <sm/teesmc.h>
 
 FUNC sm_save_modes_regs , :
 	/* User mode registers has to be saved from system mode */
