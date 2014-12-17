@@ -1,14 +1,13 @@
 #include "tztest.h"
 
-volatile int *tztest_fail_count = &_tztest_fail_count;
-volatile int *tztest_test_count = &_tztest_test_count;
+extern void test_handshake();
 
 /* Make the below globals volatile as  found that the compiler uses the
  * register value ratherh than the memory value making it look like the writes
  * actually happened.
  */
-
-uint32_t mon_noop() { return 0; }
+volatile int *tztest_fail_count = &_tztest_fail_count;
+volatile int *tztest_test_count = &_tztest_test_count;
 
 /* Function for dispatching an empty SMC call.  Inteded fo use from P0 or P1
  * mode.
@@ -83,18 +82,6 @@ uint32_t P0_secure_check_register_access()
     return 0;
 }
 SECURE_USR_FUNC(P0_secure_check_register_access);
-
-uint32_t P0_nonsecure_check_memory_access()
-{
-    validate_state(CPSR_MODE_USR, TZTEST_STATE_NONSECURE);
-
-    printf("\nValidating non-secure P0 restricted memory access:\n");
-
-    DEBUG_MSG("Writing %p\n", &_shared_memory_heap_base);
-    *(uint32_t *)&_shared_memory_heap_base = 42;
-
-    return 0;
-}
 
 uint32_t P1_nonsecure_check_mask_bits()
 {
@@ -285,62 +272,6 @@ uint32_t MON_check_banked_regs()
     return 0;
 }
 
-#ifdef DEBUG
-uint32_t tztest_div_by_2(uint32_t arg) {return arg/2;}
-SECURE_USR_FUNC(tztest_div_by_2);
-
-#define TZTEST_HANDSHAKE_FUNC(_name, _remote)       \
-    uint32_t _name(uint32_t arg) {                  \
-        uint32_t ret = 0;                           \
-        _remote(tztest_div_by_2, arg, ret);         \
-        assert(arg/2 == ret);                       \
-        return ret;                                 \
-    }
-
-TZTEST_HANDSHAKE_FUNC(hs_with_ns_svc, DISPATCH_NONSECURE_SVC)
-TZTEST_HANDSHAKE_FUNC(hs_with_s_svc, DISPATCH_SECURE_SVC)
-TZTEST_HANDSHAKE_FUNC(hs_with_s_usr, DISPATCH_SECURE_USR)
-TZTEST_HANDSHAKE_FUNC(hs_with_mon, DISPATCH_MONITOR)
-
-#define CHECK_HANDSHAKE(_func)                                      \
-            _func;                                            \
-            if (val/2 != ret) {                                     \
-                DEBUG_MSG("Handshake %s FAILED (0x%x != 0x%x)\n",   \
-                          #_func, val/2, ret);                      \
-                assert(val/2 == ret);                               \
-            }                                                       \
-
-void test_handshake()
-{
-    uint32_t ret = 0;
-    uint32_t val = TZTEST_SVAL;
-
-    /* NS_USR -> NS_SVC */
-    CHECK_HANDSHAKE(ret = hs_with_ns_svc(val));
-
-    /* NS_USR -> NS_SVC -> S_SVC */
-    CHECK_HANDSHAKE(ret = hs_with_s_svc(val));
-
-    /* NS_USR -> NS_SVC -> S_SVC -> S_USR */
-    CHECK_HANDSHAKE(ret = hs_with_s_usr(val));
-
-    /* NS_USR -> NS_SVC -> MON */
-    CHECK_HANDSHAKE(ret = hs_with_mon(val));
-
-    /* NS_SVC -> S_SVC */
-    CHECK_HANDSHAKE(DISPATCH_NONSECURE_SVC(hs_with_s_svc, val, ret));
-
-    /* NS_SVC -> S_USR */
-    CHECK_HANDSHAKE(DISPATCH_NONSECURE_SVC(hs_with_s_usr, val, ret));
-
-    /* NS_SVC -> MON */
-    CHECK_HANDSHAKE(DISPATCH_NONSECURE_SVC(hs_with_mon, val, ret));
-
-    /* S_SVC -> MON */
-    CHECK_HANDSHAKE(DISPATCH_SECURE_SVC(hs_with_mon, val, ret));
-}
-#endif
-
 uint32_t tztest_nonsecure_usr_main()
 {
     uint32_t ret = 0;
@@ -373,68 +304,3 @@ uint32_t tztest_nonsecure_usr_main()
 
     return ret;
 }
-
-#ifdef MMU_ENABLED
-    // Test: Access to secure memory only allowed from secure mode
-    //      pg. B1-1156
-    // Test: Check that monitor mode has access to secure resource despite NS
-    //      pg. B1-1140
-#endif
-#ifdef VIRT_ENABLED
-    // Test: PL2 and secure not combinable
-    //      pg. B1-1157
-    //      "hyp mode is only available when NS=1"
-    // Test: An axception cannot be taken fromsecure mode to nonsecure (2->1)
-    //      pg  B1-1138
-#endif
-#ifdef SIMD_ENABLED
-    // Test: Check that vector ops are undefined if CPACR/NSACR
-#endif
-#ifdef IRQ_ENABLED
-    // Test: Check that CPSR.M unpredictable values don't cause entry to sec
-    //      pg. B1-1150
-    //      NS state -> mon mode
-    //      NSACR.RFR=1 + NS state -> FIQ
-    // Test: Check that using SCR aborts/irqs/fiqs are routed to mon mode
-    //      pg. B1-1158
-    // Test: Check that using SCR aborts/irqs/fiqs can be masked
-    //      pg. B1-1158
-    // Test: Check that irq/fiq interrupts routed to mon mode use mvbar entry
-    //      pg. B1-1168
-    // Test: Check that IRQ exceptions are routed properly
-    //      figure: B1-8
-    // Test: Check that FIQ exceptions are routed properly
-    //      figure: B1-9
-#endif
-#ifdef NONTZ_TEST
-    // Test: Check that mon mode is only avail if sec ext. present
-    //      pg. B1-1157
-    // Test: Check that smc is only aval if sec. ext. present
-    //      pg. B1-1157
-#endif
-#ifdef FRAMEWORK_TESTED
-    // Test: Check that distinct vec tables possible for mon/sPL1/nsPL1
-    //      pg. B1-1165
-    // Test: SCR.SIF does not disallow secure exec of nonsecure memory when the
-    //       virt extesnion is not present.
-#endif
-    // Test?: Check that code residing in secure memory can't be exec from ns
-    //      pg. B1-1147
-    // Test: Check that the SCTLR.V bit is banked allowing mix of vectors
-    //      pg. B1-1158
-    // Test: Check that the low exception vecotr base address is banked
-    //      pg. B1-1158
-    // Test: Check that an exception taken from sec state is taken to sec state
-    //      in the default mode for the excp.
-    //      pg. B1-1173
-    // Test: Check that an exception taken from ns state is taken to ns state
-    //      in the default mode for the excp.
-    //      pg. B1-1173
-    // Test: Check that undef exceptions are routed properly
-    //      figure: B1-3
-    // Test: Check that svc exceptions are routed properly
-    //      figure: B1-4
-    // Test: Check that prefetch abort exceptions are routed properly
-    //      figure: B1-6
-    // Test: Check that data abort exceptions are routed properly
-    //      figure: B1-7

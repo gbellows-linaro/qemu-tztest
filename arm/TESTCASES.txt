@@ -1,0 +1,68 @@
+
+Test cases to be added in the future:
+
+MMU_ENABLED
+    Test: Access to secure memory only allowed from secure mode
+         pg. B1-1156
+    Test: Check that monitor mode has access to secure resource despite NS
+         pg. B1-1140
+
+VIRT_ENABLED
+    Test: PL2 and secure not combinable
+         pg. B1-1157
+         "hyp mode is only available when NS=1"
+    Test: An axception cannot be taken fromsecure mode to nonsecure (2->1)
+         pg  B1-1138
+
+SIMD_ENABLED
+    Test: Check that vector ops are undefined if CPACR/NSACR
+
+IRQ_ENABLED
+    Test: Check that CPSR.M unpredictable values don't cause entry to sec
+         pg. B1-1150
+         NS state -> mon mode
+         NSACR.RFR=1 + NS state -> FIQ
+    Test: Check that using SCR aborts/irqs/fiqs are routed to mon mode
+         pg. B1-1158
+    Test: Check that using SCR aborts/irqs/fiqs can be masked
+         pg. B1-1158
+    Test: Check that irq/fiq interrupts routed to mon mode use mvbar entry
+         pg. B1-1168
+    Test: Check that IRQ exceptions are routed properly
+         figure: B1-8
+    Test: Check that FIQ exceptions are routed properly
+         figure: B1-9
+
+NONTZ_TEST
+    Test: Check that mon mode is only avail if sec ext. present
+         pg. B1-1157
+    Test: Check that smc is only aval if sec. ext. present
+         pg. B1-1157
+
+FRAMEWORK_TESTED
+    Test: Check that distinct vec tables possible for mon/sPL1/nsPL1
+         pg. B1-1165
+    Test: SCR.SIF does not disallow secure exec of nonsecure memory when the
+          virt extesnion is not present.
+
+TO BE SORTED
+    Test?: Check that code residing in secure memory can't be exec from ns
+         pg. B1-1147
+    Test: Check that the SCTLR.V bit is banked allowing mix of vectors
+         pg. B1-1158
+    Test: Check that the low exception vecotr base address is banked
+         pg. B1-1158
+    Test: Check that an exception taken from sec state is taken to sec state
+         in the default mode for the excp.
+         pg. B1-1173
+    Test: Check that an exception taken from ns state is taken to ns state
+         in the default mode for the excp.
+         pg. B1-1173
+    Test: Check that undef exceptions are routed properly
+         figure: B1-3
+    Test: Check that svc exceptions are routed properly
+         figure: B1-4
+    Test: Check that prefetch abort exceptions are routed properly
+         figure: B1-6
+    Test: Check that data abort exceptions are routed properly
+         figure: B1-7
