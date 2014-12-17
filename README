@@ -1,7 +1,62 @@
-ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- make
+CONFIGURE
+----------
+Configure the test using ./configure before building.  Running configure
+without any options will give the default platform of vexpress-a15 with the
+default CPU cortex-a15.
 
-./arm-softmmu/qemu-system-arm -machine vexpress-a15 -cpu cortex-a15 -bios
-/path/to/tztest.img -serial stdio -m 1024 -semihosting
+    ./configure
 
-arm-linux-gnueabi-objdump -xdSt tztest
+For more options use "-?"
 
+    ./configure -?
+
+Other platforms/cpus can be specified as follows:
+
+    ./configure --plat=virt --cpu=cortex-a15
+
+
+BUILD
+-----
+Once configured, the test can be built my simply using make.  This will produce
+an output test image that can be used with QEMU.
+
+    make
+
+The test image can also be built with debug verbosity for extended runtime
+messages by building as follows.
+
+    CFLAGS=-DDEBUG make
+
+
+RUN
+----
+Using compatible machine and cpu properties, the output test image can be run
+using the following QEMU command line:
+
+    ./arm-softmmu/qemu-system-arm -machine <plat> -cpu <cpu> -bios
+        /path/to/tztest.img -serial stdio -m 1024
+
+For example, to run the default vexpress-a15 test image on qemu:
+
+    arm-softmmu/qemu-system-arm -bios ~/git/qemu.tztest/arm/tztest.img \
+        -serial stdio -m 1024 -machine type=vexpress-a15 -cpu cortex-a15
+
+DEBUG
+-----
+A number of facilities are provided for assiting in debugging.  Both secure and
+non-secure test ELF binaries are produced and made available for debugging.
+
+tztest_nonsecure.elf
+tztest_secure.elf
+
+A GDB script is provided for loading and debugging these ELF files with GDB.
+To debug, do the following:
+
+Start QEMU with GDB enabled and waiting.
+
+    ./arm-softmmu/qemu-system-arm ... -s -S
+
+Start gdb-multiarch from the root of the test directory.  No options are needed
+as the supplied .gdbinit should load the ELF images at the correct addresses.
+
+    gdb-multiarch

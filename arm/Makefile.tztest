@@ -7,33 +7,22 @@ TZBOOT			= $(ARCH)/tzboot.o
 TZSECLOAD		= $(ARCH)/tztest_secure.lds
 TZNSECLOAD		= $(ARCH)/tztest_nonsecure.lds
 TZSECOBJS		= $(ARCH)/secure_init.o \
-			  	  $(ARCH)/tztest_secure_svc.o \
+			  	  $(ARCH)/secure_svc.o \
+			  	  $(ARCH)/secure_asm.o \
+                  $(ARCH)/monitor.o \
+                  $(ARCH)/monitor_asm.o \
                   $(ARCH)/sm_asm.o \
 			  	  $(ARCH)/sm.o
 TZNSECOBJS		= $(ARCH)/nonsecure_init.o \
-			  	  $(ARCH)/tztest_nonsecure_svc.o \
+			  	  $(ARCH)/nonsecure_svc.o \
 			  	  $(ARCH)/tztest.o
-TZOBJS			= $(ARCH)/tztest_mmu.o \
-                  $(ARCH)/tztest_common.o
-LIBCFLAT_OBJS	+= $(LIBCFLAT_objdir)/devicetree.o \
-			  	   $(LIBCFLAT_objdir)/virtio.o \
-			  	   $(LIBCFLAT_objdir)/virtio-testdev.o \
-			  	   $(LIBCFLAT_archdir)/io.o \
-			  	   $(LIBCFLAT_archdir)/misc.o \
-			  	   $(LIBCFLAT_archdir)/setup.o \
-			  	   $(LIBCFLAT_archdir)/spinlock.o \
-			  	   $(LIBCFLAT_archdir)/processor.o
+TZOBJS			= $(ARCH)/common_mmu.o \
+                  $(ARCH)/common_svc.o
 
 all: $(TZTEST_IMAGE)
 
 ##################################################################
 
-libeabi = $(LIBCFLAT_archdir)/libeabi.a
-eabiobjs = $(LIBCFLAT_archdir)/eabi_compat.o
-libgcc := $(shell $(CC) -m$(ARCH) --print-libgcc-file-name)
-CFLAGS += -I$(ARCH) -DASM
-
-FLATLIBS = $(LIBCFLAT_archive) $(LIBFDT_archive) $(libgcc) $(libeabi)
 COMMON = $(FLATLIBS) $(TZOBJS)
 
 $(SECTEST): $(TZSECOBJS) $(COMMON) $(TZSECLOAD) $(TZNSECLOAD) $(TZBOOT)
@@ -65,15 +54,9 @@ $(TZNSECLOAD): $(ARCH)/tztest_nonsecure.lds.S Makefile platform/$(PLAT)/
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-$(libeabi): $(eabiobjs)
-	$(AR) rcs $@ $^
-
-arch_clean: libeabi_clean
+arch_clean:
 	$(RM) $(TZOBJS) $(TZSECOBJS) $(TZNSECOBJS) \
 		  $(TZSECLOAD) $(TZNSECLOAD) $(TZBOOT) \
 		  $(SECTEST) $(SECTESTIMAGE) $(NSECTEST) $(NSECTESTIMAGE) \
 		  $(TZTEST_IMAGE) \
 		  $(LIBCFLAT_OBJS) $(LIBCFLAT_archdir)/.*.d $(ARCH)/.*.d
-
-libeabi_clean:
-	$(RM) $(libeabi) $(eabiobjs)

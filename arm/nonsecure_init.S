@@ -1,7 +1,10 @@
-#include "tztest_asm.h"
+#include "common_defs.h"
 
-b nonsecure_vectors
-
+/* The nonsecure image load code must be placed at the beginning of the image
+ * as this is the starting point for the boot code to load.  The loader code
+ * will pass the initial starting point back to the boot code for later
+ * execution.
+ */
 nonsecure_load:
     ldr r0, =_flash_nsectext_start
     ldr r1, =_ram_nsectext_start
@@ -21,6 +24,7 @@ copy_nsecdata:
     subs r2, r2, #1
     bne copy_nsecdata
 
+    ldr r0, =nonsecure_init
     mov pc, lr
 
 .align 5
@@ -39,24 +43,24 @@ nonsecure_vectors:
 
 nonsecure_undef_vec:
     srsdb sp!, #CPSR_MODE_UND
-    bl nsec_undef_handler
+    bl nonsecure_undef_handler
     rfefd sp!
 
 nonsecure_pabort_vec:
     mrc p15, 0, r0, c5, c0, 1       /* IFSR */
     mrc p15, 0, r1, c6, c0, 2       /* IFAR */
-    bl nsec_pabort_handler
+    bl nonsecure_pabort_handler
     b end
 
 nonsecure_dabort_vec:
     mrc p15, 0, r0, c5, c0, 0       /* DFSR */
     mrc p15, 0, r1, c6, c0, 0       /* DFAR */
-    bl nsec_dabort_handler
+    bl nonsecure_dabort_handler
     b end
 
 nonsecure_svc_vec:
     srsdb sp!, #CPSR_MODE_SVC
-    bl nsec_svc_handler
+    bl nonsecure_svc_handler
     rfefd sp!
 
 nonsecure_init:
@@ -105,12 +109,12 @@ nonsecure_mmu_init:
     mcr p15, 0, r10, c3, c0, 0
 
     /* This function will return the initialized base address */
-    bl tztest_nonsecure_pagetable_init
+    bl nonsecure_pagetable_init
 
     /* Set TTBR0 to the initialized address plus enable shareable write-back
      * write-allocate.
      */
-    ldr r10, =nsec_l1_page_table
+    ldr r10, =_nsec_l1_page_table
     orr r10, r10, #0xB
     mcr p15, 0, r10, c2, c0, 0
 

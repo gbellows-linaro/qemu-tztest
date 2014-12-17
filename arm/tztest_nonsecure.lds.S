@@ -39,13 +39,20 @@ SECTIONS
  _nsecdata_size = _ram_nsecdata_end - _ram_nsecdata_start;
 
  . = ALIGN(STACK_SIZE);
+ _nsecstack_start = .;
  nsec_usr_stacktop = . + STACK_SIZE;
  nsec_und_stacktop = nsec_usr_stacktop + STACK_SIZE;
  nsec_abt_stacktop = nsec_und_stacktop + STACK_SIZE;
  nsec_svc_stacktop = nsec_und_stacktop + STACK_SIZE;
+ _nsecstack_size = nsec_svc_stacktop - _nsecstack_start;
+ . += 1M;
 
- . = ALIGN(16M);
- nsec_l1_page_table = .;
+ . = ALIGN(1M);
+ _nsec_l1_page_table = .;
+ . += 1M;
+ . = ALIGN(1M);
+ _nsec_l2_page_table = .;
+ . += 16M;
 
  . = TZTEST_COMMON_HEAP_BASE;
  _common_memory_heap_base = .;
@@ -60,5 +67,7 @@ SECTIONS
  _tztest_exception = .;
  . += 4;
  _tztest_exception_status = .;
+ . += 4;
+ _tztest_exception_addr = .;
  . += 4;
 }

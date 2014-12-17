@@ -5,25 +5,24 @@ endif
 
 include config.mak
 
-.PHONY: arch_clean clean distclean cscope
+.PHONY: arch_clean clean distclean
 
 # libcflat paths
-LIBCFLAT_objdir = lib/libcflat
-LIBCFLAT_srcdir = lib/libcflat
-LIBCFLAT_archdir = lib/libcflat/$(ARCH)
+LIBCFLAT_objdir = libcflat
+LIBCFLAT_srcdir = libcflat
+LIBCFLAT_archdir = libcflat/$(ARCH)
 LIBCFLAT_archive = $(LIBCFLAT_objdir)/libcflat.a
-LIBCFLAT_OBJS = \
-	$(LIBCFLAT_objdir)/argv.o \
-	$(LIBCFLAT_objdir)/printf.o \
-	$(LIBCFLAT_objdir)/string.o \
-	$(LIBCFLAT_objdir)/report.o
+LIBCFLAT_OBJS = $(LIBCFLAT_objdir)/printf.o \
+            	$(LIBCFLAT_objdir)/string.o \
+                $(LIBCFLAT_archdir)/io.o \
+            	$(LIBCFLAT_archdir)/misc.o
+LIBEABI_OBJS = $(LIBCFLAT_archdir)/eabi_compat.o
 
-# libfdt paths
-LIBFDT_objdir = lib/libfdt
-LIBFDT_srcdir = lib/libfdt
-LIBFDT_archive = $(LIBFDT_objdir)/libfdt.a
-LIBFDT_include = $(addprefix $(LIBFDT_srcdir)/,$(LIBFDT_INCLUDES))
-LIBFDT_version = $(addprefix $(LIBFDT_srcdir)/,$(LIBFDT_VERSION))
+LIBEABI = $(LIBCFLAT_archdir)/libeabi.a
+libgcc := $(shell $(CC) -m$(ARCH) --print-libgcc-file-name)
+CFLAGS += -I$(ARCH) -DASM
+
+FLATLIBS = $(LIBCFLAT_archive) $(libgcc) $(LIBEABI)
 
 # cc-option
 # Usage: OP_CFLAGS+=$(call cc-option, -falign-functions=0, -malign-functions=0)
@@ -31,15 +30,13 @@ LIBFDT_version = $(addprefix $(LIBFDT_srcdir)/,$(LIBFDT_VERSION))
 cc-option = $(shell if $(CC) $(1) -S -o /dev/null -xc /dev/null \
               > /dev/null 2>&1; then echo "$(1)"; else echo "$(2)"; fi ;)
 
-CFLAGS += -marm
-CFLAGS += -mcpu=$(PROCESSOR)
+CFLAGS += -m${ARCH} -mcpu=$(PROCESSOR)
 CFLAGS += $(autodepend-flags)
 CFLAGS += -std=gnu99
 CFLAGS += -ffreestanding
 CFLAGS += -Wextra -Werror -Wall
 CFLAGS += -g -O0
-CFLAGS += -Ilib -I$(LIBFDT_srcdir) -I $(LIBCFLAT_srcdir) -I$(LIBCFLAT_archdir)
-CFLAGS += -Ilib -I/usr/arm-linux-gnueabi/include/
+CFLAGS += -Ilib -I $(LIBCFLAT_srcdir)/include -I$(LIBCFLAT_archdir)/include
 CFLAGS += -Iplatform/$(PLAT)
 CFLAGS += $(call cc-option, -fomit-frame-pointer, "")
 CFLAGS += $(call cc-option, -fno-stack-protector, "")
@@ -55,25 +52,22 @@ include $(ARCH)/Makefile.tztest
 $(LIBCFLAT_archive): $(LIBCFLAT_OBJS)
 	$(AR) rcs $@ $^
 
-include $(LIBFDT_srcdir)/Makefile.libfdt
-$(LIBFDT_archive): CFLAGS += -Wno-sign-compare
-$(LIBFDT_archive): $(addprefix $(LIBFDT_objdir)/,$(LIBFDT_OBJS))
-	$(AR) rcs $@ $^
-
 %.o: %.S
 	$(CC) $(CFLAGS) -c -nostdlib -o $@ $<
 
 -include */.*.d */*/.*.d
 
-clean: arch_clean
-	$(RM) $(LIBCFLAT_archive) $(LIBCFLAT_OBJS) $(LIBCFLAT_objdir)/.*.d
+$(LIBEABI): $(LIBEABI_OBJS)
+	$(AR) rcs $@ $^
 
-libfdt_clean:
-	$(RM) $(LIBFDT_archive) $(addprefix $(LIBFDT_objdir)/,$(LIBFDT_OBJS)) \
-		  $(LIBFDT_objdir)/.*.d
+libeabi_clean:
+	$(RM) $(LIBEABI) $(LIBEABI_OBJS)
+
+clean: arch_clean libeabi_clean
+	$(RM) $(LIBCFLAT_archive) $(LIBCFLAT_OBJS) $(LIBCFLAT_objdir)/.*.d
 
 libcflat_clean:
 	$(RM) $(LIBCFLAT_archive) $(LIBCFLAT_OBJS)
 
-distclean: clean libfdt_clean libcflat_clean
-	$(RM) config.mak ..d
+distclean: clean libcflat_clean
+	$(RM) config.mak ..d cscope.*

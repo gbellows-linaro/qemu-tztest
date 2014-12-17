@@ -1,8 +1,8 @@
-#include "tztest_asm.h"
+#include "common_defs.h"
 
 .arch_extension sec
 
-.align 5
+.section .vectors, "ax"
 secure_vectors:
 	b   secure_init         /* reset */
 	b   secure_undef_vec    /* undef */
@@ -15,19 +15,22 @@ secure_vectors:
 
 secure_undef_vec:
     srsdb sp!, #CPSR_MODE_UND
-    bl sec_undef_handler
+    push {r10}
+    ldr r10, =secure_undef_handler
+    blx r10
+    pop {r10}
     rfefd sp!
 
 secure_pabort_vec:
     mrc p15, 0, r0, c5, c0, 1       /* IFSR */
     mrc p15, 0, r1, c6, c0, 2       /* IFAR */
-    bl sec_pabort_handler
+    bl secure_pabort_handler
     b end
 
 secure_dabort_vec:
     mrc p15, 0, r0, c5, c0, 0       /* DFSR */
     mrc p15, 0, r1, c6, c0, 0       /* DFAR */
-    bl sec_dabort_handler
+    bl secure_dabort_handler
     b end
 
 secure_svc_vec:
@@ -45,47 +48,32 @@ secure_svc_vec:
     pop {pc}
 1:
     srsdb sp!, #CPSR_MODE_SVC
-    bl sec_svc_handler
+    push {r10}
+    ldr r10, =secure_svc_handler
+    blx r10
+    pop {r10}
     rfefd sp!
 
-.align 5
-monitor_vectors:
-	b	.		/* Reset			*/
-	b	.		/* Undefined instruction	*/
-	b	monitor_smc_vect /* Secure monitor call		*/
-	b	.		/* Prefetch abort		*/
-	b	.		/* Data abort			*/
-	b	.		/* Reserved			*/
-	b	.		/* IRQ				*/
-	b	.       /* FIQ				*/
-
-monitor_smc_vect:
-    cmp r0, #SMC_YIELD
-    bge sm_smc_entry
-	srsdb sp!, #CPSR_MODE_MON
-    cmp r0, #SMC_NOOP
-    beq 1f
-	push {r0-r3}
-    mov r0, r1
-    bl tztest_dispatch_monitor
-	pop	{r0-r3}
-1:  rfefd sp!
-
-    .globl secure_init
+.section .text
 secure_init:
+    /* We enter with R0 pointing to the nonsecure entry point.  Put it in R11
+     * for now to avoid overwriting it on calls. */
+    mov r11, r0
+
     /* Disable interrupts for now */
     mrs r10, cpsr
-    orr r10, r10, #0xc0     @ Mask IRQ and FIQ
+    orr r10, r10, #0xc0     /* Mask IRQ and FIQ */
     msr cpsr, r10
 
-    /* Make sure secure vectors are based at 0 */
+    /* During startup, before the MMU is enabled we'll set-up the vecs in low
+     * mem.
+     */
     mrc p15, 0, r10, c1, c0, 0
-    bic r10, r10, #0x2000           @ SCTLR.V = 0
+    bic r10, r10, #0x2000           /* SCTLR.V = 0 */
     mcr p15, 0, r10, c1, c0, 0
+    ldr r10, =secure_vectors
+    mcr p15, 0, r10, c12, c0, 0     /* VBAR = secure_vectors */
 
-    /* Set up secure VBAR */
-    ldr r11, =secure_vectors
-    mcr p15, 0, r11, c12, c0, 0
     isb
 
 secure_stack_init:
@@ -118,12 +106,12 @@ secure_mmu_init:
     mcr p15, 0, r10, c3, c0, 0
 
     /* Set-up the initial secure page tables */
-    bl tztest_secure_pagetable_init
+    bl secure_pagetable_init
 
     /* Set TTBR0 to the initialized address plus enable shareable write-back
      * write-allocate.
      */
-    ldr r10, =sec_l1_page_table
+    ldr r10, =_sec_l1_page_table
     orr r10, r10, #0xB
     mcr p15, 0, r10, c2, c0, 0
 
@@ -139,65 +127,39 @@ secure_mmu_init:
     isb
     dsb
 
-#ifdef DEBUG
+secure_remap_vecs:
+    /* Now that we have enabled the MMU, move the mapping of the secure vector
+     * table to high mem.
+     * No need to set up VBAR as we'll be using hivec */
+    mrc p15, 0, r10, c1, c0, 0
+    orr r10, r10, #0x2000           @ SCTLR.V = 1
+    mcr p15, 0, r10, c1, c0, 0
+
     /* Check that are entry state makes sense before initializing the monitor
      * mode.
      */
-    bl check_init_mode
-#endif
+    bl secure_check_init
 
 secure_init_monitor:
-    /* Set-up the monitor stack */
-	mrs	r1, cpsr
-    cps #CPSR_MODE_MON
-    ldr sp, =mon_stacktop
-	msr	cpsr, r1
+    /* Call monitor mode initialization and pass to it the non-secure execution
+     * entry point.
+     */
+    mov r0, r11
+    bl monitor_init
 
-    /* Set-up mvbar */
-    ldr r0, =monitor_vectors
-    mcr p15, 0, r0, c12, c0, 1
-
-    bl tztest_secure_svc_init_monitor
-
+    /* Once monitor mode is set-up, we yield to non-secure execution.  The
+     * non-secure entrypoint was established in monitor init.
+     */
     mov r0, #SMC_YIELD
     smc #0
 
-    bl tztest_secure_svc_loop
+    /* The first return to the secure world will set us off into our
+     * secure-side monitor loop.  The only way out is to issue an EXIT SMC call
+     * to the secure world.
+     */
+    bl secure_svc_loop
 
 	/* If we get here we are on the way out, poweroff the device */
 end:
-    ldr r0, =SYSREG_BASE
-    add r0, r0, #SYSREG_CFGCTRL
-    ldr r1, =SYS_SHUTDOWN
-    str r1, [r0]
-    b end
+    b secure_shutdown
 
-    .globl dispatch_secure_usr
-dispatch_secure_usr:
-    /* Push the LR onto the stack so we can return immediately from the svc
-     * handler on return.
-     */
-    push {lr}
-
-    /* Reset the user stack for the dispatch, so we have a clean stack */
-    cps #CPSR_MODE_SYS
-	ldr sp, =sec_usr_stacktop
-    push {r0, r1}
-    cps #CPSR_MODE_SVC
-
-    /* Return to USR mode to execute the dispatch function in r0
-     */
-    ldr r0, =dispatch_usr_wrapper
-    mov r1, #CPSR_MODE_USR
-    push {r0, r1}
-    rfefd sp!
-
-/* This is the user-side dispatch wrapper that accepts the function pointer and
- * function arg in r0 & r1 respectively.  The wrapper is simply an anstraction
- * layer for translating the input parameters into the user function call.
- */
-dispatch_usr_wrapper:
-    pop {r0, r1}
-    mov r2, r0
-    mov r0, r1
-    mov pc, r2
