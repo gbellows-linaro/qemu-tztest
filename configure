@@ -84,11 +84,11 @@ fi
 
 # create the config
 cat <<EOF > config.mak
-ARCH=$arch
-PLAT=$plat
-PROCESSOR=$cpu
-CC=$cross_prefix$cc
-LD=$cross_prefix$ld
-OBJCOPY=$cross_prefix$objcopy
-AR=$cross_prefix$ar
+export ARCH=$arch
+export PLAT=$plat
+export PROCESSOR=$cpu
+export CC=$cross_prefix$cc
+export LD=$cross_prefix$ld
+export OBJCOPY=$cross_prefix$objcopy
+export AR=$cross_prefix$ar
 EOF
