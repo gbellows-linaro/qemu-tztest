@@ -1,42 +1,40 @@
-SECTEST			= $(ARCH)/tztest_secure.elf
-NSECTEST		= $(ARCH)/tztest_nonsecure.elf
-SECTESTIMAGE 	= $(ARCH)/tztest_secure.flat
-NSECTESTIMAGE 	= $(ARCH)/tztest_nonsecure.flat
-TZTEST_IMAGE 	= $(ARCH)/tztest.img
-TZBOOT			= $(ARCH)/tzboot.o
-TZSECLOAD		= $(ARCH)/tztest_secure.lds
-TZNSECLOAD		= $(ARCH)/tztest_nonsecure.lds
-TZSECOBJS		= $(ARCH)/secure_init.o \
-			  	  $(ARCH)/secure_svc.o \
-			  	  $(ARCH)/secure_asm.o \
-                  $(ARCH)/monitor.o \
-                  $(ARCH)/monitor_asm.o \
-                  $(ARCH)/sm_asm.o \
-			  	  $(ARCH)/sm.o
-TZNSECOBJS		= $(ARCH)/nonsecure_init.o \
-			  	  $(ARCH)/nonsecure_svc.o \
-			  	  $(ARCH)/tztest.o
-TZOBJS			= $(ARCH)/common_mmu.o \
-                  $(ARCH)/common_svc.o
+SECTEST			= tztest_secure.elf
+NSECTEST		= tztest_nonsecure.elf
+SECTESTIMAGE 	= tztest_secure.flat
+NSECTESTIMAGE 	= tztest_nonsecure.flat
+TZTEST_IMAGE 	= tztest.img
+TZBOOT			= tzboot.o
+TZSECLOAD		= tztest_secure.lds
+TZNSECLOAD		= tztest_nonsecure.lds
+TZSECOBJS		= secure_init.o \
+			  	  secure_svc.o \
+			  	  secure_asm.o \
+                  monitor.o \
+                  monitor_asm.o \
+                  sm_asm.o \
+			  	  sm.o
+TZNSECOBJS		= nonsecure_init.o \
+			  	  nonsecure_svc.o \
+			  	  tztest.o
+TZOBJS			= common_mmu.o \
+                  common_svc.o
 
 ifneq (,$(findstring DEBUG, $(CFLAGS)))
-    TZNSECOBJS += $(ARCH)/tztest_debug.o
+    TZNSECOBJS += tztest_debug.o
 endif
 
-all: $(TZTEST_IMAGE)
+-include .*.d
 
 ##################################################################
 
-COMMON = $(FLATLIBS) $(TZOBJS)
-
-$(SECTEST): $(TZSECOBJS) $(COMMON) $(TZSECLOAD) $(TZNSECLOAD) $(TZBOOT)
-	$(LD) -o $@ $(TZSECOBJS) $(COMMON) --script=$(TZSECLOAD)
+$(SECTEST): $(TZSECOBJS) $(TZOBJS) $(TZSECLOAD) $(TZNSECLOAD) $(TZBOOT)
+	$(LD) -o $@ $(TZSECOBJS) $(FLATLIBS) $(TZOBJS) --script=$(TZSECLOAD)
 
 $(SECTESTIMAGE): $(SECTEST)
 	$(OBJCOPY) -O binary $(SECTEST) $(SECTESTIMAGE)
 
-$(NSECTEST): $(TZNSECOBJS) $(COMMON) $(TZNSECLOAD) $(TZSECLOAD)
-	$(LD) -o $@ $(TZNSECOBJS) $(COMMON) --script=$(TZNSECLOAD)
+$(NSECTEST): $(TZNSECOBJS) $(TZOBJS) $(TZNSECLOAD) $(TZSECLOAD)
+	$(LD) -o $@ $(TZNSECOBJS) $(FLATLIBS) $(TZOBJS) --script=$(TZNSECLOAD)
 
 $(NSECTESTIMAGE): $(NSECTEST)
 	$(OBJCOPY) -O binary $(NSECTEST) $(NSECTESTIMAGE)
@@ -46,21 +44,22 @@ $(TZTEST_IMAGE): $(SECTESTIMAGE) $(NSECTESTIMAGE)
 	dd if=$(NSECTESTIMAGE) of=$@ seek=65536 oflag=seek_bytes 2> /dev/null
 	chmod +x $(TZTEST_IMAGE)
 
-$(TZBOOT): $(ARCH)/tzboot.S
+$(TZBOOT): tzboot.S
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-$(TZSECLOAD): $(ARCH)/tztest_secure.lds.S Makefile platform/$(PLAT)/
+$(TZSECLOAD): tztest_secure.lds.S Makefile ../platform/$(PLAT)/
 	$(CC) $(CFLAGS) -E -P -C -o $@ $<
 
-$(TZNSECLOAD): $(ARCH)/tztest_nonsecure.lds.S Makefile platform/$(PLAT)/
+$(TZNSECLOAD): tztest_nonsecure.lds.S Makefile ../platform/$(PLAT)/
 	$(CC) $(CFLAGS) -E -P -C -o $@ $<
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+%.o: %.S
+	$(CC) $(CFLAGS) -c -nostdlib -o $@ $<
 
-arch_clean:
+all: $(TZTEST_IMAGE)
+
+clean:
 	$(RM) $(TZOBJS) $(TZSECOBJS) $(TZNSECOBJS) \
 		  $(TZSECLOAD) $(TZNSECLOAD) $(TZBOOT) \
 		  $(SECTEST) $(SECTESTIMAGE) $(NSECTEST) $(NSECTESTIMAGE) \
-		  $(TZTEST_IMAGE) \
-		  $(LIBCFLAT_OBJS) $(LIBCFLAT_archdir)/.*.d $(ARCH)/.*.d
+		  $(TZTEST_IMAGE) .*.d

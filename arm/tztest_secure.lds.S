@@ -18,7 +18,7 @@ _ram_nsec_base = RAM_NSEC_BASE;
 SECTIONS
 {
 	. = FLASH_SEC_BASE;
-	.boot : { arm/tzboot.o }
+	.boot : { tzboot.o }
 	_eboot = .;
 
 	_flash_secvecs_start = .;

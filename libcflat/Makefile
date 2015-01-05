@@ -9,8 +9,7 @@ LIBCFLAT_OBJS = printf.o \
 LIBEABI = $(ARCH)/libeabi.a
 LIBEABI_OBJS = $(ARCH)/eabi_compat.o
 
-CFLAGS += -Iinclude -I$(ARCH)/include
-CFLAGS += -I../platform/$(PLAT) -I../../platform/$(PLAT)
+-include .*.d $(ARCH)/.*.d
 
 $(LIBCFLAT): $(LIBCFLAT_OBJS)
 	$(AR) rcs $@ $^
@@ -30,4 +29,4 @@ libcflat_clean:
 	$(RM) $(LIBCFLAT) $(LIBCFLAT_OBJS)
 
 clean: libcflat_clean libeabi_clean
-	$(RM) .*.d
+	$(RM) .*.d $(ARCH)/.*.d
