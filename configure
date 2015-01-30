@@ -4,22 +4,18 @@ cc=gcc
 ld=ld
 objcopy=objcopy
 ar=ar
-arch=arm
-plat=vexpress-a15
-cpu=cortex-a15
-cross_prefix=arm-linux-gnueabi-
 
 usage() {
     cat <<-EOF
 	Usage: $0 [options]
 
 	Options include:
-	    --arch=ARCH            architecture to compile for ($arch)
-	    --plat=PLATFORM        platform to compile for ($plat)
-	    --cpu=PROCESSOR  cpu to compile for ($arch)
+	    --arch=ARCH            architecture to compile for
+	    --plat=PLATFORM        platform to compile for
+	    --cpu=PROCESSOR        cpu to compile for
 	    --cross-prefix=PREFIX  cross compiler prefix
-	    --cc=CC		   c compiler to use ($cc)
-	    --ld=LD		   ld linker to use ($ld)
+	    --cc=CC		           c compiler to use
+	    --ld=LD		           ld linker to use
 EOF
     exit 1
 }
@@ -58,28 +54,37 @@ while [[ "$1" = -* ]]; do
 	    ;;
     esac
 done
-[ -z "$cpu" ] && cpu="$arch"
 
-if [ "$cpu" = "arm" ]; then
-    cpu="cortex-a15"
+if [ -z "$arch" ]; then
+    arch="arm"
 fi
 
-# check for dependent 32 bit libraries
-if [ "$arch" != "arm" ]; then
-cat << EOF > lib_test.c
-#include <stdc++.h>
-#include <boost_thread-mt.h>
-#include <pthread.h>
-
-int main ()
-{}
-EOF
-$cc -m32 -o /dev/null lib_test.c &> /dev/null
-exit=$?
-if [ $exit -eq 0 ]; then
-    api=true
+if [ -z "$cpu" ]; then
+    if [ "$arch" = "arm" ]; then
+        cpu="cortex-a15"
+    elif [ "$arch" = "aarch64" ]; then
+        cpu="cortex-a57"
+    fi
 fi
-rm -f lib_test.c
+
+if [ -z "$plat" ]; then
+    if [ "$arch" = "arm" ]; then
+        plat="vexpress-a15"
+    elif [ "$arch" = "aarch64" ]; then
+        plat="virt"
+    fi
+fi
+
+if [ -z "$cross" ]; then
+    if [ "$arch" = "arm" ]; then
+        cross="arm-linux-gnueabi-"
+    elif [ "$arch" = "aarch64" ]; then
+        cross="aarch64-linux-gnu-"
+    fi
+fi
+
+if [ "$arch" = "arm" ]; then
+    cflags="-m$arch -mcpu=$cpu"
 fi
 
 # create the config
@@ -87,8 +92,9 @@ cat <<EOF > config.mak
 export ARCH=$arch
 export PLAT=$plat
 export PROCESSOR=$cpu
-export CC=$cross_prefix$cc
-export LD=$cross_prefix$ld
-export OBJCOPY=$cross_prefix$objcopy
-export AR=$cross_prefix$ar
+export CC=$cross$cc
+export LD=$cross$ld
+export OBJCOPY=$cross$objcopy
+export AR=$cross$ar
+export CFLAGS+=$cflags
 EOF

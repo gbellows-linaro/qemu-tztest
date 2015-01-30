@@ -1,4 +1,3 @@
-
 ifeq ($(wildcard config.mak),)
 $(error run ./configure first. See ./configure -h)
 endif
@@ -7,7 +6,7 @@ include config.mak
 
 .PHONY: arch_clean clean distclean
 
-libgcc := $(shell $(CC) -m$(ARCH) --print-libgcc-file-name)
+libgcc := $(shell $(CC) $(CFLAGS) --print-libgcc-file-name)
 
 export FLATLIBS = ../libcflat/libcflat.a $(libgcc) ../libcflat/$(ARCH)/libeabi.a
 
@@ -19,10 +18,9 @@ cc-option = $(shell if $(CC) $(1) -S -o /dev/null -xc /dev/null \
 
 autodepend-flags = -MMD -MF $(dir $*).$(notdir $*).d
 
-CFLAGS += -m${ARCH} -mcpu=$(PROCESSOR)
 CFLAGS += $(autodepend-flags)
 CFLAGS += -std=gnu99 -DASM
-CFLAGS += -ffreestanding
+CFLAGS += -ffreestanding -nostdlib
 CFLAGS += -Wextra -Werror -Wall
 CFLAGS += -g -O0
 CFLAGS += -I. -I/include -I$(ARCH)/include
