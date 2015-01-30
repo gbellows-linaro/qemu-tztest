@@ -4,6 +4,7 @@
 *.flat
 *.elf
 *.img
+cscope.*
 /config.mak
 arm/tztest_secure.lds
 arm/tztest_nonsecure.lds
