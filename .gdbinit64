@@ -1,0 +1,3 @@
+set arch aarch64
+target remote :1234
+file aarch64/tztest_secure.elf
