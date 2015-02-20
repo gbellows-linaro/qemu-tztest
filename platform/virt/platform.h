@@ -5,11 +5,29 @@
  * which is 32MB.  It is also aliased to 0x0 (to 0x2000000).
  * It is acceptable to have the text here as it is RO.
  */
-#define FLASH_SEC_BASE 0x00000000
-#define FLASH_NSEC_BASE 0x00010000
+#define FLASH_BASE 0x00000000               // From QEMU virt.c
+#define FLASH_SIZE 0x08000000               // From QEMU virt.c
+#define EL3_FLASH_BASE FLASH_BASE
+#define SEC_FLASH_BASE (FLASH_BASE+0x10000)
+#define NSEC_FLASH_BASE (FLASH_BASE+0x20000)
 
-#define RAM_SEC_BASE 0x40000000
-#define RAM_NSEC_BASE 0x48000000
+#define RAM_BASE 0x40000000                 // From QEMU virt.c
+#define RAM_SIZE (2*1024*1024*1024)         // Only 2GB needed
+#define EL3_RAM_BASE RAM_BASE
+#define EL3_RAM_SIZE (256*1024)
+#define SEC_RAM_BASE (RAM_BASE+0x1000000)
+#define SEC_RAM_SIZE ((RAM_SIZE>>1)-EL3_RAM_SIZE)
+#define NSEC_RAM_BASE (RAM_BASE+0x8000000)
+#define NSEC_RAM_SIZE (RAM_SIZE/2)
+
+#define EL3_STACK_SIZE 0x40000
+#define EL3_PGTBL_BASE 0x50000000
+#define EL3_STACK_BASE (EL3_PGTBL_BASE-0x1000)
+#define SEC_STACK_SIZE 0x40000
+#define SEC_PGTBL_BASE 0x80000000
+#define SEC_STACK_BASE (EL3_PGTBL_BASE-0x1000)
+#define NSEC_STACK_SIZE 0x40000
+#define NSEC_STACK_BASE (NSEC_RAM_BASE+NSEC_RAM_SIZE-NSEC_STACK_SIZE)
 
 #define UART0_BASE 0x09000000
 

@@ -1,6 +1,7 @@
 #include "platform.h"
 
 .align 5
+.section .init
 /* We use the same vector table for Hyp and Monitor mode, since
  * we will only use each once and they don't overlap.
  */
@@ -15,66 +16,51 @@ boot_vectors:
 	.word 0 /* fiq */
 
 reset:
-init_uart:
-	/*
-	 * UART initialisation (38400 8N1)
-	 */
-	ldr	x0,	=UART0_BASE     // UART base (Versatile Express)
-	mov	x1, #0x10			// ibrd
-	str	x1, [x0, #0x24]
-	mov	x1, #0xc300
-	orr	x1, x1, #0x0001			// cr
-	str	x1, [x0, #0x30]
-
-init_cpu:
     /* Disable interrupts for now */
     mrs x10, daif
     orr x10, x10, #0xc0     // Mask IRQ and FIQ
     msr daif, x10
 
-    /* Set up boot VBAR */
+    /* Set up VBAR */
     adr x11, boot_vectors
     msr vbar_el3, x11
     isb
 
-    /* Start by setting up the boot stack*/
-    ldr x11, =boot_stacktop
+init_uart:
+	/* UART initialisation (38400 8N1) */
+	ldr	x0,	=UART0_BASE     // UART base
+	mov	x1, #0x10			// ibrd
+	str	x1, [x0, #0x24]
+	mov	x1, #0xc300
+	orr	x1, x1, #0x0001	    // cr
+	str	x1, [x0, #0x30]
+
+    /* Start by setting up a temporary stack */
+    ldr x11, =(RAM_BASE+RAM_SIZE)
 	mov sp, x11
 
-load_secure:
-copy_secvecs:
-    /* First copy the vector section text into RAM */
-    ldr x0, =_flash_secvecs_start
-    ldr x1, =_ram_secvecs_start
-    ldr x2, =_secvecs_size
+    /* Copy the text section to RAM */
+    ldr x0, =_EL3_RAM_TEXT
+    ldr x1, =_EL3_FLASH_TEXT
+    ldr x2, =_EL3_TEXT_SIZE
     bl memcpy
 
-copy_sectext:
-    /* Next copy the text section into RAM */
-    ldr x0, =_flash_sectext_start
-    ldr x1, =_ram_sectext_start
-    ldr x2, =_sectext_size
+    /* Copy the data section to RAM */
+    ldr x0, =_EL3_RAM_DATA
+    ldr x1, =_EL3_FLASH_DATA
+    ldr x2, =_EL3_DATA_SIZE
     bl memcpy
 
-copy_secdata:
-    /* Last copy the text section into RAM */
-    ldr x0, =_flash_secdata_start
-    ldr x1, =_ram_secdata_start
-    ldr x2, =_secdata_size
-    bl memcpy
-
-load_nonsecure:
-    /* Branch to the nonsecure image base.  It should be set-up so that this is
-     * the image loader which returns the starting execution point.
+    /* Branch to initialize EL3 mode. We pass the secure and non-secure EL1
+     * entry points as it sets up the initial exception return to these modes
+     * We don't come back from the branch to EL3 as it initiates the transition
+     * to secure EL1 and sets up non-secure EL1 for the first SMC context
+     * switch.
      */
-    mov x0, #FLASH_NSEC_BASE
-    blr x0
-
-    /* Branch to the starting point of the secure image in RAM which should
-     * kick off initialization.
-     */
-    mov x1, #RAM_SEC_BASE
-    br x1
+    mov x0, SEC_FLASH_BASE
+    mov x1, NSEC_FLASH_BASE
+    ldr x11, =_EL3_RAM_TEXT
+    blr x11
 
     /* We shouldn't get here as the secure image will shutdown */
 end:
@@ -82,8 +68,8 @@ end:
 
 memcpy:
     cbz x2, memcpy_done
-    ldrb w10, [x0], #1
-    strb w10, [x1], #1
+    ldrb w10, [x1], #1
+    strb w10, [x0], #1
     subs x2, x2, #1
     b memcpy
 memcpy_done:
