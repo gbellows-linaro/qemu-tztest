@@ -6,5 +6,8 @@
 *.img
 cscope.*
 /config.mak
+arm/tzboot.lds
 arm/tztest_secure.lds
 arm/tztest_nonsecure.lds
+aarch64/tzboot.lds
+aarch64/tztest_secure.lds

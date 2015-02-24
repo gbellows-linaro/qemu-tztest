@@ -1,6 +1,24 @@
 #include "common_defs.h"
 
 .section .text
+.globl monitor_init
+monitor_init:
+    mov x4, #5
+    adr x2, sec_state
+    stp x0, x4, [x2], #16        /* S.ELR_EL3 = sec_base */
+    adr x3, nsec_state
+    stp x1, x4, [x3], #16        /* NS.ELR_EL3 = nsec_base */
+    mov x0, #0
+    mov x1, #31
+zero_loop:
+    sub x1, x1, #1
+    str x0, [x2], #8
+    str x0, [x3], #8
+    cbnz x1, zero_loop
+    adr x0, sec_state
+    bl monitor_restore_state
+    eret
+
 .globl monitor_save_state
 monitor_save_state:
     stp x0, x1, [sp, #-16]!     /* Save the input regs x0:x3 */

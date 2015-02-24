@@ -1,0 +1,33 @@
+.align 11                   // Align to vector table size (0x800)
+.section .vectors
+.globl el3_vectors
+el3_vectors:
+.word 0                     // Add padding to force the below alignment
+.align 9                    // Force these vectors to 0x400 alignment
+el3_sync_exception_current:
+    mrs x0, esr_el3
+    mov x1, #0xffffff
+    and x1, x1, x0
+    lsr x0, x0, #26
+    mrs x2, far_el3
+    bl el3_handle_exception
+    eret
+.align 10                   // Force these vectors to 0x400 alignment
+el3_sync_exception_lower64:
+    mrs x0, esr_el3
+    mov x1, #0xffffff
+    and x1, x1, x0
+    lsr x0, x0, #26
+    bl el3_handle_exception
+    eret
+.align 7
+el3_serr_exception:
+	b	el3_serr_exception
+.align 7
+el3_irq_exception:
+	b	el3_irq_exception
+.align 7
+el3_fiq_exception:
+	b	el3_fiq_exception
+
+.end

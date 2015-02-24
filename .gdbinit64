@@ -1,6 +1,6 @@
 set arch aarch64
 target remote :1234
 file aarch64/tzboot.elf
-add-symbol-file aarch64/tzboot.elf 0x40000000
+add-symbol-file aarch64/tzboot.elf &_EL3_TEXT_BASE
 add-symbol-file aarch64/tztest_secure.elf 0x41000000
 set print pretty

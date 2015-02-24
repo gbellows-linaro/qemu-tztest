@@ -3,8 +3,9 @@ SECTESTIMAGE 	= tztest_secure.flat
 TZTEST_IMAGE 	= tztest.img
 TZBOOT			= tzboot.o \
                   el3_init.o \
+                  el3_exception.o \
                   monitor_asm.o \
-                  monitor.o
+                  el3.o
 TZBOOTELF		= tzboot.elf
 TZBOOTIMAGE		= tzboot.flat
 TZSECLOAD		= tztest_secure.lds
@@ -45,7 +46,7 @@ $(TZSECLOAD): tztest_secure.lds.S Makefile ../platform/$(PLAT)/
 	$(CC) $(CFLAGS) -E -P -C -o $@ $<
 
 %.o: %.S
-	$(CC) $(CFLAGS) -c -nostdlib -o $@ $<
+	$(CC) $(CFLAGS) -mcmodel=large -c -nostdlib -o $@ $<
 
 all: $(TZTEST_IMAGE)
 
