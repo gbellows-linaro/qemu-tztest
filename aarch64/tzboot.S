@@ -41,8 +41,8 @@ init_uart:
      * to secure EL1 and sets up non-secure EL1 for the first SMC context
      * switch.
      */
-    mov x0, SEC_FLASH_BASE
-    mov x1, NSEC_FLASH_BASE
+    mov x0, EL1_S_FLASH_BASE
+    mov x1, EL1_NS_FLASH_BASE
     ldr x11, =el3_init
     br x11
 

@@ -141,7 +141,7 @@ el3_init_stack:
 
 /* Migrate the next PA to the non-init code */
     ldr x10, =el3_next_pa
-    str x16, [x10]
+    str x17, [x10]
 
 el3_init_monitor:
     mov x0, x15
