@@ -10,7 +10,10 @@ EL3_ELF			= el3.elf
 EL3_IMAGE		= el3.bin
 EL3_LOAD		= el3.lds
 EL1_S_LOAD		= el1_sec.lds
-EL1_S_OBJS		= el1_sec_init.o #\
+EL1_S_OBJS		= el1_sec_init.o \
+                  el1_exception.o \
+                  el1.o \
+                    #\
 			  	  secure_svc.o \
 			  	  secure_asm.o \
                   sm_asm.o \
@@ -28,8 +31,8 @@ $(EL3_ELF): $(EL3_OBJS) $(EL3_LOAD)
 $(EL3_IMAGE): $(EL3_ELF)
 	$(OBJCOPY) -O binary $< $@
 
-$(EL1_S_ELF): $(EL1_S_OBJS) $(TZOBJS) $(EL1_S_LOAD)
-	$(LD) -o $@ $(EL1_S_OBJS) $(TZOBJS) $(FLATLIBS) --script=$(EL1_S_LOAD)
+$(EL1_S_ELF): $(EL1_S_OBJS) $(EL1_S_LOAD)
+	$(LD) -o $@ $(EL1_S_OBJS) $(FLATLIBS) --script=$(EL1_S_LOAD)
 
 $(EL1_S_IMAGE): $(EL1_S_ELF)
 	$(OBJCOPY) -O binary $< $@

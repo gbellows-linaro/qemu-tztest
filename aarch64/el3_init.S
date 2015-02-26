@@ -2,10 +2,8 @@
 
 #define PT_BASE EL3_PGTBL_BASE
 
-#include "init_util.S"
-
-.align 12
 .section .init
+.align 12
 .global el3_init
 /* el3_init(sec_elr, nsec_elr) */
 el3_init:
@@ -25,7 +23,7 @@ el3_init:
 
     /* Enable floating point register usage as printf uses it */
     mrs x10, cptr_el3
-    and x10, x10, #~0x400       /* CPTR.TFP */
+    and x10, x10, #~0x400       /* Clear CPTR.TFP to enable FP */
     msr cptr_el3, x10
 
 el3_init_mmu:
@@ -152,5 +150,7 @@ el3_init_monitor:
 /* We should never get here */
 el3_init_end:
     b el3_init_end
+
+#include "init_util.S"
 
 .end
