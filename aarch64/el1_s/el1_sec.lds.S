@@ -9,7 +9,7 @@ SECTIONS
     . = EL1_S_FLASH_BASE;
     .init . : {
         _EL1_S_INIT_BASE = .;
-        el1_sec_init.o(.init);
+        el1_init.o(.init);
         *(.init);
     }
     _EL1_S_INIT_SIZE = SIZEOF(.init);

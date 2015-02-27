@@ -1,8 +1,6 @@
 #ifndef _COMMON_SVC_H
 #define _COMMON_SVC_H
 
-//#include "tztest_builtins.h"
-#include "sm.h"
 #include "libcflat.h"
 
 typedef struct {

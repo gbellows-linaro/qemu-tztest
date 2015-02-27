@@ -1,9 +1,11 @@
+#include <stdint.h>
+#include <stddef.h>
 #include "platform.h"
-#include "common_svc.h"
-#include "common_defs.h"
-#include "common_mmu.h"
 #include "el3_loader.h"
 #include "string.h"
+#include "libcflat.h"
+#include "common_svc.h"
+#include "common_defs.h"
 
 typedef struct state_buf {
     uintptr_t elr_el3;
@@ -83,7 +85,8 @@ typedef union {
 } armv8_4k_tbl_pte_t;
 
 uint64_t el3_next_pa = 0;
-uint64_t el3_allocate_pa() {
+uint64_t el3_allocate_pa()
+{
     uint64_t next = el3_next_pa;
     el3_next_pa += 0x1000;
     return next;

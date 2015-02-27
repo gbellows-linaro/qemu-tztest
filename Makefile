@@ -8,7 +8,7 @@ include config.mak
 
 libgcc := $(shell $(CC) $(CFLAGS) --print-libgcc-file-name)
 
-export FLATLIBS = ../libcflat/libcflat.a $(libgcc) ../libcflat/$(ARCH)/libeabi.a
+export FLATLIBS = ../../libcflat/libcflat.a $(libgcc) ../../libcflat/$(ARCH)/libeabi.a
 
 # cc-option
 # Usage: OP_CFLAGS+=$(call cc-option, -falign-functions=0, -malign-functions=0)

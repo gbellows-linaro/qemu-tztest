@@ -1,4 +1,4 @@
-#include "common_defs.h"
+#include "platform.h"
 
 #define PT_BASE EL3_PGTBL_BASE
 

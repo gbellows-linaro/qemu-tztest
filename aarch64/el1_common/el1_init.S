@@ -1,6 +1,4 @@
-#include "common_defs.h"
-
-#define PT_BASE EL1_S_PGTBL_BASE
+#include "el1.h"
 
 .section .init
 .align 12
@@ -29,7 +27,7 @@ el1_init_mmu:
     bic x10, x10, #0x1000
     msr sctlr_el1, x10
 
-    ldr x10, =PT_BASE           /* Base of L0 page table */
+    ldr x10, =EL1_PGTBL_BASE    /* Base of L0 page table */
     lsr x11, x10, #TnSZ         /* Shift the invalid bits out */
     lsl x11, x11, #TnSZ
     msr ttbr0_el1, x11
@@ -37,52 +35,52 @@ el1_init_mmu:
     msr tcr_el1, x11            /* PS = 32bit, TG0 = 4k, TnSZ */
 
     /* Use the top of the stack to track our PA pool pointer */
-    ldr x10, =PT_BASE+0x1000
+    ldr x10, =EL1_PGTBL_BASE+0x1000
     str x10, [sp]
 
 el1_map_init:
     /* Direct map the init code */
-    ldr x0, =_EL1_S_INIT_BASE
-    ldr x1, =_EL1_S_INIT_BASE
-    ldr x2, =_EL1_S_INIT_SIZE
+    ldr x0, =_EL1_INIT_BASE
+    ldr x1, =_EL1_INIT_BASE
+    ldr x2, =_EL1_INIT_SIZE
     bl map_va_to_pa_range
 
 el1_map_flash:
     /* Direct map the EL1 flash sections so we can copy from them once
      * the MMU has been enabled.
      */
-    ldr x0, =_EL1_S_FLASH_TEXT
-    ldr x1, =_EL1_S_FLASH_TEXT
-    ldr x2, =_EL1_S_TEXT_SIZE
+    ldr x0, =_EL1_FLASH_TEXT
+    ldr x1, =_EL1_FLASH_TEXT
+    ldr x2, =_EL1_TEXT_SIZE
     bl map_va_to_pa_range
 
-    ldr x0, =_EL1_S_FLASH_DATA
-    ldr x1, =_EL1_S_FLASH_DATA
-    ldr x2, =_EL1_S_DATA_SIZE
+    ldr x0, =_EL1_FLASH_DATA
+    ldr x1, =_EL1_FLASH_DATA
+    ldr x2, =_EL1_DATA_SIZE
     bl map_va_to_pa_range
 
 el1_map_text:
     /* Map the EL1 text address range */
-    ldr x0, =_EL1_S_TEXT_BASE
-    ldr x1, =_EL1_S_TEXT_SIZE
+    ldr x0, =_EL1_TEXT_BASE
+    ldr x1, =_EL1_TEXT_SIZE
     bl map_va_range
 
 el1_map_data:
     /* Map the EL1 data address range */
-    ldr x0, =_EL1_S_DATA_BASE
-    ldr x1, =_EL1_S_DATA_SIZE
+    ldr x0, =_EL1_DATA_BASE
+    ldr x1, =_EL1_DATA_SIZE
     bl map_va_range
 
 el1_map_stack:
     /* Map the first page of the stack so we can get off the ground */
-    ldr x0, =EL1_S_STACK_BASE-0x1000
+    ldr x0, =EL1_STACK_BASE-0x1000
     bl map_va
 
 el1_map_pt:
     /* Direct map the page table pool */
-    ldr x0, =EL1_S_PGTBL_BASE
-    ldr x1, =EL1_S_PGTBL_BASE
-    ldr x2, =EL1_S_PGTBL_SIZE
+    ldr x0, =EL1_PGTBL_BASE
+    ldr x1, =EL1_PGTBL_BASE
+    ldr x2, =EL1_PGTBL_SIZE
     bl map_va_to_pa_range
 
 el1_map_uart:
@@ -116,22 +114,22 @@ el1_enable_mmu:
  * the text and data sections in.
  */
 el1_copy_text:
-    ldr x0, =_EL1_S_TEXT_BASE
-    ldr x1, =_EL1_S_FLASH_TEXT
-    ldr x2, =_EL1_S_TEXT_SIZE
+    ldr x0, =_EL1_TEXT_BASE
+    ldr x1, =_EL1_FLASH_TEXT
+    ldr x2, =_EL1_TEXT_SIZE
     bl memcpy
 
 el1_copy_data:
-    ldr x0, =_EL1_S_DATA_BASE
-    ldr x1, =_EL1_S_FLASH_DATA
-    ldr x2, =_EL1_S_DATA_SIZE
+    ldr x0, =_EL1_DATA_BASE
+    ldr x1, =_EL1_FLASH_DATA
+    ldr x2, =_EL1_DATA_SIZE
     bl memcpy
 
 /* Now that the MMU is enabled and the inital stack page is mapped we can
  * safely set the stack pointer.
  */
 el1_init_stack:
-    ldr x10, =EL1_S_STACK_BASE
+    ldr x10, =EL1_STACK_BASE
     mov sp, x10
 
 /* Migrate the next PA to the non-init code */
@@ -139,12 +137,12 @@ el1_init_stack:
     str x17, [x10]
 
 el1_init_monitor:
-//    ldr x2, =el1_start
     b el1_start
 
 /* We should never get here */
 el1_init_end:
     b el1_init_end
 
+#define PT_BASE EL1_PGTBL_BASE      /* Set the PT base before including */
 #include "init_util.S"
 .end

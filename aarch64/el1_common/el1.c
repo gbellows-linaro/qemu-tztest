@@ -1,7 +1,6 @@
 #include "platform.h"
 #include "common_svc.h"
 #include "common_defs.h"
-#include "common_mmu.h"
 #include "el1_loader.h"
 #include "string.h"
 
@@ -129,8 +128,16 @@ void el1_handle_exception(uint64_t ec, uint64_t iss, uint64_t addr)
     }
 }
 
+#define __smc(_op)      \
+    asm volatile (      \
+        "smc #0 \n"  \
+    )
+
 void el1_start()
 {
     printf("Entered el1_start\n");
+
+    __smc(SMC_YIELD);
+
     return;
 }
