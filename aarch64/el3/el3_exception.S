@@ -1,3 +1,5 @@
+#include "common_defs.h"
+
 .section .vectors
 .align 12                   // Align to vector table size (0x800)
 .globl el3_vectors

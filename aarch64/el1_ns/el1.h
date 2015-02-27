@@ -15,4 +15,5 @@
 #define EL1_PGTBL_BASE EL1_NS_PGTBL_BASE
 #define EL1_PGTBL_SIZE EL1_NS_PGTBL_SIZE
 
+#define SECURE_STATE "non-secure"
 #endif

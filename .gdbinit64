@@ -16,6 +16,6 @@ end
 
 define load_el1ns
 file aarch64/el1_ns/el1_nsec.elf
-add-symbol-file aarch64/el1_ns/el1_nsec.elf &_EL1_S_TEXT_BASE
+add-symbol-file aarch64/el1_ns/el1_nsec.elf &_EL1_NS_TEXT_BASE
 end
 

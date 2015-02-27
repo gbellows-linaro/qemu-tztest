@@ -9,7 +9,7 @@ monitor_init:
     adr x3, nsec_state
     stp x1, x4, [x3], #16        /* NS.ELR_EL3 = nsec_base */
     mov x0, #0
-    mov x1, #31
+    mov x1, #26+27
 zero_loop:
     sub x1, x1, #1
     str x0, [x2], #8
@@ -19,19 +19,38 @@ zero_loop:
     bl monitor_restore_state
     eret
 
+.macro SAVE_SYS_PAIR reg1, reg2
+    mrs x1, \reg1
+    mrs x2, \reg2
+    stp x1, x2, [x0], #16
+.endm
+
+.macro RESTORE_SYS_PAIR reg1, reg2
+    ldp x1, x2, [x0], #16
+    msr \reg1, x1
+    msr \reg2, x2
+.endm
+
+
 .globl monitor_save_state
 monitor_save_state:
     stp x0, x1, [sp, #-16]!     /* Save the input regs x0:x3 */
     stp x2, x3, [sp, #-16]!
-    mrs x1, elr_el3
-    mrs x2, spsr_el3
-    stp x1, x2, [x0], #16
-    mrs x1, sp_el0
-    mrs x2, sp_el1
-    stp x1, x2, [x0], #16
-    mrs x1, elr_el1
-    mrs x2, esr_el1
-    stp x1, x2, [x0], #16
+    SAVE_SYS_PAIR elr_el3, spsr_el3
+    SAVE_SYS_PAIR elr_el1, spsr_el1
+    SAVE_SYS_PAIR esr_el1, sp_el1
+//    SAVE_SYS_PAIR spsr_abt, spsr_und
+//    SAVE_SYS_PAIR spsr_irq, spsr_fiq
+    SAVE_SYS_PAIR sctlr_el1, actlr_el1
+    SAVE_SYS_PAIR cpacr_el1, csselr_el1
+    SAVE_SYS_PAIR ttbr0_el1, ttbr1_el1
+    SAVE_SYS_PAIR tcr_el1, vbar_el1
+    SAVE_SYS_PAIR mair_el1, amair_el1
+    SAVE_SYS_PAIR tpidr_el0, tpidr_el1
+    SAVE_SYS_PAIR tpidrro_el0, contextidr_el1
+//    SAVE_SYS_PAIR par_el1, far_el1
+//    SAVE_SYS_PAIR afsr0_el1, afsr1_el1
+
     stp x4, x5, [x0], #16
     stp x6, x7, [x0], #16
     stp x8, x9, [x0], #16
@@ -54,15 +73,21 @@ monitor_save_state:
 monitor_restore_state:
     str x30, [sp, #-8]!         /* Save the LR onto the stack for later */
     stp x0, x1, [sp, #-16]!
-    ldp x1, x2, [x0], #16
-    msr elr_el3, x1
-    msr spsr_el3, x2
-    ldp x1, x2, [x0], #16
-    msr sp_el0, x1
-    msr sp_el1, x2
-    ldp x1, x2, [x0], #16
-    msr elr_el1, x1
-    msr esr_el1, x2
+    RESTORE_SYS_PAIR elr_el3, spsr_el3
+    RESTORE_SYS_PAIR elr_el1, spsr_el1
+    RESTORE_SYS_PAIR esr_el1, sp_el1
+//    RESTORE_SYS_PAIR spsr_abt, spsr_und
+//    RESTORE_SYS_PAIR spsr_irq, spsr_fiq
+    RESTORE_SYS_PAIR sctlr_el1, actlr_el1
+    RESTORE_SYS_PAIR cpacr_el1, csselr_el1
+    RESTORE_SYS_PAIR ttbr0_el1, ttbr1_el1
+    RESTORE_SYS_PAIR tcr_el1, vbar_el1
+    RESTORE_SYS_PAIR mair_el1, amair_el1
+    RESTORE_SYS_PAIR tpidr_el0, tpidr_el1
+    RESTORE_SYS_PAIR tpidrro_el0, contextidr_el1
+//    RESTORE_SYS_PAIR par_el1, far_el1
+//    RESTORE_SYS_PAIR afsr0_el1, afsr1_el1
+
     ldp x4, x5, [x0], #16
     ldp x6, x7, [x0], #16
     ldp x8, x9, [x0], #16
@@ -83,6 +108,7 @@ monitor_restore_state:
 
 .globl monitor_switch
 monitor_switch:
+    str x30, [sp, #-8]!
     stp x0, x1, [sp, #-16]!     /* Save the input regs x0:x3 */
     mrs x1, scr_el3
     and x1, x1, #0x1
@@ -102,6 +128,7 @@ switch_state:
     eor x1, x1, #0x1
     msr scr_el3, x1
     ldp x0, x1, [sp], #16
-    eret
+    ldr x30, [sp], #8
+    ret
 
 .end

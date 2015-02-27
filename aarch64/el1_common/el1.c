@@ -3,6 +3,7 @@
 #include "common_defs.h"
 #include "el1_loader.h"
 #include "string.h"
+#include "el1.h"
 
 typedef union {
     struct {
@@ -22,6 +23,19 @@ typedef union {
     };
     uint32_t raw;
 } armv8_data_abort_iss_t;
+
+typedef union {
+    struct {
+        uint32_t ifsc : 6;
+        uint32_t res0_0 : 1;
+        uint32_t s1ptw : 1;
+        uint32_t res0_1 : 1;
+        uint32_t ea : 1;
+        uint32_t fnv  : 1;
+        uint32_t res0_2 : 3;
+    };
+    uint32_t raw;
+} armv8_inst_abort_iss_t;
 
 typedef union {
     struct {
@@ -65,7 +79,7 @@ uint64_t el1_allocate_pa() {
 
 void el1_map_va(uintptr_t addr)
 {
-    uint64_t pa = EL3_PGTBL_BASE;
+    uint64_t pa = EL1_S_PGTBL_BASE;
     uint32_t i;
     armv8_4k_tbl_pte_t *pte;
     armv8_4k_pg_pte_t *l3pte;
@@ -92,6 +106,7 @@ void el1_map_va(uintptr_t addr)
 void el1_handle_exception(uint64_t ec, uint64_t iss, uint64_t addr)
 {
     armv8_data_abort_iss_t dai = {.raw = iss};
+//    armv8_inst_abort_iss_t iai = {.raw = iss};
     switch (ec) {
     case 0x17:      /* SMC from aarch64 */
         switch (iss) {
@@ -112,6 +127,15 @@ void el1_handle_exception(uint64_t ec, uint64_t iss, uint64_t addr)
             printf("Unrecognized AArch64 SMC opcode: iss = %d\n", iss);
         }
         break;
+    case 0x20:
+        printf("Instruction abort at lower level: address = %0lx\n",
+               addr);
+        break;
+    case 0x21:
+        printf("Instruction abort at current level (EL3): address = %0lx\n",
+               addr);
+        el1_map_va(addr);
+        break;
     case 0x24:
         printf("Data abort (%s) at lower level: address = %0lx\n",
                dai.wnr ? "write" : "read", addr);
@@ -130,14 +154,19 @@ void el1_handle_exception(uint64_t ec, uint64_t iss, uint64_t addr)
 
 #define __smc(_op)      \
     asm volatile (      \
-        "smc #0 \n"  \
+        "smc #2 \n"  \
     )
 
 void el1_start()
 {
-    printf("Entered el1_start\n");
+    int i = 0;
 
-    __smc(SMC_YIELD);
+    while (1) {
+        printf("%d: Entered %s el1_start\n", i, SECURE_STATE);
+
+        __smc(SMC_YIELD);
+        i++;
+    }
 
     return;
 }
