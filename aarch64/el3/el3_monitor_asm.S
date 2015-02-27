@@ -1,4 +1,4 @@
-#include "common_defs.h"
+#include "platform.h"
 
 .section .text
 .globl monitor_init

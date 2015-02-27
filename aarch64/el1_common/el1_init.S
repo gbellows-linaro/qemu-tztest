@@ -1,5 +1,4 @@
 #include "el1.h"
-#include "common_defs.h"
 
 .section .init
 .align 12
