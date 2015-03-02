@@ -1,6 +1,7 @@
 #ifndef _ARMV8_VMSA_H
 #define _ARMV8_VMSA_H
 
+/*
 typedef union {
     struct {
         uint64_t type : 2;
@@ -33,5 +34,29 @@ typedef union {
     };
     uint64_t raw;
 } armv8_4k_tbl_pte_t;
+*/
 
+#define ARMV8_PAGE_ATTRINDX_SHIFT 2
+#define ARMV8_PAGE_NS_SHIFT 5
+#define ARMV8_PAGE_AP_SHIFT 6
+#define ARMV8_PAGE_SH_SHIFT 8
+#define ARMV8_PAGE_AF_SHIFT 10
+#define ARMV8_PAGE_NG_SHIFT 11
+#define ARMV8_PAGE_CONIG_SHIFT 52
+#define ARMV8_PAGE_PXN_SHIFT 53
+#define ARMV8_PAGE_XN_SHIFT 54
+
+#define ARMV8_PAGE_EL1_RW (0<<ARMV8_PAGE_AP_SHIFT)
+#define ARMV8_PAGE_EL0_RW (1<<ARMV8_PAGE_AP_SHIFT)
+#define ARMV8_PAGE_EL1_R  (2<<ARMV8_PAGE_AP_SHIFT)
+#define ARMV8_PAGE_EL0_R  (3<<ARMV8_PAGE_AP_SHIFT)
+#define ARMv8_PAGE_ACCESS (1<<ARMV8_PAGE_AF_SHIFT)
+
+#define PTE_ACCESS      ARMv8_PAGE_ACCESS
+#define PTE_PRIV_RW     ARMV8_PAGE_EL1_RW
+#define PTE_PRIV_RO     ARMV8_PAGE_EL1_R
+#define PTE_USER_RW     ARMV8_PAGE_EL0_RW
+#define PTE_USER_RO     ARMV8_PAGE_EL0_R
+#define PTE_PAGE 0x3
+#define PTE_TABLE 0x3
 #endif

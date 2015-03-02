@@ -1,4 +1,5 @@
 #include "el1.h"
+#include "armv8_vmsa.h"
 
 .section .init
 .align 12
@@ -41,52 +42,55 @@ el1_init_mmu:
 el1_map_init:
     /* Direct map the init code */
     ldr x0, =_EL1_INIT_BASE
-    ldr x1, =_EL1_INIT_BASE
+    mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_PRIV_RO)
     ldr x2, =_EL1_INIT_SIZE
-    bl map_va_to_pa_range
+    bl map_pa_range
 
 el1_map_flash:
     /* Direct map the EL1 flash sections so we can copy from them once
      * the MMU has been enabled.
      */
     ldr x0, =_EL1_FLASH_TEXT
-    ldr x1, =_EL1_FLASH_TEXT
+    mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_PRIV_RO)
     ldr x2, =_EL1_TEXT_SIZE
-    bl map_va_to_pa_range
+    bl map_pa_range
 
     ldr x0, =_EL1_FLASH_DATA
-    ldr x1, =_EL1_FLASH_DATA
+    mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_PRIV_RO)
     ldr x2, =_EL1_DATA_SIZE
-    bl map_va_to_pa_range
+    bl map_pa_range
 
 el1_map_text:
     /* Map the EL1 text address range */
     ldr x0, =_EL1_TEXT_BASE
-    ldr x1, =_EL1_TEXT_SIZE
+    mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_PRIV_RW)
+    ldr x2, =_EL1_TEXT_SIZE
     bl map_va_range
 
 el1_map_data:
     /* Map the EL1 data address range */
     ldr x0, =_EL1_DATA_BASE
-    ldr x1, =_EL1_DATA_SIZE
+    mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_PRIV_RW)
+    ldr x2, =_EL1_DATA_SIZE
     bl map_va_range
 
 el1_map_stack:
     /* Map the first page of the stack so we can get off the ground */
     ldr x0, =EL1_STACK_BASE-0x1000
+    mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_PRIV_RW)
     bl map_va
 
 el1_map_pt:
     /* Direct map the page table pool */
     ldr x0, =EL1_PGTBL_BASE
-    ldr x1, =EL1_PGTBL_BASE
+    mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_PRIV_RW)
     ldr x2, =EL1_PGTBL_SIZE
-    bl map_va_to_pa_range
+    bl map_pa_range
 
 el1_map_uart:
     ldr x0, =UART0_BASE
-    ldr x1, =UART0_BASE
-    bl map_va_to_pa
+    mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_PRIV_RW)
+    bl map_pa
 
 save_last_pa:
     ldr x17, =RAM_BASE+0x2000

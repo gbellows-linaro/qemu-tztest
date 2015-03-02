@@ -20,26 +20,24 @@ void el1_map_va(uintptr_t addr)
 {
     uint64_t pa = EL1_S_PGTBL_BASE;
     uint32_t i;
-    armv8_4k_tbl_pte_t *pte;
-    armv8_4k_pg_pte_t *l3pte;
+    uint64_t *pte;
 
     for (i = 0; i < 4; i++) {
         /* Each successive level uses the next lower 9 VA bits in a 48-bit
          * address, hence the i*9.
          */
         uint64_t off = ((addr >> (39-(i*9))) & 0x1FF) << 3;
-        pte = (armv8_4k_tbl_pte_t *)(pa | off);
-        if (!pte->type) {
+        pte = (uint64_t *)(pa | off);
+        if (!(*pte & 0x1)) {
             pa = el1_allocate_pa();
-            pte->pa = pa >> 12;
-            pte->type = 3;
+            *pte = pa;
+            *pte = PTE_PAGE;
         } else {
-            pa = pte->pa << 12;
+            pa = *pte & 0x000FFFFFF000;
         }
     }
 
-    l3pte = (armv8_4k_pg_pte_t *)pte;
-    l3pte->af = 1;
+    *pte |= PTE_ACCESS;
 }
 
 void el1_handle_exception(uint64_t ec, uint64_t iss, uint64_t addr)

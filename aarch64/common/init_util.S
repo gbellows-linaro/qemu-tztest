@@ -1,3 +1,4 @@
+#include "armv8_vmsa.h"
 
 .section .init
 /* allocate_pa() - Allocates and returns next pool PA */
@@ -11,7 +12,7 @@ allocate_pa:
     ret
 
 .globl map_va_to_pa
-/* map_va_to_pa(VA, PA) */
+/* map_va_to_pa(VA, pgprop, PA) */
 map_va_to_pa:
     stp x30, x10, [sp, #-16]!
     stp x11, x12, [sp, #-16]!
@@ -30,17 +31,18 @@ map_loop:
     cbz x13, map_done               /* If we reached level 0 then finalize */
     ldr x12, [x10]                  /* Otherwise, fetch the descriptor */
     and x11, x12, #0x1              /* Filter valid bit */
-    cbnz x11, map_loop              /* If the descriptor is valid then next */
+    cbz x11, map_alloc_page         /* If the descriptor is valid then next */
+    b map_loop                      /* Next level */
+map_alloc_page:
     mov x11, x0                     /* Save VA across call */
     bl allocate_pa                  /* Allocate a PT phys page */
     mov x12, x0                     /* Got a PA */
     mov x0, x11                     /* Restore VA */
-    orr x12, x12, #0x3              /* This is a table entry */
+    orr x12, x12, #PTE_TABLE        /* This is a table entry */
     str x12, [x10]                  /* Fill in PT entry */
     b map_loop                      /* Next level */
 map_done:
-    mov x12, #0x403                 /* Last level entry is a page */
-    orr x12, x12, x1                /* Create PTE for target PA */
+    orr x12, x1, x2                 /* Create PTE: PA + pgprop */
     str x12, [x10]                  /* Fill in PT entry */
     ldp x13, x14, [sp], #16
     ldp x11, x12, [sp], #16
@@ -48,52 +50,78 @@ map_done:
     ret
 
 .globl map_va
-/* map_va(VA) */
+/* map_va(VA, pgprop) */
 map_va:
     str x30, [sp, #-8]!
-    stp x1, x10, [sp, #-16]!
+    stp x2, x10, [sp, #-16]!
     mov x10, x0
     bl allocate_pa
-    mov x1, x0
+    mov x2, x0
     mov x0, x10
     bl map_va_to_pa
-    ldp x1, x10, [sp], #16
+    ldp x2, x10, [sp], #16
     ldr x30, [sp], #8
     ret
 
-.globl map_va_to_pa_range
-/* map_va_to_pa_range(VA, PA, len) */
-map_va_to_pa_range:
+.globl map_pa
+/* map_pa(PA, pgprop) */
+map_pa:
     stp x30, x2, [sp, #-16]!
-    stp x0, x1, [sp, #-16]!
-    add x2, x2, #0xFFF
-    and x2, x2, #~0xFFF
-map_va_to_pa_loop:
-    cbz x2, map_va_to_pa_done
+    mov x2, x0
     bl map_va_to_pa
-    add x0, x0, #0x1000
-    add x1, x1, #0x1000
-    sub x2, x2, #0x1000
-    b map_va_to_pa_loop
-map_va_to_pa_done:
-    ldp x0, x1, [sp], #16
     ldp x30, x2, [sp], #16
     ret
 
-/* map_va_range(VA, len) */
+.globl map_va_to_pa_range
+/* map_va_to_pa_range(VA, pgprop, PA, len) */
+map_va_to_pa_range:
+    stp x30, x3, [sp, #-16]!
+    stp x0, x2, [sp, #-16]!
+    add x3, x3, #0xFFF
+    and x3, x3, #~0xFFF
+map_va_to_pa_loop:
+    cbz x3, map_va_to_pa_done
+    bl map_va_to_pa
+    add x0, x0, #0x1000
+    add x2, x2, #0x1000
+    sub x3, x3, #0x1000
+    b map_va_to_pa_loop
+map_va_to_pa_done:
+    ldp x0, x2, [sp], #16
+    ldp x30, x3, [sp], #16
+    ret
+
+/* map_pa_range(PA, pgprop, len) */
+map_pa_range:
+    str x30, [sp, #-8]!
+    stp x0, x2, [sp, #-16]!
+    add x2, x2, #0xFFF
+    and x2, x2, #~0xFFF
+map_pa_loop:
+    cbz x2, map_pa_done
+    bl map_pa
+    add x0, x0, #0x1000
+    sub x2, x2, #0x1000
+    b map_pa_loop
+map_pa_done:
+    ldp x0, x2, [sp], #16
+    ldr x30, [sp], #8
+    ret
+
+/* map_va_range(VA, pgprop, len) */
 map_va_range:
     str x30, [sp, #-8]!
-    stp x0, x1, [sp, #-16]!
-    add x1, x1, #0xFFF
-    and x1, x1, #~0xFFF
+    stp x0, x2, [sp, #-16]!
+    add x2, x2, #0xFFF
+    and x2, x2, #~0xFFF
 map_va_loop:
-    cbz x1, map_va_done
+    cbz x2, map_va_done
     bl map_va
     add x0, x0, #0x1000
-    sub x1, x1, #0x1000
+    sub x2, x2, #0x1000
     b map_va_loop
 map_va_done:
-    ldp x0, x1, [sp], #16
+    ldp x0, x2, [sp], #16
     ldr x30, [sp], #8
     ret
 
