@@ -122,6 +122,17 @@ el3_enable_mmu:
     isb
     dsb sy
 
+/* Now that the MMU is enabled and the inital stack page is mapped we can
+ * safely set the stack pointer.
+ */
+el3_init_stack:
+    ldr x10, =EL3_STACK_BASE
+    mov sp, x10
+
+/* Migrate the next PA to the non-init code */
+    ldr x10, =el3_next_pa
+    str x17, [x10]
+
 /* The EL3 address space is set-up and the MMU is started so it is safe to copy
  * the text and data sections in.
  */
@@ -136,16 +147,6 @@ el3_copy_data:
     ldr x1, =_EL3_FLASH_DATA
     ldr x2, =_EL3_DATA_SIZE
     bl memcpy
-
-/* Now that the MMU is enabled and the inital stack page is mapped we can
- * safely set the stack pointer.
- */
-el3_init_stack:
-    mov sp, EL3_STACK_BASE
-
-/* Migrate the next PA to the non-init code */
-    ldr x10, =el3_next_pa
-    str x17, [x10]
 
 el3_init_monitor:
     mov x0, x15

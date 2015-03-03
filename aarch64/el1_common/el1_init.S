@@ -92,6 +92,7 @@ el1_map_uart:
     mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_PRIV_RW)
     bl map_pa
 
+/* Save the next PA pointer until after we have enabled the MMU */
 save_last_pa:
     ldr x17, =RAM_BASE+0x2000
     ldr x17, [x17]
@@ -114,21 +115,6 @@ el1_enable_mmu:
     isb
     dsb sy
 
-/* The EL1 address space is set-up and the MMU is started so it is safe to copy
- * the text and data sections in.
- */
-el1_copy_text:
-    ldr x0, =_EL1_TEXT_BASE
-    ldr x1, =_EL1_FLASH_TEXT
-    ldr x2, =_EL1_TEXT_SIZE
-    bl memcpy
-
-el1_copy_data:
-    ldr x0, =_EL1_DATA_BASE
-    ldr x1, =_EL1_FLASH_DATA
-    ldr x2, =_EL1_DATA_SIZE
-    bl memcpy
-
 /* Now that the MMU is enabled and the inital stack page is mapped we can
  * safely set the stack pointer.
  */
@@ -140,7 +126,36 @@ el1_init_stack:
     ldr x10, =el1_next_pa
     str x17, [x10]
 
-el1_init_monitor:
+/* The EL1 address space is set-up and the MMU is started so it is safe to copy
+ * the text and data sections in and unmap the respective flash.
+ */
+el1_copy_text:
+    ldr x0, =_EL1_TEXT_BASE
+    ldr x1, =_EL1_FLASH_TEXT
+    ldr x2, =_EL1_TEXT_SIZE
+    bl memcpy
+
+    ldr x0, =_EL1_FLASH_TEXT
+    ldr x1, =_EL1_TEXT_SIZE
+    bl unmap_va_range
+
+el1_copy_data:
+    ldr x0, =_EL1_DATA_BASE
+    ldr x1, =_EL1_FLASH_DATA
+    ldr x2, =_EL1_DATA_SIZE
+    bl memcpy
+
+    ldr x0, =_EL1_FLASH_DATA
+    ldr x1, =_EL1_DATA_SIZE
+    bl unmap_va_range
+
+el1_init_start:
+    /* Pass the address and size of the init section to start so it
+     * can unmap it.  We must wait until we are in start because we are still
+     * running out of the init segment.
+     */
+    ldr x0, =_EL1_INIT_BASE
+    ldr x1, =_EL1_INIT_SIZE
     b el1_start
 
 /* We should never get here */

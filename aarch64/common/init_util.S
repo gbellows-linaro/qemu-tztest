@@ -49,6 +49,37 @@ map_done:
     ldp x30, x10, [sp], #16
     ret
 
+.globl unmap_va
+/* unmap_va(VA) */
+unmap_va:
+    stp x30, x10, [sp, #-16]!
+    stp x11, x12, [sp, #-16]!
+    stp x13, x14, [sp, #-16]!
+    ldr x12, =PT_BASE
+    mov x13, #0x4
+    mov x14, #39
+unmap_loop:
+    and x11, x12, #~0xFFF           /* Strip off descriptor non-address bits */
+    lsr x10, x0, x14                /* Shift out VA bits for the level */
+    sub x14, x14, #9                /* Update shift amount for next level */
+    and x10, x10, #0x1FF            /* Filter top VA bits for PT offset */
+    lsl x10, x10, #3                /* Shift PT offset to bytes */
+    orr x10, x10, x11               /* Compute descriptor address */
+    sub x13, x13, #1                /* Decrease level */
+    cbz x13, unmap_page             /* If we reached level 0 then finalize */
+    ldr x12, [x10]                  /* Otherwise, fetch the descriptor */
+    and x11, x12, #0x1              /* Filter valid bit */
+    cbz x11, unmap_done             /* Assume an invalid PT page means done */
+    b unmap_loop                    /* Next level */
+unmap_page:
+    mov x12, #0                     /* Clear the page PTE */
+    str x12, [x10]                  /* Fill in PT entry */
+unmap_done:
+    ldp x13, x14, [sp], #16
+    ldp x11, x12, [sp], #16
+    ldp x30, x10, [sp], #16
+    ret
+
 .globl map_va
 /* map_va(VA, pgprop) */
 map_va:
@@ -122,6 +153,23 @@ map_va_loop:
     b map_va_loop
 map_va_done:
     ldp x0, x2, [sp], #16
+    ldr x30, [sp], #8
+    ret
+
+/* unmap_va_range(VA, len) */
+unmap_va_range:
+    str x30, [sp, #-8]!
+    stp x0, x1, [sp, #-16]!
+    add x1, x1, #0xFFF
+    and x1, x1, #~0xFFF
+unmap_va_loop:
+    cbz x1, unmap_va_done
+    bl unmap_va
+    add x0, x0, #0x1000
+    sub x1, x1, #0x1000
+    b unmap_va_loop
+unmap_va_done:
+    ldp x0, x1, [sp], #16
     ldr x30, [sp], #8
     ret
 

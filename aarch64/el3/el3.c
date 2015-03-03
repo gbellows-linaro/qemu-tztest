@@ -54,6 +54,32 @@ void el3_map_va(uintptr_t addr)
     *pte |= PTE_ACCESS;
 }
 
+int el3_unmap_va(uint64_t addr)
+{
+    uint64_t pa = EL3_PGTBL_BASE;
+    uint32_t i;
+    uint64_t *pte;
+
+    for (i = 0; i < 4; i++) {
+        /* Each successive level uses the next lower 9 VA bits in a 48-bit
+         * address, hence the i*9.
+         */
+        uint64_t off = ((addr >> (39-(i*9))) & 0x1FF) << 3;
+        pte = (uint64_t *)(pa | off);
+        if (!(*pte & 0x1)) {
+            /* This is not a valid page, return an error */
+            return -1;
+        } else {
+            pa = *pte & 0x000FFFFFF000;
+        }
+    }
+
+    /* Clear the page descriptor */
+    *pte = 0;
+
+    return 0;
+}
+
 void el3_handle_exception(uint64_t ec, uint64_t iss, uint64_t addr)
 {
     armv8_data_abort_iss_t dai = {.raw = iss};
@@ -90,5 +116,3 @@ void el3_handle_exception(uint64_t ec, uint64_t iss, uint64_t addr)
         break;
     }
 }
-
-

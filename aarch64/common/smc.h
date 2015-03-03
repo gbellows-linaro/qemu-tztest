@@ -9,6 +9,7 @@
 #define SMC_ALLOCATE_SECURE_MEMORY 4
 #define SMC_EXIT 5
 
+#ifndef __ASSEMBLY__
 typedef struct {
     uint32_t (*func)(uint32_t);
     uint32_t arg;
@@ -20,5 +21,6 @@ typedef struct {
         tztest_dispatch_t dispatch;
     };
 } tztest_smc_desc_t;
+#endif
 
 #endif
