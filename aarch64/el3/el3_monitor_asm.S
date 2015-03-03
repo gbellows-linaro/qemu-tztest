@@ -3,26 +3,6 @@
 #include "smc.h"
 
 .section .text
-.globl monitor_init
-monitor_init:
-    ldr x0, =EL1_S_FLASH_BASE
-    ldr x1, =EL1_NS_FLASH_BASE
-    mov x4, #5
-    adr x2, sec_state
-    stp x0, x4, [x2], #16        /* S.ELR_EL3 = sec_base */
-    adr x3, nsec_state
-    stp x1, x4, [x3], #16        /* NS.ELR_EL3 = nsec_base */
-    mov x0, #0
-    mov x1, #26+27
-zero_loop:
-    sub x1, x1, #1
-    str x0, [x2], #8
-    str x0, [x3], #8
-    cbnz x1, zero_loop
-    adr x0, sec_state
-    bl monitor_restore_state
-    eret
-
 .macro SAVE_SYS_PAIR reg1, reg2
     mrs x1, \reg1
     mrs x2, \reg2
@@ -34,7 +14,6 @@ zero_loop:
     msr \reg1, x1
     msr \reg2, x2
 .endm
-
 
 .globl monitor_save_state
 monitor_save_state:

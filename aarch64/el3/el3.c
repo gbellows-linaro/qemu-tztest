@@ -10,6 +10,7 @@
 #include "armv8_exception.h"
 #include "armv8_vmsa.h"
 #include "el3_monitor.h"
+#include "arm_builtins.h"
 
 state_buf sec_state;
 state_buf nsec_state;
@@ -53,6 +54,8 @@ void el3_map_va(uintptr_t addr)
 
     *pte |= PTE_ACCESS;
 }
+
+extern void monitor_init(void);
 
 int el3_unmap_va(uint64_t addr)
 {
@@ -115,4 +118,44 @@ void el3_handle_exception(uint64_t ec, uint64_t iss, uint64_t addr)
         printf("Unhandled EL3 exception: EC = %d  ISS = %d\n", ec, iss);
         break;
     }
+}
+
+void el3_start(uint64_t base, uint64_t size)
+{
+    uint64_t addr = base;
+    size_t len;
+
+    /* Unmap the init segement so we don't accidentally use it */
+    for (len = 0; len < ((size + 0xFFF) & ~0xFFF);
+         len += 0x1000, addr += 0x1000) {
+        if (el3_unmap_va(addr)) {
+            printf("Failed to unmap va 0x%x\n", addr);
+        } else {
+            printf("Unmapped va 0x%x\n", addr);
+        }
+    }
+
+    /* Clear out our secure and non-secure state buffers */
+    memset(&sec_state, 0, sizeof(sec_state));
+    memset(&nsec_state, 0, sizeof(nsec_state));
+
+    /* Set-up the secure state buffer to return to the secure initialization
+     * sequence. This will occur when we return from exception after monitor
+     * initialization.
+     */
+    sec_state.elr_el3 = EL1_S_FLASH_BASE;
+    sec_state.spsr_el3 = 0x5;
+
+    /* Set-up the nonsecure state buffer to return to the non-secure
+     * initialization sequence. This will occur on the first monitor context
+     * switch (smc) from secure to non-secure.
+     */
+    nsec_state.elr_el3 = EL1_NS_FLASH_BASE;
+    nsec_state.spsr_el3 = 0x5;
+
+    /* Set-up our state to return to secure EL1 to start its init on exception
+     * return.
+     */
+    monitor_restore_state(&sec_state);
+    __exception_return();
 }

@@ -34,5 +34,7 @@ typedef struct state_buf {
 } state_buf;
 
 extern void monitor_switch(void);
+extern void monitor_restore_state(state_buf *);
+extern void monitor_save_state(state_buf *);
 
 #endif

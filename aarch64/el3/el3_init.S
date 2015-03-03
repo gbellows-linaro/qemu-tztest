@@ -5,8 +5,6 @@
 
 .section .init
 .align 12
-.global el3_init
-/* el3_init(sec_elr, nsec_elr) */
 el3_init:
 init_uart:
 	/* UART initialisation (38400 8N1) */
@@ -154,7 +152,9 @@ el3_copy_data:
     bl memcpy
 
 el3_init_monitor:
-    ldr x2, =monitor_init
+    ldr x0, =_EL3_INIT_BASE
+    ldr x1, =_EL3_INIT_SIZE
+    ldr x2, =el3_start
     br x2
 
 /* We should never get here */
