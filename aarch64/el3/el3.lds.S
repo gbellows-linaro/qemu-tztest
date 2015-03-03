@@ -9,7 +9,7 @@ SECTIONS
     . = EL3_FLASH_BASE;
     .init . : {
         _EL3_INIT_BASE = .;
-        tzboot.o(.init);
+        el3_init.o(.init);
         *(.init);
     }
     _EL3_INIT_SIZE = SIZEOF(.init);

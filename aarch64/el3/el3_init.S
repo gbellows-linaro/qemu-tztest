@@ -8,9 +8,14 @@
 .global el3_init
 /* el3_init(sec_elr, nsec_elr) */
 el3_init:
-    /* Save the input args for later */
-    mov x15, x0
-    mov x16, x1
+init_uart:
+	/* UART initialisation (38400 8N1) */
+	ldr	x0,	=UART0_BASE     // UART base
+	mov	x1, #0x10			// ibrd
+	str	x1, [x0, #0x24]
+	mov	x1, #0xc300
+	orr	x1, x1, #0x0001	    // cr
+	str	x1, [x0, #0x30]
 
     /* Set-up the EL3 vbar */
     ldr x10, =el3_vectors
@@ -149,8 +154,6 @@ el3_copy_data:
     bl memcpy
 
 el3_init_monitor:
-    mov x0, x15
-    mov x1, x16
     ldr x2, =monitor_init
     br x2
 

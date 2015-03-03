@@ -5,6 +5,8 @@
 .section .text
 .globl monitor_init
 monitor_init:
+    ldr x0, =EL1_S_FLASH_BASE
+    ldr x1, =EL1_NS_FLASH_BASE
     mov x4, #5
     adr x2, sec_state
     stp x0, x4, [x2], #16        /* S.ELR_EL3 = sec_base */

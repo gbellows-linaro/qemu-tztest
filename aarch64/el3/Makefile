@@ -1,5 +1,4 @@
-EL3_OBJS		= tzboot.o \
-                  el3_init.o \
+EL3_OBJS		= el3_init.o \
                   el3_exception.o \
                   el3.o \
                   el3_monitor_asm.o
