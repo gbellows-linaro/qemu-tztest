@@ -5,7 +5,8 @@ EL1_S_IMAGE 	= el1_sec.bin
 EL1_S_LOAD		= el1_sec.lds
 EL1_S_OBJS		= el1_init.o \
                   el1_exception.o \
-                  el1.o
+                  el1.o \
+                  el1_sec.o
 
 -include .*.d
 

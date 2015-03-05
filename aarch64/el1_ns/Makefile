@@ -5,7 +5,8 @@ EL1_NS_IMAGE 	= el1_nsec.bin
 EL1_NS_LOAD		= el1_nsec.lds
 EL1_NS_OBJS		= el1_init.o \
                   el1_exception.o \
-                  el1.o
+                  el1.o \
+                  el1_nsec.o
 
 -include .*.d
 

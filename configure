@@ -77,9 +77,9 @@ fi
 
 if [ -z "$cross" ]; then
     if [ "$arch" = "arm" ]; then
-        cross="arm-linux-gnueabi-"
+        cross="arm-linux-gnueabi"
     elif [ "$arch" = "aarch64" ]; then
-        cross="aarch64-linux-gnu-"
+        cross="aarch64-linux-gnu"
     fi
 fi
 
@@ -92,9 +92,10 @@ cat <<EOF > config.mak
 export ARCH=$arch
 export PLAT=$plat
 export PROCESSOR=$cpu
-export CC=$cross$cc
-export LD=$cross$ld
-export OBJCOPY=$cross$objcopy
-export AR=$cross$ar
+export CROSS=$cross
+export CC=$cross-$cc
+export LD=$cross-$ld
+export OBJCOPY=$cross-$objcopy
+export AR=$cross-$ar
 export CFLAGS+=$cflags
 EOF

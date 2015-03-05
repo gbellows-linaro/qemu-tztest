@@ -10,6 +10,7 @@ el1_sync_exception_current:
     and x1, x1, x0
     lsr x0, x0, #26
     mrs x2, far_el1
+    mrs x3, elr_el1
     bl el1_handle_exception
     eret
 .align 10                   // Force these vectors to 0x400 alignment
@@ -18,6 +19,8 @@ el1_sync_exception_lower64:
     mov x1, #0xffffff
     and x1, x1, x0
     lsr x0, x0, #26
+    mrs x2, far_el1
+    mrs x3, elr_el1
     bl el1_handle_exception
     eret
 .align 7

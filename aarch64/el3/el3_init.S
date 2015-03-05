@@ -103,6 +103,11 @@ el3_map_uart:
     mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_PRIV_RW)
     bl map_pa
 
+el3_map_sysreg:
+    ldr x0, =SYSREG_BASE;
+    mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_PRIV_RW)
+    bl map_pa
+
 save_last_pa:
     ldr x17, =RAM_BASE+0x2000
     ldr x17, [x17]

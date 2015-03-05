@@ -42,7 +42,7 @@ el1_init_mmu:
 el1_map_init:
     /* Direct map the init code */
     ldr x0, =_EL1_INIT_BASE
-    mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_PRIV_RO)
+    mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_USER_RW)
     ldr x2, =_EL1_INIT_SIZE
     bl map_pa_range
 
@@ -51,12 +51,12 @@ el1_map_flash:
      * the MMU has been enabled.
      */
     ldr x0, =_EL1_FLASH_TEXT
-    mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_PRIV_RO)
+    mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_USER_RW)
     ldr x2, =_EL1_TEXT_SIZE
     bl map_pa_range
 
     ldr x0, =_EL1_FLASH_DATA
-    mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_PRIV_RO)
+    mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_USER_RW)
     ldr x2, =_EL1_DATA_SIZE
     bl map_pa_range
 
@@ -74,10 +74,14 @@ el1_map_data:
     ldr x2, =_EL1_DATA_SIZE
     bl map_va_range
 
-el1_map_stack:
+el1_map_stacks:
     /* Map the first page of the stack so we can get off the ground */
     ldr x0, =EL1_STACK_BASE-0x1000
     mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_PRIV_RW)
+    bl map_va
+
+    ldr x0, =EL0_STACK_BASE-0x1000
+    mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_USER_RW)
     bl map_va
 
 el1_map_pt:
@@ -89,7 +93,7 @@ el1_map_pt:
 
 el1_map_uart:
     ldr x0, =UART0_BASE
-    mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_PRIV_RW)
+    mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_USER_RW)
     bl map_pa
 
 /* Save the next PA pointer until after we have enabled the MMU */
@@ -116,15 +120,16 @@ el1_enable_mmu:
     dsb sy
 
 /* Now that the MMU is enabled and the inital stack page is mapped we can
- * safely set the stack pointer.
+ * safely set the stack pointer.  The stacks are started at on quadword below
+ * the stack base so two pages don't need to be mapped.
  */
 el1_init_stack:
-    ldr x10, =EL1_STACK_BASE
+    ldr x10, =EL1_STACK_BASE-0x10
     mov sp, x10
 
-/* Migrate the next PA to the non-init code */
-    ldr x10, =el1_next_pa
-    str x17, [x10]
+el0_init_stack:
+    ldr x10, =EL0_STACK_BASE-0x10
+    msr sp_el0, x10
 
 /* The EL1 address space is set-up and the MMU is started so it is safe to copy
  * the text and data sections in and unmap the respective flash.
@@ -148,6 +153,10 @@ el1_copy_data:
     ldr x0, =_EL1_FLASH_DATA
     ldr x1, =_EL1_DATA_SIZE
     bl unmap_va_range
+
+/* Migrate the next PA to the non-init code */
+    ldr x10, =el1_next_pa
+    str x17, [x10]
 
 el1_init_start:
     /* Pass the address and size of the init section to start so it

@@ -9,6 +9,7 @@
 #define SVC_GET_SECURE_STATE 5
 #define SVC_EXIT 6
 
+/*
 typedef struct {
     union {
         tztest_dispatch_t dispatch;
@@ -23,5 +24,6 @@ typedef struct {
 } tztest_svc_desc_t;
 
 #define CLEAR_SVC_DESC(_desc) memset(&(_desc), sizeof(tztest_svc_desc_t), 0)
+*/
 
 #endif

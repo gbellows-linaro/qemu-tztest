@@ -23,6 +23,17 @@ void el3_dispatch(tztest_smc_desc_t *desc)
     DEBUG_MSG("Exiting\n");
 }
 
+
+void el3_shutdown() {
+    uintptr_t *sysreg_cfgctrl = (uintptr_t *)(SYSREG_BASE + SYSREG_CFGCTRL);
+
+    printf("Shutting down\n");
+
+    *sysreg_cfgctrl = SYS_SHUTDOWN;
+
+    while(1);   /* Shutdown does not work on all machines */
+}
+
 uint64_t el3_next_pa = 0;
 uint64_t el3_allocate_pa()
 {
@@ -100,6 +111,9 @@ void el3_handle_exception(uint64_t ec, uint64_t iss, uint64_t addr)
         case SMC_NOOP:
             DEBUG_MSG("took an SMC(SMC_NOOP) exception\n");
             break;
+        case SMC_EXIT:
+            el3_shutdown();
+            break;
         default:
             printf("Unrecognized AArch64 SMC opcode: iss = %d\n", iss);
         }
@@ -128,11 +142,7 @@ void el3_start(uint64_t base, uint64_t size)
     /* Unmap the init segement so we don't accidentally use it */
     for (len = 0; len < ((size + 0xFFF) & ~0xFFF);
          len += 0x1000, addr += 0x1000) {
-        if (el3_unmap_va(addr)) {
-            printf("Failed to unmap va 0x%x\n", addr);
-        } else {
-            printf("Unmapped va 0x%x\n", addr);
-        }
+        el3_unmap_va(addr);
     }
 
     /* Clear out our secure and non-secure state buffers */
