@@ -15,11 +15,11 @@
 state_buf sec_state;
 state_buf nsec_state;
 
-void el3_dispatch(tztest_smc_desc_t *desc)
+void el3_dispatch(dispatch_t *disp)
 {
-    uint32_t (*func)(uint32_t) = desc->dispatch.func;
+    uintptr_t (*func)(uintptr_t) = disp->func;
     DEBUG_MSG("Entered\n");
-    desc->dispatch.ret = func(desc->dispatch.arg);
+    disp->ret = func(disp->arg);
     DEBUG_MSG("Exiting\n");
 }
 
@@ -94,9 +94,14 @@ int el3_unmap_va(uint64_t addr)
     return 0;
 }
 
-void el3_handle_exception(uint64_t ec, uint64_t iss, uint64_t addr)
+void el3_handle_exception(uint64_t ec, uint64_t iss, smc_op_desc_t *op)
 {
     armv8_data_abort_iss_t dai = {.raw = iss};
+    uint64_t elr, far;
+
+    __get_exception_address(far);
+    __get_exception_return(elr);
+
     switch (ec) {
     case EC_SMC64:      /* SMC from aarch64 */
         switch (iss) {
@@ -106,7 +111,7 @@ void el3_handle_exception(uint64_t ec, uint64_t iss, uint64_t addr)
             break;
         case SMC_DISPATCH_MONITOR:
             DEBUG_MSG("took an SMC(SMC_DSPATCH_MONITOR) exception\n");
-            el3_dispatch(NULL);
+            el3_dispatch((dispatch_t *)op);
             break;
         case SMC_NOOP:
             DEBUG_MSG("took an SMC(SMC_NOOP) exception\n");
@@ -116,16 +121,22 @@ void el3_handle_exception(uint64_t ec, uint64_t iss, uint64_t addr)
             break;
         default:
             printf("Unrecognized AArch64 SMC opcode: iss = %d\n", iss);
+            break;
         }
+    case EC_IABORT_LOWER:
+        printf("Instruction abort at lower level: far = %0lx\n", far);
+        break;
+    case EC_IABORT:
+        printf("Instruction abort at EL3: far = %0lx\n", far);
         break;
     case EC_DABORT_LOWER:
-        printf("Data abort (%s) at lower level: address = %0lx\n",
-               dai.wnr ? "write" : "read", addr);
+        printf("Data abort (%s) at lower level: far = %0lx elr = %0lx\n",
+               dai.wnr ? "write" : "read", far, elr);
         break;
     case EC_DABORT:
-        printf("Data abort (%s) at current level (EL3): address = %0lx\n",
-               dai.wnr ? "write" : "read", addr);
-        el3_map_va(addr);
+        printf("Data abort (%s) at EL3: far = %0lx elr = %0lx\n",
+               dai.wnr ? "write" : "read", far, elr);
+        el3_map_va(far);
         break;
 
     default:

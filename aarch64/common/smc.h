@@ -11,16 +11,14 @@
 
 #ifndef __ASSEMBLY__
 typedef struct {
-    uint32_t (*func)(uint32_t);
-    uint32_t arg;
-    uint32_t ret;
-} tztest_dispatch_t;
+    uintptr_t (*func)(uintptr_t);
+    uintptr_t arg;
+    uintptr_t ret;
+} dispatch_t;
 
-typedef struct {
-    union {
-        tztest_dispatch_t dispatch;
-    };
-} tztest_smc_desc_t;
+typedef union {
+    dispatch_t dispatch;
+} smc_op_desc_t;
 #endif
 
 #endif

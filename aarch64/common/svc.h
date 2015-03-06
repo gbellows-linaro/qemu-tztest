@@ -8,6 +8,19 @@
 #define SVC_DISPATCH_NONSECURE_SVC 4
 #define SVC_GET_SECURE_STATE 5
 #define SVC_EXIT 6
+#define SVC_ALLOC 7
+
+#ifndef __ASSEMBLY__
+typedef struct {
+    uint32_t type;
+    size_t len;
+    void *addr;
+} alloc_mem_t;
+
+typedef union {
+    alloc_mem_t alloc;
+} svc_op_desc_t;
+#endif
 
 /*
 typedef struct {

@@ -5,20 +5,27 @@ el3_vectors:
 .word 0                     // Add padding to force the below alignment
 .align 9                    // Force these vectors to 0x400 alignment
 el3_sync_exception_current:
+    stp x30, x2, [sp, #-16]!
+    stp x0, x1, [sp, #-16]!
     mrs x0, esr_el3
     mov x1, #0xffffff
     and x1, x1, x0
     lsr x0, x0, #26
-    mrs x2, far_el3
     bl el3_handle_exception
+    ldp x0, x1, [sp], #16
+    ldp x30, x2, [sp], #16
     eret
 .align 10                   // Force these vectors to 0x400 alignment
 el3_sync_exception_lower64:
+    stp x30, x2, [sp, #-16]!
+    stp x0, x1, [sp, #-16]!
     mrs x0, esr_el3
     mov x1, #0xffffff
     and x1, x1, x0
     lsr x0, x0, #26
     bl el3_handle_exception
+    ldp x0, x1, [sp], #16
+    ldp x30, x2, [sp], #16
     eret
 .align 7
 el3_serr_exception:

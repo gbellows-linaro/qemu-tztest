@@ -14,6 +14,7 @@
 extern void el1_init_el0();
 
 uint64_t el1_next_pa = 0;
+uint64_t el1_heap_pool = 0x40000000;
 uint64_t el1_allocate_pa() {
     uint64_t next = el1_next_pa;
     el1_next_pa += 0x1000;
@@ -105,11 +106,34 @@ int el1_unmap_va(uint64_t addr)
     return 0;
 }
 
-void el1_handle_exception(uint64_t ec, uint64_t iss, uint64_t far,
-                          uint64_t elr)
+void *el1_heap_allocate(size_t len)
+{
+    void *addr = (void *)el1_heap_pool;
+    size_t off;
+
+    for (off = 0; off < len; off += 0x1000) {
+        el1_map_va(el1_heap_pool + off);
+    }
+
+    el1_heap_pool += off;
+
+    return addr;
+}
+
+void el1_alloc_mem(alloc_mem_t *alloc)
+{
+    alloc->addr = el1_heap_allocate(alloc->len);
+}
+
+void el1_handle_exception(uint64_t ec, uint64_t iss, svc_op_desc_t *op)
 {
     armv8_data_abort_iss_t dai = {.raw = iss};
 //    armv8_inst_abort_iss_t iai = {.raw = iss};
+    uint64_t elr, far;
+
+    __get_exception_address(far);
+    __get_exception_return(elr);
+
     switch (ec) {
     case EC_SVC32:
     case EC_SVC64:
@@ -118,15 +142,18 @@ void el1_handle_exception(uint64_t ec, uint64_t iss, uint64_t far,
         case SVC_EXIT:
             __smc(SMC_EXIT);
             break;
+        case SVC_ALLOC:
+            el1_alloc_mem((alloc_mem_t *)op);
+            break;
         default:
+            printf("Unrecognized AArch64 SVC opcode: iss = %d\n", iss);
             break;
         }
-        break;
     case EC_IABORT_LOWER:
-        printf("Instruction abort at lower level: address = %0lx\n", far);
+        printf("Instruction abort at lower level: far = %0lx\n", far);
         break;
     case EC_IABORT:
-        printf("Instruction abort at current level: address = %0lx\n", far);
+        printf("Instruction abort at EL3: far = %0lx\n", far);
         break;
     case EC_DABORT_LOWER:
         printf("Data abort (%s) at lower level: far = %0lx elr = %0lx\n",
@@ -134,12 +161,12 @@ void el1_handle_exception(uint64_t ec, uint64_t iss, uint64_t far,
         el1_map_va(far);
         break;
     case EC_DABORT:
-        printf("Data abort (%s) at current level: far = %0lx elr = %0lx\n",
+        printf("Data abort (%s) at EL1: far = %0lx elr = %0lx\n",
                dai.wnr ? "write" : "read", far, elr);
         el1_map_va(far);
         break;
     default:
-        printf("Unhandled EL3 exception: EC = %d  ISS = %d\n", ec, iss);
+        printf("Unhandled EL1 exception: EC = %d  ISS = %d\n", ec, iss);
         break;
     }
 }
@@ -160,12 +187,12 @@ void *el1_load_el0(char *elfbase, char *start_va)
         ehdr->e_ident[EI_MAG2] != ELFMAG2 ||
         ehdr->e_ident[EI_MAG3] != ELFMAG3) {
         printf("Invalid ELF header, exiting...\n");
-        __svc(SVC_EXIT);
+        __smc(SMC_EXIT);
     } else if (ehdr->e_type != ET_DYN &&
                (ehdr->e_machine != EM_ARM || ehdr->e_machine != EM_AARCH64)) {
         printf("Incorrect ELF type (type = %d, machine = %d), exiting...\n",
                ehdr->e_type, ehdr->e_machine);
-        __svc(SVC_EXIT);
+        __smc(SMC_EXIT);
     } else {
         printf("Loading %s EL0 test image...\n",
                (ehdr->e_machine == EM_ARM) ?  "aarch32" : "aarch64");
