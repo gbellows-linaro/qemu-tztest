@@ -1,7 +1,5 @@
 set arch aarch64
 target remote :1234
-file aarch64/el3/el3.elf
-add-symbol-file aarch64/el3/el3.elf &_EL3_TEXT_BASE
 set print pretty
 
 define load_el3

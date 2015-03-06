@@ -5,5 +5,5 @@
 
 void el1_init_el0()
 {
-    __smc(SMC_YIELD);
+    __smc(SMC_YIELD, NULL);
 }

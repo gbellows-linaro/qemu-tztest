@@ -8,17 +8,21 @@
 #define SMC_DISPATCH_SECURE_SVC 4
 #define SMC_ALLOCATE_SECURE_MEMORY 4
 #define SMC_EXIT 5
+#define SMC_MAP 8
 
 #ifndef __ASSEMBLY__
-typedef struct {
-    uintptr_t (*func)(uintptr_t);
-    uintptr_t arg;
-    uintptr_t ret;
-} dispatch_t;
+#include "interop.h"
 
 typedef union {
-    dispatch_t dispatch;
+    op_dispatch_t dispatch;
+    op_map_mem_t map;
 } smc_op_desc_t;
+
+typedef struct {
+     void *interop_buf_pa;
+     void *interop_buf_va;
+} smc_control_t;
+
 #endif
 
 #endif

@@ -25,6 +25,10 @@ init_uart:
     ldr x10, =RAM_BASE+0x2000
 	mov sp, x10
 
+    /* Use the top of the stack to track our PA pool pointer */
+    ldr x10, =PT_BASE+0x1000
+    str x10, [sp]
+
     /* Enable floating point register usage as printf uses it */
     mrs x10, cptr_el3
     and x10, x10, #~0x400       /* Clear CPTR.TFP to enable FP */
@@ -43,10 +47,6 @@ el3_init_mmu:
     msr ttbr0_el3, x11
     mov x11, #TnSZ
     msr tcr_el3, x11            /* PS = 32bit, TG0 = 4k, TnSZ */
-
-    /* Use the top of the stack to track our PA pool pointer */
-    ldr x10, =PT_BASE+0x1000
-    str x10, [sp]
 
 el3_map_init:
     /* Direct map the init code */
@@ -109,8 +109,7 @@ el3_map_sysreg:
     bl map_pa
 
 save_last_pa:
-    ldr x17, =RAM_BASE+0x2000
-    ldr x17, [x17]
+    ldr x17, [sp]
 
 /* We should have all the critical address regions mapped at this point.
  * Anything that has not already been mapped will be handled on demand.  If it
@@ -137,9 +136,10 @@ el3_init_stack:
     ldr x10, =EL3_STACK_BASE
     mov sp, x10
 
-/* Migrate the next PA to the non-init code */
-    ldr x10, =el3_next_pa
-    str x17, [x10]
+/* Migrate the next PA to the new stack we should not use it again until after
+ * we transition to start.
+ */
+    str x17, [sp, #-8]!
 
 /* The EL3 address space is set-up and the MMU is started so it is safe to copy
  * the text and data sections in.
@@ -156,7 +156,11 @@ el3_copy_data:
     ldr x2, =_EL3_DATA_SIZE
     bl memcpy
 
-el3_init_monitor:
+el3_init_start:
+    ldr x17, [sp], #8       /* next PA */
+    ldr x10, =el3_next_pa
+    str x17, [x10]
+
     ldr x0, =_EL3_INIT_BASE
     ldr x1, =_EL3_INIT_SIZE
     ldr x2, =el3_start

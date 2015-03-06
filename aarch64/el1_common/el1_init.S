@@ -4,7 +4,7 @@
 .section .init
 .align 12
 .global el1_init
-/* el1_init() */
+/* el1_init()  - x4 = smc_interop_buf PA */
 el1_init:
     /* Set-up the EL1 vbar */
     ldr x10, =el1_vectors
@@ -15,6 +15,14 @@ el1_init:
      */
     ldr x10, =RAM_BASE+0x2000
 	mov sp, x10
+
+    /* Use the top of the stack to track our PA pool pointer */
+    ldr x10, =EL1_PGTBL_BASE+0x1000
+    str x10, [sp]
+
+loc:
+    /* Save the input SMC interop buf pointer */
+    str x4, [sp, #-8]!
 
     /* Enable floating point register usage as printf uses it */
     mrs x10, cpacr_el1
@@ -34,10 +42,6 @@ el1_init_mmu:
     msr ttbr0_el1, x11
     mov x11, #TnSZ
     msr tcr_el1, x11            /* PS = 32bit, TG0 = 4k, TnSZ */
-
-    /* Use the top of the stack to track our PA pool pointer */
-    ldr x10, =EL1_PGTBL_BASE+0x1000
-    str x10, [sp]
 
 el1_map_init:
     /* Direct map the init code */
@@ -97,9 +101,9 @@ el1_map_uart:
     bl map_pa
 
 /* Save the next PA pointer until after we have enabled the MMU */
-save_last_pa:
-    ldr x17, =RAM_BASE+0x2000
-    ldr x17, [x17]
+save_stack:
+    ldr x16, [sp], #8       /* init input - smc_interop */
+    ldr x17, [sp]           /* next PA */
 
 /* We should have all the critical address regions mapped at this point.
  * Anything that has not already been mapped will be handled on demand.  If it
@@ -126,6 +130,7 @@ el1_enable_mmu:
 el1_init_stack:
     ldr x10, =EL1_STACK_BASE-0x10
     mov sp, x10
+    stp x16, x17, [sp, #-16]!
 
 el0_init_stack:
     ldr x10, =EL0_STACK_BASE-0x10
@@ -154,11 +159,15 @@ el1_copy_data:
     ldr x1, =_EL1_DATA_SIZE
     bl unmap_va_range
 
+el1_init_start:
+    ldp x16, x17, [sp], #16
+
 /* Migrate the next PA to the non-init code */
     ldr x10, =el1_next_pa
     str x17, [x10]
+    ldr x10, =el1_smc_cntl
+    str x16, [x10]
 
-el1_init_start:
     /* Pass the address and size of the init section to start so it
      * can unmap it.  We must wait until we are in start because we are still
      * running out of the init segment.

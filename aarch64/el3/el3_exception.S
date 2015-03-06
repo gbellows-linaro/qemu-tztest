@@ -7,6 +7,7 @@ el3_vectors:
 el3_sync_exception_current:
     stp x30, x2, [sp, #-16]!
     stp x0, x1, [sp, #-16]!
+    mov x2, x0
     mrs x0, esr_el3
     mov x1, #0xffffff
     and x1, x1, x0
@@ -19,6 +20,7 @@ el3_sync_exception_current:
 el3_sync_exception_lower64:
     stp x30, x2, [sp, #-16]!
     stp x0, x1, [sp, #-16]!
+    mov x2, x0
     mrs x0, esr_el3
     mov x1, #0xffffff
     and x1, x1, x0

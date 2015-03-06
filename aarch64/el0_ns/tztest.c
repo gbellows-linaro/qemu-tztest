@@ -64,7 +64,7 @@ uint32_t P0_nonsecure_check_smc()
 
 void *alloc_mem(int type, size_t len)
 {
-    alloc_mem_t alloc;
+    op_alloc_mem_t alloc;
     alloc.type = type;
     alloc.len = len;
     alloc.addr = NULL;
@@ -73,16 +73,25 @@ void *alloc_mem(int type, size_t len)
     return alloc.addr;
 }
 
+void map_va(void *va, size_t len)
+{
+    op_map_mem_t map;
+    map.va = va;
+    map.len = len;
+    map.type = 0;
+
+    __svc(SVC_MAP, &map);
+}
+
 int main()
 {
     printf("Starting TZ test ...\n");
 
 //    P0_nonsecure_check_smc();
-    void *va = alloc_mem(0, 0x2000);
+    void *va = alloc_mem(0, 0x1000);
     printf("Called alloc_mem: got addr = %x\n", va);
 
-    va = alloc_mem(0, 0x1000);
-    printf("Called alloc_mem: got addr = %x\n", va);
+    map_va(va, 0x1000);
 
     __svc(SVC_EXIT, NULL);
 

@@ -13,6 +13,8 @@
 
 extern void el1_init_el0();
 
+smc_control_t *el1_smc_cntl;
+smc_op_desc_t *smc_interop_buf;
 uint64_t el1_next_pa = 0;
 uint64_t el1_heap_pool = 0x40000000;
 uint64_t el1_allocate_pa() {
@@ -21,7 +23,7 @@ uint64_t el1_allocate_pa() {
     return next;
 }
 
-void el1_map_pa(uintptr_t vaddr, uint64_t paddr)
+void el1_map_pa(uintptr_t vaddr, uintptr_t paddr)
 {
     uint64_t pa = EL1_PGTBL_BASE, off;
     uint32_t i;
@@ -36,7 +38,7 @@ void el1_map_pa(uintptr_t vaddr, uint64_t paddr)
         if (!(*pte & 0x1)) {
             pa = el1_allocate_pa();
             *pte = pa;
-            *pte = PTE_PAGE;
+            *pte |= PTE_PAGE;
         } else {
             pa = *pte & 0x000FFFFFF000;
         }
@@ -53,7 +55,7 @@ void el1_map_pa(uintptr_t vaddr, uint64_t paddr)
 
 void el1_map_va(uintptr_t addr)
 {
-    uint64_t pa = EL1_PGTBL_BASE;
+    uint64_t pa = EL1_PGTBL_BASE, off;
     uint32_t i;
     uint64_t *pte;
 
@@ -61,7 +63,7 @@ void el1_map_va(uintptr_t addr)
         /* Each successive level uses the next lower 9 VA bits in a 48-bit
          * address, hence the i*9.
          */
-        uint64_t off = ((addr >> (39-(i*9))) & 0x1FF) << 3;
+        off = ((addr >> (39-(i*9))) & 0x1FF) << 3;
         pte = (uint64_t *)(pa | off);
         if (!(*pte & 0x1)) {
             pa = el1_allocate_pa();
@@ -120,9 +122,46 @@ void *el1_heap_allocate(size_t len)
     return addr;
 }
 
-void el1_alloc_mem(alloc_mem_t *alloc)
+void el1_alloc_mem(op_alloc_mem_t *alloc)
 {
     alloc->addr = el1_heap_allocate(alloc->len);
+}
+
+void *el1_lookup_pa(void *va)
+{
+    uint64_t pa = EL1_PGTBL_BASE;
+    uint32_t i;
+    uint64_t *pte;
+
+    for (i = 0; i < 4; i++) {
+        /* Each successive level uses the next lower 9 VA bits in a 48-bit
+         * address, hence the i*9.
+         */
+        uint64_t off = ((((uint64_t)va) >> (39-(i*9))) & 0x1FF) << 3;
+        pte = (uint64_t *)(pa | off);
+        if (!(*pte & 0x1)) {
+            DEBUG_MSG("Failed Lookup: invalid table page");
+            /* This is not a valid page, return an error */
+            return (void *)-1;
+        } else {
+            pa = *pte & 0x000FFFFFF000;
+        }
+    }
+
+    return (void *)pa;
+}
+
+void el1_map_secure(op_map_mem_t *map)
+{
+    op_map_mem_t *op = (op_map_mem_t *)smc_interop_buf;
+
+    memcpy(op, map, sizeof(op_map_mem_t));
+
+    op->pa = el1_lookup_pa(op->va);
+
+    __smc(SMC_MAP, op);
+
+    memset(op, 0, sizeof(op_map_mem_t));
 }
 
 void el1_handle_exception(uint64_t ec, uint64_t iss, svc_op_desc_t *op)
@@ -137,23 +176,29 @@ void el1_handle_exception(uint64_t ec, uint64_t iss, svc_op_desc_t *op)
     switch (ec) {
     case EC_SVC32:
     case EC_SVC64:
-        printf("SVC exception: iss = %d\n", iss);
         switch (iss) {
         case SVC_EXIT:
-            __smc(SMC_EXIT);
+            DEBUG_MSG("took an svc(SVC_EXIT) \n", iss);
+            __smc(SMC_EXIT, NULL);
             break;
         case SVC_ALLOC:
-            el1_alloc_mem((alloc_mem_t *)op);
+            DEBUG_MSG("took an svc(SVC_ALLOC) \n", iss);
+            el1_alloc_mem((op_alloc_mem_t *)op);
+            break;
+        case SVC_MAP:
+            DEBUG_MSG("took an svc(SVC_MAP) \n", iss);
+            el1_map_secure((op_map_mem_t *)op);
             break;
         default:
             printf("Unrecognized AArch64 SVC opcode: iss = %d\n", iss);
             break;
         }
+        break;
     case EC_IABORT_LOWER:
         printf("Instruction abort at lower level: far = %0lx\n", far);
         break;
     case EC_IABORT:
-        printf("Instruction abort at EL3: far = %0lx\n", far);
+        printf("Instruction abort at EL1: far = %0lx\n", far);
         break;
     case EC_DABORT_LOWER:
         printf("Data abort (%s) at lower level: far = %0lx elr = %0lx\n",
@@ -187,12 +232,12 @@ void *el1_load_el0(char *elfbase, char *start_va)
         ehdr->e_ident[EI_MAG2] != ELFMAG2 ||
         ehdr->e_ident[EI_MAG3] != ELFMAG3) {
         printf("Invalid ELF header, exiting...\n");
-        __smc(SMC_EXIT);
+        __smc(SMC_EXIT, NULL);
     } else if (ehdr->e_type != ET_DYN &&
                (ehdr->e_machine != EM_ARM || ehdr->e_machine != EM_AARCH64)) {
         printf("Incorrect ELF type (type = %d, machine = %d), exiting...\n",
                ehdr->e_type, ehdr->e_machine);
-        __smc(SMC_EXIT);
+        __smc(SMC_EXIT, NULL);
     } else {
         printf("Loading %s EL0 test image...\n",
                (ehdr->e_machine == EM_ARM) ?  "aarch32" : "aarch64");
@@ -244,6 +289,13 @@ void el1_start(uint64_t base, uint64_t size)
          len += 0x1000, addr += 0x1000) {
         el1_unmap_va(addr);
     }
+
+    void *pa = el1_smc_cntl;
+    el1_smc_cntl = (smc_control_t *)el1_heap_allocate(0x1000);
+    el1_map_pa((uintptr_t)el1_smc_cntl, (uintptr_t)pa);
+    el1_map_pa((uintptr_t)el1_smc_cntl->interop_buf_va,
+               (uintptr_t)el1_smc_cntl->interop_buf_pa);
+    smc_interop_buf = el1_smc_cntl->interop_buf_va;
 
     el1_init_el0();
 
