@@ -26,8 +26,12 @@ el3_sync_exception_lower64:
     and x1, x1, x0
     lsr x0, x0, #26
     bl el3_handle_exception
+    mov x3, x0
     ldp x0, x1, [sp], #16
     ldp x30, x2, [sp], #16
+    cbz x3, el3_sync_exception_lower64_done
+    b monitor_switch
+el3_sync_exception_lower64_done:
     eret
 .align 7
 el3_serr_exception:

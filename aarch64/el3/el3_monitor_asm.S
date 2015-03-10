@@ -15,10 +15,7 @@
     msr \reg2, x2
 .endm
 
-.globl monitor_save_state
-monitor_save_state:
-    stp x0, x1, [sp, #-16]!     /* Save the input regs x0:x3 */
-    stp x2, x3, [sp, #-16]!
+.macro MONITOR_SAVE_STATE
     SAVE_SYS_PAIR elr_el3, spsr_el3, 0*16
     SAVE_SYS_PAIR elr_el1, spsr_el1, 1*16
     SAVE_SYS_PAIR esr_el1, sp_el1, 2*16
@@ -48,14 +45,9 @@ monitor_save_state:
     stp x26, x27, [x0, #25*16]
     stp x28, x29, [x0, #26*16]
     str x30, [x0, #27*16]
-    ldp x2, x3, [sp], #16
-    ldp x0, x1, [sp], #16
-    ret
+.endm
 
-.globl monitor_restore_state
-monitor_restore_state:
-    str x30, [sp, #-8]!         /* Save the LR onto the stack for later */
-    stp x0, x1, [sp, #-16]!
+.macro MONITOR_RESTORE_STATE
     RESTORE_SYS_PAIR elr_el3, spsr_el3, 0*16
     RESTORE_SYS_PAIR elr_el1, spsr_el1, 1*16
     RESTORE_SYS_PAIR esr_el1, sp_el1, 2*16
@@ -85,33 +77,35 @@ monitor_restore_state:
     ldp x26, x27, [x0, #25*16]
     ldp x28, x29, [x0, #26*16]
     ldr x30, [x0, #27*16]
-    ldp x0, x1, [sp], #16
-    ldr x3, [sp], #8            /* Restore the LR so we can jump back */
-    br x3
+.endm
+
+.globl monitor_restore_state
+monitor_restore_state:
+    str x30, [sp, #-8]!
+    MONITOR_RESTORE_STATE
+    ldr x30, [sp], #8
+    ret
 
 .globl monitor_switch
 monitor_switch:
-    str x30, [sp, #-8]!
     stp x0, x1, [sp, #-16]!     /* Save the input regs x0:x3 */
     mrs x1, scr_el3
     and x1, x1, #0x1
     cbnz x1, switch_to_nsec
-switch_to_sec:
-    adr x0, sec_state
-    bl monitor_save_state
-    adr x0, nsec_state
-    bl monitor_restore_state
-    b switch_state
 switch_to_nsec:
-    adr x0, nsec_state
-    bl monitor_save_state
     adr x0, sec_state
-    bl monitor_restore_state
+    MONITOR_SAVE_STATE
+    adr x0, nsec_state
+    MONITOR_RESTORE_STATE
+    b switch_state
+switch_to_sec:
+    adr x0, nsec_state
+    MONITOR_SAVE_STATE
+    adr x0, sec_state
+    MONITOR_RESTORE_STATE
 switch_state:
     eor x1, x1, #0x1
     msr scr_el3, x1
     ldp x0, x1, [sp], #16
-    ldr x30, [sp], #8
-    ret
-
+    eret
 .end

@@ -174,7 +174,7 @@ void el3_map_mem(op_map_mem_t *map)
     el3_map_pa((uintptr_t)map->va, (uintptr_t)map->pa);
 }
 
-void el3_handle_exception(uint64_t ec, uint64_t iss, smc_op_desc_t *op)
+int el3_handle_exception(uint64_t ec, uint64_t iss, smc_op_desc_t *op)
 {
     armv8_data_abort_iss_t dai = {.raw = iss};
     uint64_t elr, far;
@@ -187,7 +187,7 @@ void el3_handle_exception(uint64_t ec, uint64_t iss, smc_op_desc_t *op)
         switch (iss) {
         case SMC_YIELD:
             DEBUG_MSG("took an SMC(SMC_YIELD) exception\n");
-            monitor_switch();
+            return 1;
             break;
         case SMC_DISPATCH_MONITOR:
             DEBUG_MSG("took an SMC(SMC_DSPATCH_MONITOR) exception\n");
@@ -226,6 +226,8 @@ void el3_handle_exception(uint64_t ec, uint64_t iss, smc_op_desc_t *op)
         printf("Unhandled EL3 exception: EC = %d  ISS = %d\n", ec, iss);
         break;
     }
+
+    return 0;
 }
 
 void el3_monitor_init()
