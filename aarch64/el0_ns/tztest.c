@@ -2,13 +2,22 @@
 #include "arm_builtins.h"
 #include "svc.h"
 
+typedef struct {
+    volatile int fail_count;
+    volatile int test_count;
+    volatile int exception_ec;
+    volatile int exception_iss;
+} test_control_t;
+
+test_control_t *tztest_cntl;
+svc_op_desc_t svc_exit = {.op = SVC_EXIT};
+svc_op_desc_t svc_yield = {.op = SVC_YIELD};
+
 #if 0
 /* Make the below globals volatile as  found that the compiler uses the
  * register value ratherh than the memory value making it look like the writes
  * actually happened.
  */
-volatile int *tztest_fail_count;
-volatile int *tztest_test_count;
 
 #define INC_TEST_COUNT()    (*tztest_test_count += 1)
 #define INC_FAIL_COUNT()    (*tztest_fail_count += 1)
@@ -64,36 +73,37 @@ uint32_t P0_nonsecure_check_smc()
 
 void *alloc_mem(int type, size_t len)
 {
-    op_alloc_mem_t alloc;
-    alloc.type = type;
-    alloc.len = len;
-    alloc.addr = NULL;
-    __svc(SVC_ALLOC, &alloc);
+    svc_op_desc_t op;
+    op.op = SVC_ALLOC;
+    op.alloc.type = type;
+    op.alloc.len = len;
+    op.alloc.addr = NULL;
+    __svc(&op);
 
-    return alloc.addr;
+    return op.alloc.addr;
 }
 
-void map_va(void *va, size_t len)
+void map_va(void *va, size_t len, int type)
 {
-    op_map_mem_t map;
-    map.va = va;
-    map.len = len;
-    map.type = 0;
+    svc_op_desc_t op;
+    op.op = SVC_MAP;
+    op.map.va = va;
+    op.map.len = len;
+    op.map.type = type;
 
-    __svc(SVC_MAP, &map);
+    __svc(&op);
 }
 
 int main()
 {
     printf("Starting TZ test ...\n");
 
-//    P0_nonsecure_check_smc();
-    void *va = alloc_mem(0, 0x1000);
-    printf("Called alloc_mem: got addr = %x\n", va);
+    tztest_cntl = (test_control_t*)alloc_mem(0, 0x1000);
+    map_va(tztest_cntl, 0x1000, OP_MAP_ALL);
+    printf("Called alloc_mem: got addr = %x\n", tztest_cntl);
 
-    map_va(va, 0x1000);
-
-    __svc(SVC_EXIT, NULL);
+    __svc(&svc_yield);
+    __svc(&svc_exit);
 
     return 0;
 }

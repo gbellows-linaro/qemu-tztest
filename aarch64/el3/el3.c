@@ -171,10 +171,19 @@ void *el3_lookup_pa(void *va)
 
 void el3_map_mem(op_map_mem_t *map)
 {
-    el3_map_pa((uintptr_t)map->va, (uintptr_t)map->pa);
+    if ((map->type & OP_MAP_EL3) == OP_MAP_EL3) {
+        el3_map_pa((uintptr_t)map->va, (uintptr_t)map->pa);
+        printf("EL3: Mapped VA:0x%lx to PA:0x%lx\n", map->va, map->pa);
+    }
+
+/*
+    if ((map->type & OP_MAP_SEC_EL1) == OP_MAP_SEC_EL1) {
+        monitor_switch(SMC_OP_MAP, (smc_op_desc_t *)map);
+    }
+*/
 }
 
-int el3_handle_exception(uint64_t ec, uint64_t iss, smc_op_desc_t *op)
+int el3_handle_exception(uint64_t ec, uint64_t iss, smc_op_desc_t *desc)
 {
     armv8_data_abort_iss_t dai = {.raw = iss};
     uint64_t elr, far;
@@ -184,23 +193,24 @@ int el3_handle_exception(uint64_t ec, uint64_t iss, smc_op_desc_t *op)
 
     switch (ec) {
     case EC_SMC64:      /* SMC from aarch64 */
-        switch (iss) {
-        case SMC_YIELD:
+        switch (desc->op) {
+        case SMC_OP_YIELD:
             DEBUG_MSG("took an SMC(SMC_YIELD) exception\n");
             return 1;
             break;
-        case SMC_DISPATCH_MONITOR:
-            DEBUG_MSG("took an SMC(SMC_DSPATCH_MONITOR) exception\n");
-            el3_dispatch((op_dispatch_t *)op);
+        case SMC_OP_DISPATCH_MONITOR:
+            DEBUG_MSG("took an smc(SMC_OP_DSPATCH_MONITOR) exception\n");
+            el3_dispatch((op_dispatch_t *)&desc->dispatch);
             break;
-        case SMC_MAP:
-            DEBUG_MSG("took an SMC(SMC_MAP) exception\n");
-            el3_map_mem((op_map_mem_t *)op);
+        case SMC_OP_MAP:
+            DEBUG_MSG("took an smc(SMC_OP_MAP) exception\n");
+            el3_map_mem((op_map_mem_t *)&desc->map);
+            return 1;
             break;
-        case SMC_NOOP:
-            DEBUG_MSG("took an SMC(SMC_NOOP) exception\n");
+        case SMC_OP_NOOP:
+            DEBUG_MSG("took an smc(SMC_OP_NOOP) exception\n");
             break;
-        case SMC_EXIT:
+        case SMC_OP_EXIT:
             el3_shutdown();
             break;
         default:

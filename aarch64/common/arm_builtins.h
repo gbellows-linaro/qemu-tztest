@@ -1,14 +1,36 @@
 #ifndef _ARM_BUILTINS_H
 #define _ARM_BUILTINS_H
 
+extern void __smc(void *);
+extern void __svc(void *);
+/*
+#define __smc(_op)                       \
+    asm volatile (                              \
+        "mov x0, %0\n"                       \
+        "smc 0\n"                               \
+        "mov %0, x0\n"                       \
+        : "+r" (_op)   \
+    )
+
 #define __smc(_imm, _desc) \
     asm volatile ("mov x0, %1\n" \
                   "smc #%0\n" \
-                  ::[imm] "I" (_imm), "r" (_desc))
+                  ::[imm] "+I" (_imm), "r" (_desc))
+*/
+
+    /*
+#define __svc(_op)                       \
+    asm volatile (                              \
+        "mov x0, %0\n"                       \
+        "svc 0\n"                               \
+        "mov %0, x0\n"                       \
+        : "+r" (_op)   \
+    )
 #define __svc(_imm, _desc) \
     asm volatile ("mov x0, %1\n" \
                   "svc #%0\n" \
                   ::[imm] "I" (_imm), "r" (_desc))
+    */
 #define __exception_return(_x0) asm volatile ("eret\n")
 #define __set_exception_return(_elr) \
     asm volatile("msr elr_el1, %[elr]\n"::[elr] "r" (_elr))

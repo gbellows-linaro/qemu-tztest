@@ -12,11 +12,15 @@
 #define SVC_EXIT 6
 #define SVC_ALLOC 7
 #define SVC_MAP 8
+#define SVC_YIELD 9
 
 #ifndef __ASSEMBLY__
-typedef union {
-    op_alloc_mem_t alloc;
-    op_map_mem_t map;
+typedef struct {
+    int op;
+    union {
+        op_alloc_mem_t alloc;
+        op_map_mem_t map;
+    };
 } svc_op_desc_t;
 #endif
 

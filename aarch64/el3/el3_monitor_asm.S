@@ -89,23 +89,25 @@ monitor_restore_state:
 .globl monitor_switch
 monitor_switch:
     stp x0, x1, [sp, #-16]!     /* Save the input regs x0:x3 */
-    mrs x1, scr_el3
-    and x1, x1, #0x1
-    cbnz x1, switch_to_nsec
-switch_to_nsec:
-    adr x0, sec_state
-    MONITOR_SAVE_STATE
-    adr x0, nsec_state
-    MONITOR_RESTORE_STATE
-    b switch_state
+    stp x2, x3, [sp, #-16]!     /* Save the input regs x0:x3 */
+    mrs x3, scr_el3
+    and x3, x3, #0x1
+    cbz x3, switch_to_nsec
 switch_to_sec:
     adr x0, nsec_state
     MONITOR_SAVE_STATE
     adr x0, sec_state
     MONITOR_RESTORE_STATE
+    b switch_state
+switch_to_nsec:
+    adr x0, sec_state
+    MONITOR_SAVE_STATE
+    adr x0, nsec_state
+    MONITOR_RESTORE_STATE
 switch_state:
-    eor x1, x1, #0x1
-    msr scr_el3, x1
+    eor x3, x3, #0x1
+    msr scr_el3, x3
+    ldp x2, x3, [sp], #16
     ldp x0, x1, [sp], #16
     eret
 .end

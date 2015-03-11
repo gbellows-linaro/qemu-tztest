@@ -1,4 +1,4 @@
-VPATH	= ../el1_common
+VPATH	= ../el1_common:../common
 
 EL1_S_ELF		= el1_sec.elf
 EL1_S_IMAGE 	= el1_sec.bin
@@ -6,7 +6,8 @@ EL1_S_LOAD		= el1_sec.lds
 EL1_S_OBJS		= el1_init.o \
                   el1_exception.o \
                   el1.o \
-                  el1_sec.o
+                  el1_sec.o \
+				  builtins.o
 
 -include .*.d
 

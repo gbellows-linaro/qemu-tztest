@@ -1,7 +1,10 @@
+VPATH	= ../common
+
 EL0_NS_ELF		= tztest.elf
 EL0_NS_IMAGE 	= tztest.bin
 EL0_NS_LOAD		= tztest.lds
-EL0_NS_OBJS		= tztest.o
+EL0_NS_OBJS		= tztest.o \
+                  builtins.o
 
 -include .*.d
 

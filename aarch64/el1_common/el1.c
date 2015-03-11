@@ -13,10 +13,11 @@
 
 extern void el1_init_el0();
 
-smc_control_t *el1_smc_cntl;
 smc_op_desc_t *smc_interop_buf;
+smc_control_t *el1_smc_cntl;
 uint64_t el1_next_pa = 0;
 uint64_t el1_heap_pool = 0x40000000;
+
 uint64_t el1_allocate_pa() {
     uint64_t next = el1_next_pa;
     el1_next_pa += 0x1000;
@@ -153,18 +154,17 @@ void *el1_lookup_pa(void *va)
 
 void el1_map_secure(op_map_mem_t *map)
 {
-    op_map_mem_t *op = (op_map_mem_t *)smc_interop_buf;
+    smc_op_desc_t *desc = (smc_op_desc_t *)smc_interop_buf;
 
-    memcpy(op, map, sizeof(op_map_mem_t));
+    memcpy(&desc->map, map, sizeof(op_map_mem_t));
 
-    op->pa = el1_lookup_pa(op->va);
+    desc->op = SMC_OP_MAP;
+    desc->map.pa = el1_lookup_pa(desc->map.va);
 
-    __smc(SMC_MAP, op);
-
-    memset(op, 0, sizeof(op_map_mem_t));
+    __smc(desc);
 }
 
-void el1_handle_exception(uint64_t ec, uint64_t iss, svc_op_desc_t *op)
+void el1_handle_exception(uint64_t ec, uint64_t iss, svc_op_desc_t *desc)
 {
     armv8_data_abort_iss_t dai = {.raw = iss};
 //    armv8_inst_abort_iss_t iai = {.raw = iss};
@@ -176,18 +176,22 @@ void el1_handle_exception(uint64_t ec, uint64_t iss, svc_op_desc_t *op)
     switch (ec) {
     case EC_SVC32:
     case EC_SVC64:
-        switch (iss) {
+        switch (desc->op) {
         case SVC_EXIT:
             DEBUG_MSG("took an svc(SVC_EXIT) \n", iss);
-            __smc(SMC_EXIT, NULL);
+            SMC_EXIT();
+            break;
+        case SVC_YIELD:
+            DEBUG_MSG("took an svc(SVC_YIELD) \n", iss);
+            SMC_YIELD();
             break;
         case SVC_ALLOC:
             DEBUG_MSG("took an svc(SVC_ALLOC) \n", iss);
-            el1_alloc_mem((op_alloc_mem_t *)op);
+            el1_alloc_mem((op_alloc_mem_t *)&desc->alloc);
             break;
         case SVC_MAP:
             DEBUG_MSG("took an svc(SVC_MAP) \n", iss);
-            el1_map_secure((op_map_mem_t *)op);
+            el1_map_secure((op_map_mem_t *)&desc->map);
             break;
         default:
             printf("Unrecognized AArch64 SVC opcode: iss = %d\n", iss);
@@ -232,12 +236,12 @@ void *el1_load_el0(char *elfbase, char *start_va)
         ehdr->e_ident[EI_MAG2] != ELFMAG2 ||
         ehdr->e_ident[EI_MAG3] != ELFMAG3) {
         printf("Invalid ELF header, exiting...\n");
-        __smc(SMC_EXIT, NULL);
+        SMC_EXIT();
     } else if (ehdr->e_type != ET_DYN &&
                (ehdr->e_machine != EM_ARM || ehdr->e_machine != EM_AARCH64)) {
         printf("Incorrect ELF type (type = %d, machine = %d), exiting...\n",
                ehdr->e_type, ehdr->e_machine);
-        __smc(SMC_EXIT, NULL);
+        SMC_EXIT();
     } else {
         printf("Loading %s EL0 test image...\n",
                (ehdr->e_machine == EM_ARM) ?  "aarch32" : "aarch64");

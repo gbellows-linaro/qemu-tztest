@@ -1,4 +1,4 @@
-VPATH	= ../el1_common
+VPATH	= ../el1_common:../common
 
 EL1_NS_ELF		= el1_nsec.elf
 EL1_NS_IMAGE 	= el1_nsec.bin
@@ -6,7 +6,8 @@ EL1_NS_LOAD		= el1_nsec.lds
 EL1_NS_OBJS		= el1_init.o \
                   el1_exception.o \
                   el1.o \
-                  el1_nsec.o
+                  el1_nsec.o \
+                  builtins.o
 
 -include .*.d
 

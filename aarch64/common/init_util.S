@@ -4,10 +4,12 @@
 /* allocate_pa() - Allocates and returns next pool PA */
 allocate_pa:
     stp x10, x11, [sp, #-16]!
+    str x30, [sp, #-8]!
     ldr x10, =RAM_BASE+0x2000
     ldr x0, [x10]
     add x11, x0, #0x1000
     str x11, [x10]
+    ldr x30, [sp], #8
     ldp x10, x11, [sp], #16
     ret
 
