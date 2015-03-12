@@ -156,12 +156,11 @@ void el1_map_secure(op_map_mem_t *map)
 {
     smc_op_desc_t *desc = (smc_op_desc_t *)smc_interop_buf;
 
-    memcpy(&desc->map, map, sizeof(op_map_mem_t));
+    memcpy(desc, map, sizeof(op_map_mem_t));
 
-    desc->op = SMC_OP_MAP;
     desc->map.pa = el1_lookup_pa(desc->map.va);
 
-    __smc(desc);
+    __smc(SMC_OP_MAP, desc);
 }
 
 void el1_handle_exception(uint64_t ec, uint64_t iss, svc_op_desc_t *desc)

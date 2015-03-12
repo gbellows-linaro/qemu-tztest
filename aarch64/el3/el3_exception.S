@@ -1,3 +1,7 @@
+#define __ASSEMBLY__
+#include "armv8_exception.h"
+#undef __ASSEMBLY__
+
 .section .vectors
 .align 12                   // Align to vector table size (0x800)
 .globl el3_vectors
@@ -25,12 +29,21 @@ el3_sync_exception_lower64:
     mov x1, #0xffffff
     and x1, x1, x0
     lsr x0, x0, #26
+    cmp x0, #EC_SMC64
+    b.eq el3_sync_exception_lower64_smc
+    cmp x0, #EC_SMC32
+    b.eq el3_sync_exception_lower64_smc
     bl el3_handle_exception
-    mov x3, x0
     ldp x0, x1, [sp], #16
     ldp x30, x2, [sp], #16
-    cbz x3, el3_sync_exception_lower64_done
-    b monitor_switch
+    b el3_sync_exception_lower64_done
+el3_sync_exception_lower64_smc:
+    ldp x1, x2, [sp]        /* Fetch our inputs as SMC args */
+    bl el3_handle_smc
+    cbz x0, el3_sync_exception_lower64_done
+    ldp x0, x1, [sp], #16
+    ldp x30, x2, [sp], #16
+    b monitor_switch        /* This never returns, erets */
 el3_sync_exception_lower64_done:
     eret
 .align 7

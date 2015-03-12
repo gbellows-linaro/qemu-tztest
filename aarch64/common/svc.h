@@ -15,6 +15,8 @@
 #define SVC_YIELD 9
 
 #ifndef __ASSEMBLY__
+extern void __svc(void *);
+
 typedef struct {
     int op;
     union {

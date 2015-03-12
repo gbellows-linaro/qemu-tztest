@@ -1,5 +1,4 @@
 #include "libcflat.h"
-#include "arm_builtins.h"
 #include "svc.h"
 
 typedef struct {

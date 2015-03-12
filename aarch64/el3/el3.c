@@ -183,7 +183,39 @@ void el3_map_mem(op_map_mem_t *map)
 */
 }
 
-int el3_handle_exception(uint64_t ec, uint64_t iss, smc_op_desc_t *desc)
+int el3_handle_smc(uint64_t ec, uint64_t op, smc_op_desc_t *desc)
+{
+    assert(ec == EC_SMC64);
+
+    switch (op) {
+    case SMC_OP_YIELD:
+        DEBUG_MSG("took an SMC(SMC_YIELD) exception\n");
+        return 1;
+        break;
+    case SMC_OP_DISPATCH_MONITOR:
+        DEBUG_MSG("took an smc(SMC_OP_DSPATCH_MONITOR) exception\n");
+        el3_dispatch((op_dispatch_t *)&desc->dispatch);
+        break;
+    case SMC_OP_MAP:
+        DEBUG_MSG("took an smc(SMC_OP_MAP) exception\n");
+        el3_map_mem((op_map_mem_t *)&desc->map);
+        return 1;
+        break;
+    case SMC_OP_NOOP:
+        DEBUG_MSG("took an smc(SMC_OP_NOOP) exception\n");
+        break;
+    case SMC_OP_EXIT:
+        el3_shutdown();
+        break;
+    default:
+        printf("Unrecognized AArch64 SMC opcode: iss = %d\n", op);
+        break;
+    }
+
+    return 0;
+}
+
+int el3_handle_exception(uint64_t ec, uint64_t iss)
 {
     armv8_data_abort_iss_t dai = {.raw = iss};
     uint64_t elr, far;
@@ -193,31 +225,6 @@ int el3_handle_exception(uint64_t ec, uint64_t iss, smc_op_desc_t *desc)
 
     switch (ec) {
     case EC_SMC64:      /* SMC from aarch64 */
-        switch (desc->op) {
-        case SMC_OP_YIELD:
-            DEBUG_MSG("took an SMC(SMC_YIELD) exception\n");
-            return 1;
-            break;
-        case SMC_OP_DISPATCH_MONITOR:
-            DEBUG_MSG("took an smc(SMC_OP_DSPATCH_MONITOR) exception\n");
-            el3_dispatch((op_dispatch_t *)&desc->dispatch);
-            break;
-        case SMC_OP_MAP:
-            DEBUG_MSG("took an smc(SMC_OP_MAP) exception\n");
-            el3_map_mem((op_map_mem_t *)&desc->map);
-            return 1;
-            break;
-        case SMC_OP_NOOP:
-            DEBUG_MSG("took an smc(SMC_OP_NOOP) exception\n");
-            break;
-        case SMC_OP_EXIT:
-            el3_shutdown();
-            break;
-        default:
-            printf("Unrecognized AArch64 SMC opcode: iss = %d\n", iss);
-            break;
-        }
-        break;
     case EC_IABORT_LOWER:
         printf("Instruction abort at lower level: far = %0lx\n", far);
         break;

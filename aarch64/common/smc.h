@@ -13,21 +13,16 @@
 #ifndef __ASSEMBLY__
 #include "interop.h"
 
-typedef struct {
-    int op;
-    union {
-        op_dispatch_t dispatch;
-        op_map_mem_t map;
-    };
+extern uint32_t __smc(uint32_t, void *);
+
+typedef union {
+    op_dispatch_t dispatch;
+    op_map_mem_t map;
 } smc_op_desc_t;
 
 extern smc_op_desc_t *smc_interop_buf;
 
-#define SMC_NO_DESC(_op)                \
-    do {                                \
-        smc_interop_buf->op = (_op);    \
-        __smc(smc_interop_buf);         \
-    } while(0)
+#define SMC_NO_DESC(_op) __smc((_op), NULL)
 
 #define SMC_EXIT()  SMC_NO_DESC(SMC_OP_EXIT)
 #define SMC_YIELD()  SMC_NO_DESC(SMC_OP_YIELD)
