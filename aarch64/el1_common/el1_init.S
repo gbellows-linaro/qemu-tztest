@@ -165,7 +165,7 @@ el1_init_start:
 /* Migrate the next PA to the non-init code */
     ldr x10, =el1_next_pa
     str x17, [x10]
-    ldr x10, =el1_smc_cntl
+    ldr x10, =el1_sys_cntl
     str x16, [x10]
 
     /* Pass the address and size of the init section to start so it

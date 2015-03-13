@@ -1,3 +1,7 @@
+#define __ASSEMBLY__
+#include "armv8_exception.h"
+#undef __ASSEMBLY__
+
 .section .vectors
 .align 12                   // Align to vector table size (0x800)
 .globl el1_vectors
@@ -25,9 +29,20 @@ el1_sync_exception_lower64:
     mov x1, #0xffffff
     and x1, x1, x0
     lsr x0, x0, #26
+    cmp x0, #EC_SVC64
+    b.eq el1_sync_exception_lower64_svc
+    cmp x0, #EC_SVC32
+    b.eq el1_sync_exception_lower64_svc
     bl el1_handle_exception
     ldp x0, x1, [sp], #16
     ldp x30, x2, [sp], #16
+    b el1_sync_exception_lower64_done
+el1_sync_exception_lower64_svc:
+    ldp x1, x2, [sp]        /* Fetch our inputs as SVC args */
+    bl el1_handle_svc
+    ldp x0, x1, [sp], #16
+    ldp x30, x2, [sp], #16
+el1_sync_exception_lower64_done:
     eret
 .align 7
 el1_serr_exception:

@@ -11,11 +11,12 @@
 #include "armv8_vmsa.h"
 #include "el3_monitor.h"
 #include "arm_builtins.h"
+#include "syscntl.h"
 
 state_buf sec_state;
 state_buf nsec_state;
 
-smc_control_t *smc_cntl;
+sys_control_t *sys_cntl;
 smc_op_desc_t *smc_interop_buf;
 
 uint64_t el3_next_pa = 0;
@@ -223,6 +224,10 @@ int el3_handle_exception(uint64_t ec, uint64_t iss)
     __get_exception_address(far);
     __get_exception_return(elr);
 
+    sys_cntl->el3_excp.ec = ec;
+    sys_cntl->el3_excp.iss = iss;
+    sys_cntl->el3_excp.far = far;
+
     switch (ec) {
     case EC_SMC64:      /* SMC from aarch64 */
     case EC_IABORT_LOWER:
@@ -259,7 +264,7 @@ void el3_monitor_init()
      */
     sec_state.elr_el3 = EL1_S_FLASH_BASE;
     sec_state.spsr_el3 = 0x5;
-    sec_state.x[0] = (uint64_t)el3_lookup_pa(smc_cntl);
+    sec_state.x[0] = (uint64_t)el3_lookup_pa(sys_cntl);
 
     /* Set-up the nonsecure state buffer to return to the non-secure
      * initialization sequence. This will occur on the first monitor context
@@ -267,7 +272,7 @@ void el3_monitor_init()
      */
     nsec_state.elr_el3 = EL1_NS_FLASH_BASE;
     nsec_state.spsr_el3 = 0x5;
-    nsec_state.x[0] = (uint64_t)el3_lookup_pa(smc_cntl);
+    nsec_state.x[0] = (uint64_t)el3_lookup_pa(sys_cntl);
 }
 
 void el3_start(uint64_t base, uint64_t size)
@@ -281,10 +286,10 @@ void el3_start(uint64_t base, uint64_t size)
         el3_unmap_va(addr);
     }
 
-    smc_cntl = el3_heap_allocate(0x1000);
+    sys_cntl = el3_heap_allocate(0x1000);
     smc_interop_buf = el3_heap_allocate(0x1000);
-    smc_cntl->interop_buf_va = smc_interop_buf;
-    smc_cntl->interop_buf_pa = el3_lookup_pa(smc_interop_buf);
+    sys_cntl->smc_interop.buf_va = smc_interop_buf;
+    sys_cntl->smc_interop.buf_pa = el3_lookup_pa(smc_interop_buf);
 
     el3_monitor_init();
 

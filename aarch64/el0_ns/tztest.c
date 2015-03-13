@@ -9,8 +9,6 @@ typedef struct {
 } test_control_t;
 
 test_control_t *tztest_cntl;
-svc_op_desc_t svc_exit = {.op = SVC_EXIT};
-svc_op_desc_t svc_yield = {.op = SVC_YIELD};
 
 #if 0
 /* Make the below globals volatile as  found that the compiler uses the
@@ -73,11 +71,10 @@ uint32_t P0_nonsecure_check_smc()
 void *alloc_mem(int type, size_t len)
 {
     svc_op_desc_t op;
-    op.op = SVC_ALLOC;
     op.alloc.type = type;
     op.alloc.len = len;
     op.alloc.addr = NULL;
-    __svc(&op);
+    __svc(SVC_ALLOC, &op);
 
     return op.alloc.addr;
 }
@@ -85,12 +82,11 @@ void *alloc_mem(int type, size_t len)
 void map_va(void *va, size_t len, int type)
 {
     svc_op_desc_t op;
-    op.op = SVC_MAP;
     op.map.va = va;
     op.map.len = len;
     op.map.type = type;
 
-    __svc(&op);
+    __svc(SVC_MAP, &op);
 }
 
 int main()
@@ -101,8 +97,8 @@ int main()
     map_va(tztest_cntl, 0x1000, OP_MAP_ALL);
     printf("Called alloc_mem: got addr = %x\n", tztest_cntl);
 
-    __svc(&svc_yield);
-    __svc(&svc_exit);
+    __svc(SVC_YIELD, NULL);
+    __svc(SVC_EXIT, NULL);
 
     return 0;
 }

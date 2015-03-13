@@ -16,4 +16,5 @@
 #define EL1_PGTBL_SIZE EL1_S_PGTBL_SIZE
 
 #define SECURE_STATE "secure"
+#define is_secure 1
 #endif

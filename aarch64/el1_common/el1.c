@@ -10,11 +10,12 @@
 #include "arm_builtins.h"
 #include "elf.h"
 #include "debug.h"
+#include "syscntl.h"
 
 extern void el1_init_el0();
 
 smc_op_desc_t *smc_interop_buf;
-smc_control_t *el1_smc_cntl;
+sys_control_t *el1_sys_cntl;
 uint64_t el1_next_pa = 0;
 uint64_t el1_heap_pool = 0x40000000;
 
@@ -163,7 +164,36 @@ void el1_map_secure(op_map_mem_t *map)
     __smc(SMC_OP_MAP, desc);
 }
 
-void el1_handle_exception(uint64_t ec, uint64_t iss, svc_op_desc_t *desc)
+void el1_handle_svc(uint64_t ec, uint32_t op, svc_op_desc_t *desc)
+{
+    assert(ec == EC_SVC64);
+
+    switch (op) {
+    case SVC_EXIT:
+        DEBUG_MSG("took an svc(SVC_EXIT) \n", op);
+        SMC_EXIT();
+        break;
+    case SVC_YIELD:
+        DEBUG_MSG("took an svc(SVC_YIELD) \n", op);
+        SMC_YIELD();
+        break;
+    case SVC_ALLOC:
+        DEBUG_MSG("took an svc(SVC_ALLOC) \n", op);
+        el1_alloc_mem((op_alloc_mem_t *)&desc->alloc);
+        break;
+    case SVC_MAP:
+        DEBUG_MSG("took an svc(SVC_MAP) \n", op);
+        el1_map_secure((op_map_mem_t *)&desc->map);
+        break;
+    case SVC_GET_SYSCNTL:
+        break;
+    default:
+        printf("Unrecognized AArch64 SVC opcode: op = %d\n", op);
+        break;
+    }
+}
+
+void el1_handle_exception(uint64_t ec, uint64_t iss)
 {
     armv8_data_abort_iss_t dai = {.raw = iss};
 //    armv8_inst_abort_iss_t iai = {.raw = iss};
@@ -172,30 +202,11 @@ void el1_handle_exception(uint64_t ec, uint64_t iss, svc_op_desc_t *desc)
     __get_exception_address(far);
     __get_exception_return(elr);
 
+    el1_sys_cntl->el1_excp[is_secure].ec = ec;
+    el1_sys_cntl->el1_excp[is_secure].iss = iss;
+    el1_sys_cntl->el1_excp[is_secure].far = far;
+
     switch (ec) {
-    case EC_SVC32:
-    case EC_SVC64:
-        switch (desc->op) {
-        case SVC_EXIT:
-            DEBUG_MSG("took an svc(SVC_EXIT) \n", iss);
-            SMC_EXIT();
-            break;
-        case SVC_YIELD:
-            DEBUG_MSG("took an svc(SVC_YIELD) \n", iss);
-            SMC_YIELD();
-            break;
-        case SVC_ALLOC:
-            DEBUG_MSG("took an svc(SVC_ALLOC) \n", iss);
-            el1_alloc_mem((op_alloc_mem_t *)&desc->alloc);
-            break;
-        case SVC_MAP:
-            DEBUG_MSG("took an svc(SVC_MAP) \n", iss);
-            el1_map_secure((op_map_mem_t *)&desc->map);
-            break;
-        default:
-            printf("Unrecognized AArch64 SVC opcode: iss = %d\n", iss);
-            break;
-        }
         break;
     case EC_IABORT_LOWER:
         printf("Instruction abort at lower level: far = %0lx\n", far);
@@ -293,12 +304,12 @@ void el1_start(uint64_t base, uint64_t size)
         el1_unmap_va(addr);
     }
 
-    void *pa = el1_smc_cntl;
-    el1_smc_cntl = (smc_control_t *)el1_heap_allocate(0x1000);
-    el1_map_pa((uintptr_t)el1_smc_cntl, (uintptr_t)pa);
-    el1_map_pa((uintptr_t)el1_smc_cntl->interop_buf_va,
-               (uintptr_t)el1_smc_cntl->interop_buf_pa);
-    smc_interop_buf = el1_smc_cntl->interop_buf_va;
+    void *pa = el1_sys_cntl;
+    el1_sys_cntl = (sys_control_t *)el1_heap_allocate(0x1000);
+    el1_map_pa((uintptr_t)el1_sys_cntl, (uintptr_t)pa);
+    el1_map_pa((uintptr_t)el1_sys_cntl->smc_interop.buf_va,
+               (uintptr_t)el1_sys_cntl->smc_interop.buf_pa);
+    smc_interop_buf = el1_sys_cntl->smc_interop.buf_va;
 
     el1_init_el0();
 

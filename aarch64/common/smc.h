@@ -27,11 +27,6 @@ extern smc_op_desc_t *smc_interop_buf;
 #define SMC_EXIT()  SMC_NO_DESC(SMC_OP_EXIT)
 #define SMC_YIELD()  SMC_NO_DESC(SMC_OP_YIELD)
 
-typedef struct {
-     void *interop_buf_pa;
-     void *interop_buf_va;
-} smc_control_t;
-
 #endif
 
 #endif
