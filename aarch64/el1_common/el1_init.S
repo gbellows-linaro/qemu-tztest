@@ -1,5 +1,7 @@
+#define __ASSEMBLY__
 #include "el1.h"
 #include "armv8_vmsa.h"
+#undef __ASSEMBLY__
 
 .section .init
 .align 12
@@ -165,7 +167,7 @@ el1_init_start:
 /* Migrate the next PA to the non-init code */
     ldr x10, =el1_next_pa
     str x17, [x10]
-    ldr x10, =el1_sys_cntl
+    ldr x10, =syscntl
     str x16, [x10]
 
     /* Pass the address and size of the init section to start so it

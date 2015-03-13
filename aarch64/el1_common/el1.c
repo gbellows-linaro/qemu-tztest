@@ -15,7 +15,7 @@
 extern void el1_init_el0();
 
 smc_op_desc_t *smc_interop_buf;
-sys_control_t *el1_sys_cntl;
+sys_control_t *syscntl;
 uint64_t el1_next_pa = 0;
 uint64_t el1_heap_pool = 0x40000000;
 
@@ -50,7 +50,7 @@ void el1_map_pa(uintptr_t vaddr, uintptr_t paddr)
     off = ((vaddr >> (39-(i*9))) & 0x1FF) << 3;
     pte = (uint64_t *)(pa | off);
     *pte = paddr & ~0xFFF;
-    *pte |= (PTE_PAGE | PTE_ACCESS);
+    *pte |= (PTE_PAGE | PTE_ACCESS | PTE_USER_RW);
     DEBUG_MSG("mapped VA:0x%lx to PA:0x%x (PTE:0x%lx)",
               vaddr, paddr, pte);
 }
@@ -186,6 +186,7 @@ void el1_handle_svc(uint64_t ec, uint32_t op, svc_op_desc_t *desc)
         el1_map_secure((op_map_mem_t *)&desc->map);
         break;
     case SVC_GET_SYSCNTL:
+        desc->get.datap = syscntl;
         break;
     default:
         printf("Unrecognized AArch64 SVC opcode: op = %d\n", op);
@@ -195,37 +196,55 @@ void el1_handle_svc(uint64_t ec, uint32_t op, svc_op_desc_t *desc)
 
 void el1_handle_exception(uint64_t ec, uint64_t iss)
 {
+#ifdef DEBUG
     armv8_data_abort_iss_t dai = {.raw = iss};
 //    armv8_inst_abort_iss_t iai = {.raw = iss};
+#endif
     uint64_t elr, far;
 
     __get_exception_address(far);
     __get_exception_return(elr);
 
-    el1_sys_cntl->el1_excp[is_secure].ec = ec;
-    el1_sys_cntl->el1_excp[is_secure].iss = iss;
-    el1_sys_cntl->el1_excp[is_secure].far = far;
+    if (syscntl->excp_log || syscntl->el1_excp[SEC_STATE].log) {
+        syscntl->el1_excp[SEC_STATE].taken = true;
+        syscntl->el1_excp[SEC_STATE].ec = ec;
+        syscntl->el1_excp[SEC_STATE].iss = iss;
+        syscntl->el1_excp[SEC_STATE].far = far;
+    }
 
     switch (ec) {
+    case EC_UNKNOWN:
+        DEBUG_MSG("EL1_%s: Unknown exception far = 0x%lx  elr = 0x%lx\n",
+                  SEC_STATE ? "NS" : "S", far, elr);
+
+        if (syscntl->el1_excp[SEC_STATE].action == EXCP_ACTION_SKIP ||
+            syscntl->excp_action == EXCP_ACTION_SKIP) {
+            elr +=4;
+            __set_exception_return(elr);
+        }
         break;
+
     case EC_IABORT_LOWER:
-        printf("Instruction abort at lower level: far = %0lx\n", far);
+        DEBUG_MSG("EL1_%s: Instruction abort at lower level: far = %0lx\n",
+                  SEC_STATE ? "NS" : "S", far);
         break;
     case EC_IABORT:
-        printf("Instruction abort at EL1: far = %0lx\n", far);
+        DEBUG_MSG("EL1_%s: Instruction abort at EL1: far = %0lx\n",
+                  SEC_STATE ? "NS" : "S", far);
         break;
     case EC_DABORT_LOWER:
-        printf("Data abort (%s) at lower level: far = %0lx elr = %0lx\n",
-               dai.wnr ? "write" : "read", far, elr);
-        el1_map_va(far);
+        DEBUG_MSG("EL1_%s: Data abort (%s) at lower level: "
+                  "far = %0lx elr = %0lx\n",
+                  SEC_STATE ? "NS" : "S", dai.wnr ? "write" : "read",
+                  far, elr);
         break;
     case EC_DABORT:
-        printf("Data abort (%s) at EL1: far = %0lx elr = %0lx\n",
-               dai.wnr ? "write" : "read", far, elr);
-        el1_map_va(far);
+        DEBUG_MSG("EL1_%s: Data abort (%s) at EL1: far = %0lx elr = %0lx\n",
+                  SEC_STATE ? "NS" : "S", dai.wnr ? "write" : "read", far, elr);
         break;
     default:
-        printf("Unhandled EL1 exception: EC = %d  ISS = %d\n", ec, iss);
+        DEBUG_MSG("EL1_%s: Unhandled EL1 exception: EC = %d  ISS = %d\n",
+                  SEC_STATE ? "NS" : "S", ec, iss);
         break;
     }
 }
@@ -274,8 +293,8 @@ void *el1_load_el0(char *elfbase, char *start_va)
         if (!strcmp(secname, ".text") || !strcmp(secname, ".data")) {
             uint64_t sect = (uint64_t)((char *)elfbase + shdr[i].sh_offset);
             char *base_va = start_va + shdr[i].sh_addr;
-            printf("\tloading %s section: 0x%x bytes @ 0x%lx\n",
-                  secname, shdr[i].sh_size, base_va);
+            DEBUG_MSG("\tloading %s section: 0x%x bytes @ 0x%lx\n",
+                      secname, shdr[i].sh_size, base_va);
             for (off = 0; off < shdr[i].sh_size; off += 0x1000) {
                 el1_map_va((uintptr_t)(base_va + off));
                 memcpy((void *)(base_va + off), (void *)(sect + off), 0x1000);
@@ -296,7 +315,7 @@ void el1_start(uint64_t base, uint64_t size)
     uint64_t addr = base;
     size_t len;
 
-    printf("EL1 (%s) started...\n", SECURE_STATE);
+    printf("EL1 (%s) started...\n", SEC_STATE_STR);
 
     /* Unmap the init segement so we don't accidentally use it */
     for (len = 0; len < ((size + 0xFFF) & ~0xFFF);
@@ -304,12 +323,12 @@ void el1_start(uint64_t base, uint64_t size)
         el1_unmap_va(addr);
     }
 
-    void *pa = el1_sys_cntl;
-    el1_sys_cntl = (sys_control_t *)el1_heap_allocate(0x1000);
-    el1_map_pa((uintptr_t)el1_sys_cntl, (uintptr_t)pa);
-    el1_map_pa((uintptr_t)el1_sys_cntl->smc_interop.buf_va,
-               (uintptr_t)el1_sys_cntl->smc_interop.buf_pa);
-    smc_interop_buf = el1_sys_cntl->smc_interop.buf_va;
+    void *pa = syscntl;
+    syscntl = (sys_control_t *)el1_heap_allocate(0x1000);
+    el1_map_pa((uintptr_t)syscntl, (uintptr_t)pa);
+    el1_map_pa((uintptr_t)syscntl->smc_interop.buf_va,
+               (uintptr_t)syscntl->smc_interop.buf_pa);
+    smc_interop_buf = syscntl->smc_interop.buf_va;
 
     el1_init_el0();
 

@@ -16,7 +16,7 @@
 state_buf sec_state;
 state_buf nsec_state;
 
-sys_control_t *sys_cntl;
+sys_control_t *syscntl;
 smc_op_desc_t *smc_interop_buf;
 
 uint64_t el3_next_pa = 0;
@@ -174,7 +174,7 @@ void el3_map_mem(op_map_mem_t *map)
 {
     if ((map->type & OP_MAP_EL3) == OP_MAP_EL3) {
         el3_map_pa((uintptr_t)map->va, (uintptr_t)map->pa);
-        printf("EL3: Mapped VA:0x%lx to PA:0x%lx\n", map->va, map->pa);
+        DEBUG_MSG("EL3: Mapped VA:0x%lx to PA:0x%lx\n", map->va, map->pa);
     }
 
 /*
@@ -224,12 +224,18 @@ int el3_handle_exception(uint64_t ec, uint64_t iss)
     __get_exception_address(far);
     __get_exception_return(elr);
 
-    sys_cntl->el3_excp.ec = ec;
-    sys_cntl->el3_excp.iss = iss;
-    sys_cntl->el3_excp.far = far;
+    if (syscntl->excp_log || syscntl->el3_excp.log) {
+        syscntl->el3_excp.taken = true;
+        syscntl->el3_excp.ec = ec;
+        syscntl->el3_excp.iss = iss;
+        syscntl->el3_excp.far = far;
+    }
 
     switch (ec) {
-    case EC_SMC64:      /* SMC from aarch64 */
+    case EC_SMC64:
+    case EC_SMC32:
+        printf("Took an SMC exception from EL3\n");
+        break;
     case EC_IABORT_LOWER:
         printf("Instruction abort at lower level: far = %0lx\n", far);
         break;
@@ -264,7 +270,7 @@ void el3_monitor_init()
      */
     sec_state.elr_el3 = EL1_S_FLASH_BASE;
     sec_state.spsr_el3 = 0x5;
-    sec_state.x[0] = (uint64_t)el3_lookup_pa(sys_cntl);
+    sec_state.x[0] = (uint64_t)el3_lookup_pa(syscntl);
 
     /* Set-up the nonsecure state buffer to return to the non-secure
      * initialization sequence. This will occur on the first monitor context
@@ -272,7 +278,7 @@ void el3_monitor_init()
      */
     nsec_state.elr_el3 = EL1_NS_FLASH_BASE;
     nsec_state.spsr_el3 = 0x5;
-    nsec_state.x[0] = (uint64_t)el3_lookup_pa(sys_cntl);
+    nsec_state.x[0] = (uint64_t)el3_lookup_pa(syscntl);
 }
 
 void el3_start(uint64_t base, uint64_t size)
@@ -280,16 +286,18 @@ void el3_start(uint64_t base, uint64_t size)
     uint64_t addr = base;
     size_t len;
 
+    printf("EL3 started...\n");
+
     /* Unmap the init segement so we don't accidentally use it */
     for (len = 0; len < ((size + 0xFFF) & ~0xFFF);
          len += 0x1000, addr += 0x1000) {
         el3_unmap_va(addr);
     }
 
-    sys_cntl = el3_heap_allocate(0x1000);
+    syscntl = el3_heap_allocate(0x1000);
     smc_interop_buf = el3_heap_allocate(0x1000);
-    sys_cntl->smc_interop.buf_va = smc_interop_buf;
-    sys_cntl->smc_interop.buf_pa = el3_lookup_pa(smc_interop_buf);
+    syscntl->smc_interop.buf_va = smc_interop_buf;
+    syscntl->smc_interop.buf_pa = el3_lookup_pa(smc_interop_buf);
 
     el3_monitor_init();
 

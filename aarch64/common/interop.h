@@ -30,4 +30,7 @@ typedef struct {
     uintptr_t ret;
 } op_dispatch_t;
 
+typedef struct {
+    void *datap;
+} op_get_data_t;
 #endif

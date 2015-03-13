@@ -21,6 +21,7 @@ extern void __svc(uint32_t, void *);
 typedef union {
     op_alloc_mem_t alloc;
     op_map_mem_t map;
+    op_get_data_t get;
 } svc_op_desc_t;
 
 #endif
