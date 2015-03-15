@@ -12,6 +12,7 @@
 #define SVC_MAP 8
 #define SVC_YIELD 9
 #define SVC_GET_SYSCNTL 10
+#define SVC_GET_MODE 11
 
 #ifndef __ASSEMBLY__
 #include "interop.h"

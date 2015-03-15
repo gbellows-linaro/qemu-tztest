@@ -186,7 +186,10 @@ void el1_handle_svc(uint64_t ec, uint32_t op, svc_op_desc_t *desc)
         el1_map_secure((op_map_mem_t *)&desc->map);
         break;
     case SVC_GET_SYSCNTL:
-        desc->get.datap = syscntl;
+        desc->get.data = (uint64_t)syscntl;
+        break;
+    case SVC_GET_MODE:
+        desc->get.data = read_currentel();
         break;
     default:
         printf("Unrecognized AArch64 SVC opcode: op = %d\n", op);

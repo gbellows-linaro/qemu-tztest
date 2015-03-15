@@ -31,6 +31,6 @@ typedef struct {
 } op_dispatch_t;
 
 typedef struct {
-    void *datap;
+    uint64_t data;
 } op_get_data_t;
 #endif

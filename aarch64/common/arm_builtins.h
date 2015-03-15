@@ -1,6 +1,8 @@
 #ifndef _ARM_BUILTINS_H
 #define _ARM_BUILTINS_H
 
+#include "stdint.h"
+
 #define __exception_return(_x0) asm volatile ("eret\n")
 #define __set_exception_return(_elr) \
     asm volatile("mrs x7, currentel\n"  \
@@ -41,4 +43,12 @@
                  "farel1: mrs %0, far_el1\n"   \
                  "fardone:\n" : "=r" (_addr))
 
+extern uint64_t read_currentel();
+extern void write_currentel(uint64_t);
+extern uint64_t read_scr_el3();
+extern void write_scr_el3(uint64_t);
+extern uint64_t read_sder32_el3();
+extern void write_sder32_el3(uint64_t);
+extern uint64_t read_cptr_el3();
+extern void write_cptr_el3(uint64_t);
 #endif

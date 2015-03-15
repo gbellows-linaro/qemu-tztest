@@ -2,6 +2,7 @@
 #include "svc.h"
 #include "syscntl.h"
 #include "armv8_exception.h"
+#include "arm_builtins.h"
 
 typedef struct {
     volatile int fail_count;
@@ -66,6 +67,65 @@ uint32_t P0_nonsecure_check_smc()
     return 0;
 }
 
+uint32_t P0_check_register_access(int state)
+{
+    char *state_str[2] = {"Secure", "Nonsecure"};
+
+    /* Set things to non-secure P1 and attempt accesses */
+    printf("\nValidating %s P0 restricted register access:\n",
+           (state == NSEC) ? "nonsecure" : "secure");
+
+    printf("\t%s P0 SCR read ... ", state_str[state]);
+    TEST_EL1NS_EXCEPTION(read_scr_el3(), EC_UNKNOWN);
+
+    printf("\t%s P0 SCR write ... ", state_str[state]);
+    TEST_EL1NS_EXCEPTION(write_scr_el3(0), EC_UNKNOWN);
+
+    printf("\t%s P0 SDER read ... ", state_str[state]);
+    TEST_EL1NS_EXCEPTION(read_sder32_el3(), EC_UNKNOWN);
+
+    printf("\t%s P0 SDER write ... ", state_str[state]);
+    TEST_EL1NS_EXCEPTION(write_sder32_el3(0), EC_UNKNOWN);
+
+/*
+    printf("\t%s P0 MVBAR read ... ", state_str[state]);
+    TEST_EL1NS_EXCEPTION(read_mvbar(), EC_UNKNOWN);
+
+    printf("\t%s P0 MVBAR write ... ", state_str[state]);
+    TEST_EL1NS_EXCEPTION(write_mvbar(0), EC_UNKNOWN);
+
+    printf("\t%s P0 NSACR write ... ", state_str[state]);
+    TEST_EL1NS_EXCEPTION(write_nsacr(0), EC_UNKNOWN);
+*/
+
+    printf("\t%s P0 CPTR_EL3 read ... ", state_str[state]);
+    TEST_EL1NS_EXCEPTION(read_cptr_el3(), EC_UNKNOWN);
+
+    printf("\t%s P0 CPTR_EL3 write ... ", state_str[state]);
+    TEST_EL1NS_EXCEPTION(write_cptr_el3(0), EC_UNKNOWN);
+
+    return 0;
+}
+
+uint32_t P0_nonsecure_check_register_access()
+{
+//    validate_state(CPSR_MODE_USR, TZTEST_STATE_NONSECURE);
+
+    P0_check_register_access(NSEC);
+
+    return 0;
+}
+
+uint32_t P0_secure_check_register_access()
+{
+//    validate_state(CPSR_MODE_USR, TZTEST_STATE_SECURE);
+
+    P0_check_register_access(SEC);
+
+    return 0;
+}
+//SECURE_USR_FUNC(P0_secure_check_register_access);
+
 void *alloc_mem(int type, size_t len)
 {
     svc_op_desc_t op;
@@ -99,7 +159,8 @@ int main()
 
     /* Fetch the system-wide control structure */
     __svc(SVC_GET_SYSCNTL, &get_data);
-    syscntl = get_data.datap;
+    syscntl = (sys_control_t *)get_data.data;
+
     /* If we didn't get a valid control structure then something has already
      * gone drastically wrong.
      */
@@ -111,6 +172,12 @@ int main()
     __svc(SVC_YIELD, NULL);
 
     P0_nonsecure_check_smc();
+    P0_nonsecure_check_register_access();
+
+    /* Fetch the system-wide control structure */
+//    __svc(SVC_GET_MODE, &get_data);
+//    uint64_t el = get_data.data;
+//    printf("EL = 0x%lx\n", el);
 
     __svc(SVC_EXIT, NULL);
 
