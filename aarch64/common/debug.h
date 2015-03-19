@@ -3,7 +3,7 @@
 
 #ifdef DEBUG
 #define DEBUG_MSG(_str, ...) \
-    printf("\n[DEBUG] %s: " _str, __FUNCTION__, ##__VA_ARGS__)
+    printf("\n[DEBUG] %s (%s): " _str, __FUNCTION__, SEC_STATE_STR, ##__VA_ARGS__)
 #define DEBUG_ARG
 #else
 #define DEBUG_MSG(_str, ...)

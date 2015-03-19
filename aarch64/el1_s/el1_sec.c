@@ -2,39 +2,17 @@
 #include "arm_builtins.h"
 #include "libcflat.h"
 #include <stdint.h>
-#include "smc.h"
+#include "el1.h"
 #include "debug.h"
 
-extern void el1_map_pa(uintptr_t vaddr, uintptr_t paddr);
-void el1_sec_smc_loop()
-{
-    smc_op_desc_t *desc = smc_interop_buf;
-    uint32_t op = SMC_OP_YIELD;
-
-    DEBUG_MSG("EL1_S: In loop\n");
-
-    while (op != SMC_OP_EXIT) {
-        switch (op) {
-        case SMC_OP_MAP:
-            DEBUG_MSG("EL1_S: Doing a MAP desc = %p\n", desc);
-            el1_map_pa((uintptr_t)(desc->map.va), (uintptr_t)(desc->map.pa));
-            break;
-        case SMC_OP_YIELD:
-            DEBUG_MSG("EL1_S: Doing a YIELD desc = %p\n", desc);
-            break;
-        default:
-            DEBUG_MSG("Unrecognized SMC opcode %d.  Exiting ...\n", op);
-            SMC_EXIT();
-            break;
-        }
-
-        op = __smc(op, desc);
-    }
-
-    SMC_EXIT();
-}
+extern void *el1_load_el0(char *base, char *start_va);
 
 void el1_init_el0()
 {
-    el1_sec_smc_loop();
+    int (*main)(void);
+
+    main = el1_load_el0((char *)EL0_S_FLASH_BASE, (char *)EL0_NS_BASE_VA);
+
+    __set_exception_return(main);
+    __exception_return();
 }

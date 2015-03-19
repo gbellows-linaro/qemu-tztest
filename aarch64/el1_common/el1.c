@@ -155,46 +155,72 @@ void *el1_lookup_pa(void *va)
 
 void el1_map_secure(op_map_mem_t *map)
 {
-    smc_op_desc_t *desc = (smc_op_desc_t *)smc_interop_buf;
-
-    memcpy(desc, map, sizeof(op_map_mem_t));
-
-    desc->map.pa = el1_lookup_pa(desc->map.va);
-
-    __smc(SMC_OP_MAP, desc);
+    if ((map->type & OP_MAP_EL3) == OP_MAP_EL3) {
+        smc_op_desc_t *desc = (smc_op_desc_t *)smc_interop_buf;
+        memcpy(desc, map, sizeof(op_map_mem_t));
+        if (desc->map.pa) {
+            desc->map.pa = el1_lookup_pa(desc->map.va);
+        }
+        __smc(SMC_OP_MAP, desc);
+    } else {
+        el1_map_pa((uint64_t)map->va, (uint64_t)map->pa);
+    }
 }
 
-void el1_handle_svc(uint64_t ec, uint32_t op, svc_op_desc_t *desc)
+void el1_interop_test(op_test_t *desc)
 {
-    assert(ec == EC_SVC64);
+    op_test_t *test = (op_test_t*)smc_interop_buf;
 
+    memcpy(smc_interop_buf, desc, sizeof(smc_op_desc_t));
+    if (test->val != test->orig >> test->count) {
+        test->fail++;
+    }
+    test->val >>= 1;
+    test->count++;
+
+    __smc(SMC_OP_TEST, smc_interop_buf);
+    if (test->val != test->orig >> test->count) {
+        test->fail++;
+    }
+    test->val >>= 1;
+    test->count++;
+    memcpy(desc, smc_interop_buf, sizeof(smc_op_desc_t));
+}
+
+int el1_handle_svc(uint32_t op, svc_op_desc_t *desc)
+{
+    uint32_t ret = 0;
+
+    DEBUG_MSG("Took an svc(%s) - desc = %p\n", svc_op_name[op], desc);
     switch (op) {
-    case SVC_EXIT:
-        DEBUG_MSG("took an svc(SVC_EXIT) \n", op);
+    case SVC_OP_EXIT:
         SMC_EXIT();
         break;
-    case SVC_YIELD:
-        DEBUG_MSG("took an svc(SVC_YIELD) \n", op);
-        SMC_YIELD();
+    case SVC_OP_YIELD:
+        ret = SMC_YIELD();
+        memcpy(desc, smc_interop_buf, sizeof(smc_op_desc_t));
         break;
-    case SVC_ALLOC:
-        DEBUG_MSG("took an svc(SVC_ALLOC) \n", op);
-        el1_alloc_mem((op_alloc_mem_t *)&desc->alloc);
+    case SVC_OP_ALLOC:
+        el1_alloc_mem((op_alloc_mem_t *)desc);
         break;
-    case SVC_MAP:
-        DEBUG_MSG("took an svc(SVC_MAP) \n", op);
-        el1_map_secure((op_map_mem_t *)&desc->map);
+    case SVC_OP_MAP:
+        el1_map_secure((op_map_mem_t *)desc);
         break;
-    case SVC_GET_SYSCNTL:
+    case SVC_OP_GET_SYSCNTL:
         desc->get.data = (uint64_t)syscntl;
         break;
-    case SVC_GET_MODE:
+    case SVC_OP_GET_MODE:
         desc->get.data = read_currentel();
         break;
+    case SVC_OP_TEST:
+        el1_interop_test((op_test_t *)desc);
+        break;
     default:
-        printf("Unrecognized AArch64 SVC opcode: op = %d\n", op);
+        DEBUG_MSG("Unrecognized AArch64 SVC opcode: op = %d\n", op);
         break;
     }
+
+    return ret;
 }
 
 void el1_handle_exception(uint64_t ec, uint64_t iss)
@@ -217,8 +243,7 @@ void el1_handle_exception(uint64_t ec, uint64_t iss)
 
     switch (ec) {
     case EC_UNKNOWN:
-        DEBUG_MSG("EL1_%s: Unknown exception far = 0x%lx  elr = 0x%lx\n",
-                  SEC_STATE ? "NS" : "S", far, elr);
+        DEBUG_MSG("Unknown exception far = 0x%lx  elr = 0x%lx\n", far, elr);
 
         if (syscntl->el1_excp[SEC_STATE].action == EXCP_ACTION_SKIP ||
             syscntl->excp_action == EXCP_ACTION_SKIP) {
@@ -228,26 +253,26 @@ void el1_handle_exception(uint64_t ec, uint64_t iss)
         break;
 
     case EC_IABORT_LOWER:
-        DEBUG_MSG("EL1_%s: Instruction abort at lower level: far = %0lx\n",
-                  SEC_STATE ? "NS" : "S", far);
+        DEBUG_MSG("Instruction abort at lower level: far = %0lx\n", far);
+        SMC_EXIT();
         break;
     case EC_IABORT:
-        DEBUG_MSG("EL1_%s: Instruction abort at EL1: far = %0lx\n",
-                  SEC_STATE ? "NS" : "S", far);
+        DEBUG_MSG("Instruction abort at EL1: far = %0lx\n", far);
+        SMC_EXIT();
         break;
     case EC_DABORT_LOWER:
-        DEBUG_MSG("EL1_%s: Data abort (%s) at lower level: "
-                  "far = %0lx elr = %0lx\n",
-                  SEC_STATE ? "NS" : "S", dai.wnr ? "write" : "read",
-                  far, elr);
+        DEBUG_MSG("Data abort (%s) at lower level: far = %0lx elr = %0lx\n",
+                  dai.wnr ? "write" : "read", far, elr);
+        SMC_EXIT();
         break;
     case EC_DABORT:
-        DEBUG_MSG("EL1_%s: Data abort (%s) at EL1: far = %0lx elr = %0lx\n",
-                  SEC_STATE ? "NS" : "S", dai.wnr ? "write" : "read", far, elr);
+        DEBUG_MSG("Data abort (%s) at EL1: far = %0lx elr = %0lx\n",
+                  dai.wnr ? "write" : "read", far, elr);
+        SMC_EXIT();
         break;
     default:
-        DEBUG_MSG("EL1_%s: Unhandled EL1 exception: EC = %d  ISS = %d\n",
-                  SEC_STATE ? "NS" : "S", ec, iss);
+        DEBUG_MSG("Unhandled EL1 exception: EC = %d  ISS = %d\n", ec, iss);
+        SMC_EXIT();
         break;
     }
 }

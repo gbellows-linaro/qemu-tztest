@@ -8,6 +8,8 @@ typedef struct state_buf {
     uintptr_t spsr_el1;
     uintptr_t esr_el1;
     uintptr_t sp_el1;
+    uintptr_t spsel;
+    uintptr_t sp_el0;
     uintptr_t spsr_abt;
     uintptr_t spsr_und;
     uintptr_t spsr_irq;

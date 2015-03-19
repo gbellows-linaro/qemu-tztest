@@ -21,3 +21,7 @@ define load_el0ns
 add-symbol-file aarch64/el0_ns/tztest.elf 0x10000
 end
 
+define load_el0s
+add-symbol-file aarch64/el0_s/tztest.elf 0x10000
+end
+

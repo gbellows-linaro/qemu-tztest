@@ -143,45 +143,75 @@ void map_va(void *va, size_t len, int type)
     __svc(SVC_OP_MAP, &op);
 }
 
-void interop_test()
+void el0_sec_loop()
 {
-    op_test_t test;
+    svc_op_desc_t desc;
+    op_test_t *test = (op_test_t *)&desc;
+    uint32_t op = SVC_OP_YIELD;
 
-    test.orig = test.val = 1024;
-    test.fail = test.count = 0;
-    __svc(SVC_OP_TEST, (svc_op_desc_t *)&test);
+    DEBUG_MSG("In loop desc = %p  test = %p\n", &desc, test);
 
-    printf("Testing interop communication between ELs... ");
-    TEST_CONDITION(!test.fail && test.val == (test.orig >> test.count));
+    while (op != SVC_OP_EXIT) {
+        switch (op) {
+        case SVC_OP_MAP:
+            DEBUG_MSG("Doing a MAP desc = %p\n", &desc);
+            op = SVC_OP_MAP;
+            break;
+        case SVC_OP_YIELD:
+            DEBUG_MSG("Doing a YIELD desc = %p\n", &desc);
+            break;
+        case SVC_OP_TEST:
+            DEBUG_MSG("Handling an svc(SVC_OP_TEST) = %p\n", &desc);
+            if (test->val != test->orig >> test->count) {
+                test->fail++;
+            }
+            test->val >>= 1;
+            test->count++;
+            break;
+        case 0:
+            op = SVC_OP_YIELD;
+            break;
+        default:
+            DEBUG_MSG("Unrecognized SVC opcode %d.  Exiting ...\n", op);
+            op = SVC_OP_EXIT;
+            break;
+        }
+
+        DEBUG_MSG("Calling svc(%d, %p)\n", op, &desc);
+        op = __svc(op, &desc);
+        DEBUG_MSG("Back from svc - op = %d &desc = %p\n", op, &desc);
+    }
+
+    __svc(SVC_OP_EXIT, NULL);
 }
 
 int main()
 {
     svc_op_desc_t desc;
 
-    printf("Starting TZ test ...\n");
+    printf("Starting secure-side EL0  ...\n");
 
     /* Fetch the system-wide control structure */
     __svc(SVC_OP_GET_SYSCNTL, &desc);
-    syscntl = ((sys_control_t *)desc.get.data);
-
-    /* Allocate and globally map test control descriptor */
-    syscntl->test_cntl = (test_control_t*)alloc_mem(0, 0x1000);
-    map_va(syscntl->test_cntl, 0x1000, OP_MAP_ALL);
-
-    /* Test EL to EL communication */
-    interop_test();
+    syscntl = (sys_control_t *)desc.get.data;
 
     /* If we didn't get a valid control structure then something has already
      * gone drastically wrong.
      */
     if (!syscntl) {
-        DEBUG_MSG("Failed to acquire system control structure\n");
-        __svc(SVC_OP_EXIT, &desc);
+        printf("Failed to acquire system control structure\n");
+        __svc(SVC_OP_EXIT, NULL);
     }
 
-    P0_nonsecure_check_smc();
-    P0_nonsecure_check_register_access();
+    el0_sec_loop();
+
+//    P0_nonsecure_check_smc();
+//    P0_nonsecure_check_register_access();
+
+    /* Fetch the system-wide control structure */
+//    __svc(SVC_OP_GET_MODE, &get_data);
+//    uint64_t el = get_data.data;
+//    printf("EL = 0x%lx\n", el);
 
     __svc(SVC_OP_EXIT, NULL);
 

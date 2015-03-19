@@ -24,7 +24,6 @@ el3_sync_exception_current:
 el3_sync_exception_lower64:
     stp x30, x2, [sp, #-16]!
     stp x0, x1, [sp, #-16]!
-    mov x2, x0
     mrs x0, esr_el3
     mov x1, #0xffffff
     and x1, x1, x0
@@ -38,11 +37,11 @@ el3_sync_exception_lower64:
     ldp x30, x2, [sp], #16
     b el3_sync_exception_lower64_done
 el3_sync_exception_lower64_smc:
-    ldp x1, x2, [sp]        /* Fetch our inputs as SMC args */
+    ldp x0, x1, [sp]        /* Fetch our inputs as SMC args */
     bl el3_handle_smc
-    cbz x0, el3_sync_exception_lower64_done
-    ldp x0, x1, [sp], #16
+    ldp x2, x1, [sp], #16
     ldp x30, x2, [sp], #16
+    cbz x0, el3_sync_exception_lower64_done
     b monitor_switch        /* This never returns, erets */
 el3_sync_exception_lower64_done:
     eret

@@ -21,11 +21,17 @@ typedef struct {
 #define NSEC    1
 
 typedef struct {
+    volatile int fail_count;
+    volatile int test_count;
+} test_control_t;
+
+typedef struct {
     smc_interop_t smc_interop;
     sys_exception_t el3_excp;
     sys_exception_t el1_excp[2];
     uint32_t excp_action;
     bool excp_log;
+    test_control_t *test_cntl;
 } sys_control_t;
 
 #endif

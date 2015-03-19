@@ -6,12 +6,14 @@
 #include "libcflat.h"
 #include "smc.h"
 #include "svc.h"
-#include "debug.h"
 #include "armv8_exception.h"
 #include "armv8_vmsa.h"
 #include "el3_monitor.h"
 #include "arm_builtins.h"
 #include "syscntl.h"
+
+#define SEC_STATE_STR "EL3"
+#include "debug.h"
 
 state_buf sec_state;
 state_buf nsec_state;
@@ -170,46 +172,52 @@ void *el3_lookup_pa(void *va)
     return (void *)pa;
 }
 
-void el3_map_mem(op_map_mem_t *map)
+uint32_t el3_map_mem(op_map_mem_t *map)
 {
     if ((map->type & OP_MAP_EL3) == OP_MAP_EL3) {
         el3_map_pa((uintptr_t)map->va, (uintptr_t)map->pa);
-        DEBUG_MSG("EL3: Mapped VA:0x%lx to PA:0x%lx\n", map->va, map->pa);
+        DEBUG_MSG("Mapped VA:0x%lx to PA:0x%lx\n", map->va, map->pa);
     }
 
-/*
     if ((map->type & OP_MAP_SEC_EL1) == OP_MAP_SEC_EL1) {
-        monitor_switch(SMC_OP_MAP, (smc_op_desc_t *)map);
+        map->type &= ~OP_MAP_EL3;
+        DEBUG_MSG("Initiating SVC_OP_MAP\n");
+        return SVC_OP_MAP;
     }
-*/
+
+    return 0;
 }
 
-int el3_handle_smc(uint64_t ec, uint64_t op, smc_op_desc_t *desc)
+int el3_handle_smc(uint64_t op, smc_op_desc_t *desc)
 {
-    assert(ec == EC_SMC64);
+    op_test_t *test = (op_test_t*)desc;
 
+    DEBUG_MSG("Took an smc(%s) - desc = %p\n", smc_op_name[op], desc);
     switch (op) {
     case SMC_OP_YIELD:
-        DEBUG_MSG("took an SMC(SMC_YIELD) exception\n");
-        return 1;
+        return SVC_OP_YIELD;
         break;
     case SMC_OP_DISPATCH_MONITOR:
-        DEBUG_MSG("took an smc(SMC_OP_DSPATCH_MONITOR) exception\n");
         el3_dispatch((op_dispatch_t *)&desc->dispatch);
         break;
     case SMC_OP_MAP:
-        DEBUG_MSG("took an smc(SMC_OP_MAP) exception\n");
-        el3_map_mem((op_map_mem_t *)&desc->map);
-        return 1;
+        return el3_map_mem((op_map_mem_t *)&desc->map);
         break;
     case SMC_OP_NOOP:
-        DEBUG_MSG("took an smc(SMC_OP_NOOP) exception\n");
         break;
     case SMC_OP_EXIT:
         el3_shutdown();
         break;
+    case SMC_OP_TEST:
+        if (test->val != test->orig >> test->count) {
+            test->fail++;
+        }
+        test->val >>= 1;
+        test->count++;
+        return SVC_OP_TEST;
     default:
-        printf("Unrecognized AArch64 SMC opcode: iss = %d\n", op);
+        printf("Unrecognized AArch64 SMC opcode: op = %d\n", op);
+        el3_shutdown();
         break;
     }
 
@@ -238,20 +246,25 @@ int el3_handle_exception(uint64_t ec, uint64_t iss)
         break;
     case EC_IABORT_LOWER:
         printf("Instruction abort at lower level: far = %0lx\n", far);
+        el3_shutdown();
         break;
     case EC_IABORT:
         printf("Instruction abort at EL3: far = %0lx\n", far);
+        el3_shutdown();
         break;
     case EC_DABORT_LOWER:
         printf("Data abort (%s) at lower level: far = %0lx elr = %0lx\n",
                dai.wnr ? "write" : "read", far, elr);
+        el3_shutdown();
         break;
     case EC_DABORT:
         printf("Data abort (%s) at EL3: far = %0lx elr = %0lx\n",
                dai.wnr ? "write" : "read", far, elr);
+        el3_shutdown();
         break;
     default:
         printf("Unhandled EL3 exception: EC = %d  ISS = %d\n", ec, iss);
+        el3_shutdown();
         break;
     }
 
@@ -270,6 +283,7 @@ void el3_monitor_init()
      */
     sec_state.elr_el3 = EL1_S_FLASH_BASE;
     sec_state.spsr_el3 = 0x5;
+    sec_state.spsel = 0x1;
     sec_state.x[0] = (uint64_t)el3_lookup_pa(syscntl);
 
     /* Set-up the nonsecure state buffer to return to the non-secure
@@ -278,6 +292,7 @@ void el3_monitor_init()
      */
     nsec_state.elr_el3 = EL1_NS_FLASH_BASE;
     nsec_state.spsr_el3 = 0x5;
+    nsec_state.spsel = 0x1;
     nsec_state.x[0] = (uint64_t)el3_lookup_pa(syscntl);
 }
 
@@ -295,6 +310,7 @@ void el3_start(uint64_t base, uint64_t size)
     }
 
     syscntl = el3_heap_allocate(0x1000);
+
     smc_interop_buf = el3_heap_allocate(0x1000);
     syscntl->smc_interop.buf_va = smc_interop_buf;
     syscntl->smc_interop.buf_pa = el3_lookup_pa(smc_interop_buf);

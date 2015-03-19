@@ -24,7 +24,6 @@ el1_sync_exception_current:
 el1_sync_exception_lower64:
     stp x30, x2, [sp, #-16]!
     stp x0, x1, [sp, #-16]!
-    mov x2, x0;
     mrs x0, esr_el1
     mov x1, #0xffffff
     and x1, x1, x0
@@ -35,14 +34,13 @@ el1_sync_exception_lower64:
     b.eq el1_sync_exception_lower64_svc
     bl el1_handle_exception
     ldp x0, x1, [sp], #16
-    ldp x30, x2, [sp], #16
     b el1_sync_exception_lower64_done
 el1_sync_exception_lower64_svc:
-    ldp x1, x2, [sp]        /* Fetch our inputs as SVC args */
+    ldp x0, x1, [sp]       /* Fetch our inputs as SVC args */
     bl el1_handle_svc
-    ldp x0, x1, [sp], #16
-    ldp x30, x2, [sp], #16
+    ldp x2, x1, [sp], #16
 el1_sync_exception_lower64_done:
+    ldp x30, x2, [sp], #16
     eret
 .align 7
 el1_serr_exception:

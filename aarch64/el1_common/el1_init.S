@@ -1,5 +1,6 @@
 #define __ASSEMBLY__
 #include "el1.h"
+#include "el0.h"
 #include "armv8_vmsa.h"
 #undef __ASSEMBLY__
 

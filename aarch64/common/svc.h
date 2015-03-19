@@ -1,29 +1,35 @@
 #ifndef _SVC_H
 #define _SVC_H
 
-#define SVC_RETURN_FROM_SECURE_USR 0
-#define SVC_DISPATCH_MONITOR 1
-#define SVC_DISPATCH_SECURE_USR 2
-#define SVC_DISPATCH_SECURE_SVC 3
-#define SVC_DISPATCH_NONSECURE_SVC 4
-#define SVC_GET_SECURE_STATE 5
-#define SVC_EXIT 6
-#define SVC_ALLOC 7
-#define SVC_MAP 8
-#define SVC_YIELD 9
-#define SVC_GET_SYSCNTL 10
-#define SVC_GET_MODE 11
+#define SVC_OP_EXIT 6
+#define SVC_OP_ALLOC 7
+#define SVC_OP_MAP 8
+#define SVC_OP_YIELD 9
+#define SVC_OP_GET_SYSCNTL 10
+#define SVC_OP_GET_MODE 11
+#define SVC_OP_TEST 12
 
 #ifndef __ASSEMBLY__
 #include "interop.h"
 
-extern void __svc(uint32_t, void *);
+const char *svc_op_name[] = {
+    [SVC_OP_EXIT] = "SVC_OP_EXIT",
+    [SVC_OP_ALLOC] = "SVC_OP_ALLOC",
+    [SVC_OP_MAP] = "SVC_OP_MAP",
+    [SVC_OP_YIELD] = "SVC_OP_YIELD",
+    [SVC_OP_GET_SYSCNTL] = "SVC_OP_GET_SYSCNTL",
+    [SVC_OP_GET_MODE] = "SVC_OP_GET_MODE",
+    [SVC_OP_TEST] = "SVC_OP_TEST"
+};
 
 typedef union {
     op_alloc_mem_t alloc;
     op_map_mem_t map;
     op_get_data_t get;
+    op_test_t test;
 } svc_op_desc_t;
+
+extern uint32_t __svc(uint32_t, const svc_op_desc_t *);
 
 #endif
 

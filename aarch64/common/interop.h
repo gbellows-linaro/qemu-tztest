@@ -33,4 +33,11 @@ typedef struct {
 typedef struct {
     uint64_t data;
 } op_get_data_t;
+
+typedef struct {
+    uint64_t orig;
+    uint64_t val;
+    uint64_t count;
+    uint64_t fail;
+} op_test_t;
 #endif

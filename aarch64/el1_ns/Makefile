@@ -11,6 +11,8 @@ EL1_NS_OBJS		= el1_init.o \
 
 -include .*.d
 
+CFLAGS += -I../el0_ns/
+
 ##################################################################
 
 $(EL1_NS_ELF): $(EL1_NS_OBJS) $(EL1_NS_LOAD)

@@ -1,5 +1,7 @@
 #include "platform.h"
 #include "arm_builtins.h"
+#include "el1.h"
+#include "debug.h"
 
 extern void *el1_load_el0(char *base, char *start_va);
 
