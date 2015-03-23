@@ -1,12 +1,15 @@
-VPATH	= ../common
+VPATH	= ../el0_common:../common
 
 EL0_NS_ELF		= tztest.elf
 EL0_NS_IMAGE 	= tztest.bin
 EL0_NS_LOAD		= tztest.lds
-EL0_NS_OBJS		= tztest.o \
+EL0_NS_OBJS		= tztest_nsec.o \
+				  tztest.o \
                   builtins.o
 
 -include .*.d
+
+CFLAGS += -I../el0_common
 
 ##################################################################
 

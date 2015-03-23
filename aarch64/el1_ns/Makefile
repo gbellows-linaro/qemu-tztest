@@ -7,6 +7,7 @@ EL1_NS_OBJS		= el1_init.o \
                   el1_exception.o \
                   el1.o \
                   el1_nsec.o \
+				  svc.o \
                   builtins.o
 
 -include .*.d
