@@ -25,7 +25,7 @@ typedef struct {
 } op_map_mem_t;
 
 typedef struct {
-    uintptr_t (*func)(uintptr_t);
+    uintptr_t func_id;
     uintptr_t arg;
     uintptr_t ret;
 } op_dispatch_t;

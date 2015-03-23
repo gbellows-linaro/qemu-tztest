@@ -18,10 +18,12 @@ add-symbol-file aarch64/el1_ns/el1_nsec.elf &_EL1_NS_TEXT_BASE
 end
 
 define load_el0ns
-add-symbol-file aarch64/el0_ns/tztest.elf 0x10000
+file aarch64/el0_ns/el0_nsec.elf
+add-symbol-file aarch64/el0_ns/el0_nsec.elf &_EL0_NS_TEXT_BASE
 end
 
 define load_el0s
-add-symbol-file aarch64/el0_s/tztest.elf 0x10000
+file aarch64/el0_s/el0_sec.elf
+add-symbol-file aarch64/el0_s/el0_sec.elf &_EL0_S_TEXT_BASE
 end
 

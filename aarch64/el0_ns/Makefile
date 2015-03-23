@@ -1,10 +1,11 @@
 VPATH	= ../el0_common:../common
 
-EL0_NS_ELF		= tztest.elf
-EL0_NS_IMAGE 	= tztest.bin
-EL0_NS_LOAD		= tztest.lds
+EL0_NS_ELF		= el0_nsec.elf
+EL0_NS_IMAGE 	= el0_nsec.bin
+EL0_NS_LOAD		= el0_nsec.lds
 EL0_NS_OBJS		= tztest_nsec.o \
 				  tztest.o \
+				  el0.o \
                   builtins.o
 
 -include .*.d
@@ -19,7 +20,7 @@ $(EL0_NS_ELF): $(EL0_NS_OBJS) $(EL0_NS_LOAD)
 $(EL0_NS_IMAGE): $(EL0_NS_ELF)
 	$(OBJCOPY) -O binary $< $@
 
-$(EL0_NS_LOAD): tztest.lds.S Makefile ../../platform/$(PLAT)/
+$(EL0_NS_LOAD): el0_nsec.lds.S Makefile ../../platform/$(PLAT)/
 	$(CC) $(CFLAGS) -fpic -pie -E -P -C -o $@ $<
 
 %.o: %.S

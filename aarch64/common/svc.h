@@ -9,6 +9,7 @@
 #define SVC_OP_GET_REG 11
 #define SVC_OP_SET_REG 12
 #define SVC_OP_TEST 13
+#define SVC_OP_DISPATCH 14
 
 #ifndef __ASSEMBLY__
 #include "interop.h"
@@ -21,6 +22,7 @@ typedef union {
     op_data_t get;
     op_data_t set;
     op_test_t test;
+    op_dispatch_t disp;
 } svc_op_desc_t;
 
 extern uint32_t __svc(uint32_t, const svc_op_desc_t *);

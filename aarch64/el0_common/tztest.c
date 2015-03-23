@@ -9,12 +9,12 @@
 
 sys_control_t *syscntl = NULL;
 
-uint32_t P0_nonsecure_check_smc()
+uint32_t P0_check_smc()
 {
     printf("\nValidating %s P0 smc behavior:\n", SEC_STATE_STR);
     printf("\tUnprivileged P0 smc call ... ");
 
-    TEST_EL1NS_EXCEPTION(asm volatile("smc #0\n"), EC_UNKNOWN);
+    TEST_EL1_EXCEPTION(asm volatile("smc #0\n"), EC_UNKNOWN);
 
     return 0;
 }
@@ -25,33 +25,33 @@ uint32_t P0_check_register_access()
     printf("\nValidating %s P0 restricted register access:\n", SEC_STATE_STR);
 
     printf("\t%s P0 SCR read ... ", SEC_STATE_STR);
-    TEST_EL1NS_EXCEPTION(read_scr_el3(), EC_UNKNOWN);
+    TEST_EL1_EXCEPTION(read_scr_el3(), EC_UNKNOWN);
 
     printf("\t%s P0 SCR write ... ", SEC_STATE_STR);
-    TEST_EL1NS_EXCEPTION(write_scr_el3(0), EC_UNKNOWN);
+    TEST_EL1_EXCEPTION(write_scr_el3(0), EC_UNKNOWN);
 
     printf("\t%s P0 SDER read ... ", SEC_STATE_STR);
-    TEST_EL1NS_EXCEPTION(read_sder32_el3(), EC_UNKNOWN);
+    TEST_EL1_EXCEPTION(read_sder32_el3(), EC_UNKNOWN);
 
     printf("\t%s P0 SDER write ... ", SEC_STATE_STR);
-    TEST_EL1NS_EXCEPTION(write_sder32_el3(0), EC_UNKNOWN);
+    TEST_EL1_EXCEPTION(write_sder32_el3(0), EC_UNKNOWN);
 
 /*
     printf("\t%s P0 MVBAR read ... ", SEC_STATE_STR);
-    TEST_EL1NS_EXCEPTION(read_mvbar(), EC_UNKNOWN);
+    TEST_EL1_EXCEPTION(read_mvbar(), EC_UNKNOWN);
 
     printf("\t%s P0 MVBAR write ... ", SEC_STATE_STR);
-    TEST_EL1NS_EXCEPTION(write_mvbar(0), EC_UNKNOWN);
+    TEST_EL1_EXCEPTION(write_mvbar(0), EC_UNKNOWN);
 
     printf("\t%s P0 NSACR write ... ", SEC_STATE_STR);
-    TEST_EL1NS_EXCEPTION(write_nsacr(0), EC_UNKNOWN);
+    TEST_EL1_EXCEPTION(write_nsacr(0), EC_UNKNOWN);
 */
 
     printf("\t%s P0 CPTR_EL3 read ... ", SEC_STATE_STR);
-    TEST_EL1NS_EXCEPTION(read_cptr_el3(), EC_UNKNOWN);
+    TEST_EL1_EXCEPTION(read_cptr_el3(), EC_UNKNOWN);
 
     printf("\t%s P0 CPTR_EL3 write ... ", SEC_STATE_STR);
-    TEST_EL1NS_EXCEPTION(write_cptr_el3(0), EC_UNKNOWN);
+    TEST_EL1_EXCEPTION(write_cptr_el3(0), EC_UNKNOWN);
 
     return 0;
 }
@@ -94,24 +94,10 @@ uint32_t P0_check_trap_to_EL3()
     return 0;
 }
 
-void *alloc_mem(int type, size_t len)
+void tztest_init()
 {
-    svc_op_desc_t op;
-    op.alloc.type = type;
-    op.alloc.len = len;
-    op.alloc.addr = NULL;
-    __svc(SVC_OP_ALLOC, &op);
-
-    return op.alloc.addr;
-}
-
-void map_va(void *va, size_t len, int type)
-{
-    svc_op_desc_t op;
-    op.map.va = va;
-    op.map.len = len;
-    op.map.type = type;
-
-    __svc(SVC_OP_MAP, &op);
+    tztest[TZTEST_P0_SMC] = P0_check_smc;
+    tztest[TZTEST_REG_ACCESS] = P0_check_register_access;
+    tztest[TZTEST_TRAP_TO_EL3] = P0_check_trap_to_EL3;
 }
 

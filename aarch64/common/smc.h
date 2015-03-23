@@ -12,6 +12,7 @@
 #define SMC_OP_GET_REG  11
 #define SMC_OP_SET_REG  12
 #define SMC_OP_TEST 13
+#define SMC_OP_DISPATCH 14
 
 #ifndef __ASSEMBLY__
 #include "interop.h"
@@ -26,7 +27,8 @@ const char *smc_op_name[] = {
     [SMC_OP_MAP] = "SMC_OP_MAP",
     [SMC_OP_GET_REG] = "SMC_OP_GET_REG",
     [SMC_OP_SET_REG] = "SMC_OP_SET_REG",
-    [SMC_OP_TEST] = "SMC_OP_TEST"
+    [SMC_OP_TEST] = "SMC_OP_TEST",
+    [SMC_OP_DISPATCH] = "SMC_OP_DISPATCH",
 };
 
 typedef union {

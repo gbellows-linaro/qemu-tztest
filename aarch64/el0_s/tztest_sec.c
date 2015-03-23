@@ -1,29 +1,35 @@
 #include "el0_common.h"
 
+tztest_t tztest[TZTEST_COUNT];
+
 void el0_sec_loop()
 {
-    svc_op_desc_t desc;
-    op_test_t *test = (op_test_t *)&desc;
+    svc_op_desc_t _desc , *desc = &_desc;
     uint32_t op = SVC_OP_YIELD;
 
-    DEBUG_MSG("Starting loop - desc = %p  test = %p\n", &desc, test);
+    DEBUG_MSG("Starting loop - desc = %p\n", desc);
 
     while (op != SVC_OP_EXIT) {
         switch (op) {
         case SVC_OP_MAP:
-            DEBUG_MSG("Handling a SVC_OP_MAP - desc = %p\n", &desc);
+            DEBUG_MSG("Handling a SVC_OP_MAP - desc = %p\n", desc);
             op = SVC_OP_MAP;
             break;
         case SVC_OP_YIELD:
-            DEBUG_MSG("Handling a SVC_OP_YIELD - desc = %p\n", &desc);
+            DEBUG_MSG("Handling a SVC_OP_YIELD - desc = %p\n", desc);
             break;
         case SVC_OP_TEST:
-            DEBUG_MSG("Handling a SVC_OP_TEST - desc =  %p\n", &desc);
-            if (test->val != test->orig >> test->count) {
-                test->fail++;
+            DEBUG_MSG("Handling a SVC_OP_TEST - desc =  %p\n", desc);
+            if (desc->test.val != desc->test.orig >> desc->test.count) {
+                desc->test.fail++;
             }
-            test->val >>= 1;
-            test->count++;
+            desc->test.val >>= 1;
+            desc->test.count++;
+            op = SVC_OP_YIELD;
+            break;
+        case SVC_OP_DISPATCH:
+            tztest[desc->disp.func_id]();
+            op = SVC_OP_YIELD;
             break;
         case 0:
             op = SVC_OP_YIELD;
@@ -34,9 +40,9 @@ void el0_sec_loop()
             break;
         }
 
-        DEBUG_MSG("Calling svc(%d, %p)\n", op, &desc);
-        op = __svc(op, &desc);
-        DEBUG_MSG("Returned from svc - op = %d &desc = %p\n", op, &desc);
+        DEBUG_MSG("Calling svc(%d, %p)\n", op, desc);
+        op = __svc(op, desc);
+        DEBUG_MSG("Returned from svc - op = %d &desc = %p\n", op, desc);
     }
 
     __svc(SVC_OP_EXIT, NULL);
@@ -47,6 +53,7 @@ int main()
     svc_op_desc_t desc;
 
     printf("Starting secure-side EL0  ...\n");
+    tztest_init();
 
     /* Fetch the system-wide control structure */
     __svc(SVC_OP_GET_SYSCNTL, &desc);

@@ -1,5 +1,7 @@
 #include "el0_common.h"
 
+tztest_t tztest[TZTEST_COUNT];
+
 void interop_test()
 {
     op_test_t test;
@@ -12,11 +14,23 @@ void interop_test()
     TEST_CONDITION(!test.fail && test.val == (test.orig >> test.count));
 }
 
+void run_test(tztest_func_id_t fid)
+{
+    op_dispatch_t disp;
+
+    tztest[fid]();
+
+    disp.func_id = fid;
+    __svc(SVC_OP_DISPATCH, (svc_op_desc_t *)&disp);
+}
+
 int main()
 {
     svc_op_desc_t desc;
 
     printf("Starting TZ test ...\n");
+
+    tztest_init();
 
     /* Fetch the system-wide control structure */
     __svc(SVC_OP_GET_SYSCNTL, &desc);
@@ -37,9 +51,9 @@ int main()
         __svc(SVC_OP_EXIT, &desc);
     }
 
-    P0_nonsecure_check_smc();
-    P0_check_register_access();
-    P0_check_trap_to_EL3();
+    run_test(TZTEST_P0_SMC);
+    run_test(TZTEST_REG_ACCESS);
+    run_test(TZTEST_TRAP_TO_EL3);
 
     printf("\nValidation complete.  Passed %d of %d tests\n",
            syscntl->test_cntl->test_count - syscntl->test_cntl->fail_count,

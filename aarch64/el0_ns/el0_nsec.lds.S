@@ -10,6 +10,7 @@ SECTIONS
     . = 0x0;
     .text . : {
         *(.text);
+        _EL0_NS_TEXT_BASE = EL0_NS_BASE_VA;
         _EL0_NS_TEXT_SIZE = SIZEOF(.text);
     }
 

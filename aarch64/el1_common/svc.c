@@ -8,6 +8,7 @@ const char *svc_op_name[] = {
     [SVC_OP_GET_SYSCNTL] = "SVC_OP_GET_SYSCNTL",
     [SVC_OP_GET_REG] = "SVC_OP_GET_REG",
     [SVC_OP_SET_REG] = "SVC_OP_SET_REG",
-    [SVC_OP_TEST] = "SVC_OP_TEST"
+    [SVC_OP_TEST] = "SVC_OP_TEST",
+    [SVC_OP_DISPATCH] = "SVC_OP_DISPATCH"
 };
 

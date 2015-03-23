@@ -24,14 +24,6 @@ smc_op_desc_t *smc_interop_buf;
 uint64_t el3_next_pa = 0;
 uint64_t el3_heap_pool = 0xF800000000;
 
-void el3_dispatch(op_dispatch_t *disp)
-{
-    uintptr_t (*func)(uintptr_t) = disp->func;
-    DEBUG_MSG("Entered\n");
-    disp->ret = func(disp->arg);
-    DEBUG_MSG("Exiting\n");
-}
-
 void el3_shutdown() {
     uintptr_t *sysreg_cfgctrl = (uintptr_t *)(SYSREG_BASE + SYSREG_CFGCTRL);
 
@@ -197,9 +189,6 @@ int el3_handle_smc(uint64_t op, smc_op_desc_t *desc)
     case SMC_OP_YIELD:
         return SVC_OP_YIELD;
         break;
-    case SMC_OP_DISPATCH_MONITOR:
-        el3_dispatch((op_dispatch_t *)desc);
-        break;
     case SMC_OP_MAP:
         return el3_map_mem((op_map_mem_t *)desc);
         break;
@@ -207,6 +196,9 @@ int el3_handle_smc(uint64_t op, smc_op_desc_t *desc)
         break;
     case SMC_OP_EXIT:
         el3_shutdown();
+        break;
+    case SMC_OP_DISPATCH:
+        return SVC_OP_DISPATCH;
         break;
     case SMC_OP_TEST:
         if (test->val != test->orig >> test->count) {

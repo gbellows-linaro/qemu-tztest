@@ -2,8 +2,8 @@ BIOS_IMAGE 		= tztest.img
 EL3_IMAGE		= el3/el3.bin
 EL1_S_IMAGE		= el1_s/el1_sec.bin
 EL1_NS_IMAGE	= el1_ns/el1_nsec.bin
-TZTEST_NS_IMAGE = el0_ns/tztest.elf
-TZTEST_S_IMAGE 	= el0_s/tztest.elf
+TZTEST_NS_IMAGE = el0_ns/el0_nsec.elf
+TZTEST_S_IMAGE 	= el0_s/el0_sec.elf
 
 CFLAGS += -I../../platform/$(PLAT) -I../../libcflat/include -I../common
 
