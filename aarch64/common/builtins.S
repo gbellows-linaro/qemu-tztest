@@ -37,5 +37,7 @@ WRITE_REG sder32_el3
 READ_REG cptr_el3
 WRITE_REG cptr_el3
 
+READ_REG cpacr_el1
+WRITE_REG cpacr_el1
 
 #undef __ASSEMBLY__

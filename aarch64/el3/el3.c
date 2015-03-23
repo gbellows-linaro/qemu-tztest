@@ -35,7 +35,7 @@ void el3_dispatch(op_dispatch_t *disp)
 void el3_shutdown() {
     uintptr_t *sysreg_cfgctrl = (uintptr_t *)(SYSREG_BASE + SYSREG_CFGCTRL);
 
-    printf("Shutting down\n");
+    printf("\nTest complete\n");
 
     *sysreg_cfgctrl = SYS_SHUTDOWN;
 
@@ -198,10 +198,10 @@ int el3_handle_smc(uint64_t op, smc_op_desc_t *desc)
         return SVC_OP_YIELD;
         break;
     case SMC_OP_DISPATCH_MONITOR:
-        el3_dispatch((op_dispatch_t *)&desc->dispatch);
+        el3_dispatch((op_dispatch_t *)desc);
         break;
     case SMC_OP_MAP:
-        return el3_map_mem((op_map_mem_t *)&desc->map);
+        return el3_map_mem((op_map_mem_t *)desc);
         break;
     case SMC_OP_NOOP:
         break;
@@ -215,6 +215,36 @@ int el3_handle_smc(uint64_t op, smc_op_desc_t *desc)
         test->val >>= 1;
         test->count++;
         return SVC_OP_TEST;
+    case SMC_OP_GET_REG:
+        if (desc->get.el == 3) {
+            switch (desc->get.key) {
+            case CURRENTEL:
+                desc->get.data = read_currentel();
+                break;
+            case CPTR_EL3:
+                desc->get.data = read_cptr_el3();
+                break;
+            case CPACR_EL1:
+                desc->get.data = read_cpacr_el1();
+                break;
+            }
+        }
+        break;
+    case SMC_OP_SET_REG:
+        if (desc->set.el == 3) {
+            switch (desc->set.key) {
+            case CURRENTEL:
+                write_currentel(desc->set.data);
+                break;
+            case CPTR_EL3:
+                write_cptr_el3(desc->set.data);
+                break;
+            case CPACR_EL1:
+                write_cpacr_el1(desc->set.data);
+                break;
+            }
+        }
+        break;
     default:
         printf("Unrecognized AArch64 SMC opcode: op = %d\n", op);
         el3_shutdown();
@@ -262,8 +292,18 @@ int el3_handle_exception(uint64_t ec, uint64_t iss)
                dai.wnr ? "write" : "read", far, elr);
         el3_shutdown();
         break;
+    case EC_SYSINSN:
+        DEBUG_MSG("System instruction exception far = 0x%lx  elr = 0x%lx\n",
+                  far, elr);
+
+        if (syscntl->el3_excp.action == EXCP_ACTION_SKIP ||
+            syscntl->excp_action == EXCP_ACTION_SKIP) {
+            elr +=4;
+            __set_exception_return(elr);
+        }
+        break;
     default:
-        printf("Unhandled EL3 exception: EC = %d  ISS = %d\n", ec, iss);
+        printf("Unhandled EL3 exception: EC = 0x%lx  ISS = 0x%lx\n", ec, iss);
         el3_shutdown();
         break;
     }

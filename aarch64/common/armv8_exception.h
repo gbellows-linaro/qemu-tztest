@@ -8,6 +8,7 @@
 #define EC_SMC32 0x13
 #define EC_SVC64 0x15
 #define EC_SMC64 0x17
+#define EC_SYSINSN 0x18
 #define EC_IABORT_LOWER 0x20
 #define EC_IABORT 0x21
 #define EC_DABORT_LOWER 0x24

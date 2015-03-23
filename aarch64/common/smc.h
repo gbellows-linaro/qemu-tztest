@@ -9,6 +9,8 @@
 #define SMC_OP_ALLOCATE_SECURE_MEMORY 4
 #define SMC_OP_EXIT 5
 #define SMC_OP_MAP 8
+#define SMC_OP_GET_REG  11
+#define SMC_OP_SET_REG  12
 #define SMC_OP_TEST 13
 
 #ifndef __ASSEMBLY__
@@ -22,6 +24,8 @@ const char *smc_op_name[] = {
     [SMC_OP_YIELD] = "SMC_OP_YIELD",
     [SMC_OP_EXIT] = "SMC_OP_EXIT",
     [SMC_OP_MAP] = "SMC_OP_MAP",
+    [SMC_OP_GET_REG] = "SMC_OP_GET_REG",
+    [SMC_OP_SET_REG] = "SMC_OP_SET_REG",
     [SMC_OP_TEST] = "SMC_OP_TEST"
 };
 
@@ -29,6 +33,8 @@ typedef union {
     op_dispatch_t dispatch;
     op_map_mem_t map;
     op_test_t test;
+    op_data_t get;
+    op_data_t set;
 } smc_op_desc_t;
 
 extern smc_op_desc_t *smc_interop_buf;

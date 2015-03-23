@@ -51,4 +51,6 @@ extern uint64_t read_sder32_el3();
 extern void write_sder32_el3(uint64_t);
 extern uint64_t read_cptr_el3();
 extern void write_cptr_el3(uint64_t);
+extern uint64_t read_cpacr_el1();
+extern void write_cpacr_el1(uint64_t);
 #endif

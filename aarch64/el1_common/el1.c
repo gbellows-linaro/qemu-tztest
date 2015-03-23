@@ -209,8 +209,42 @@ int el1_handle_svc(uint32_t op, svc_op_desc_t *desc)
     case SVC_OP_GET_SYSCNTL:
         desc->get.data = (uint64_t)syscntl;
         break;
-    case SVC_OP_GET_MODE:
-        desc->get.data = read_currentel();
+    case SVC_OP_GET_REG:
+        if (desc->get.el == 1) {
+            switch (desc->get.key) {
+            case CURRENTEL:
+                desc->get.data = read_currentel();
+                break;
+            case CPTR_EL3:
+                desc->get.data = read_cptr_el3();
+                break;
+            case CPACR_EL1:
+                desc->get.data = read_cpacr_el1();
+                break;
+            }
+        } else if (desc->get.el == 3) {
+            memcpy(smc_interop_buf, desc, sizeof(smc_op_desc_t));
+            __smc(SMC_OP_GET_REG, smc_interop_buf);
+            memcpy(desc, smc_interop_buf, sizeof(smc_op_desc_t));
+        }
+        break;
+    case SVC_OP_SET_REG:
+        if (desc->set.el == 1) {
+            switch (desc->set.key) {
+            case CURRENTEL:
+                read_currentel(desc->set.data);
+                break;
+            case CPTR_EL3:
+                read_cptr_el3(desc->set.data);
+                break;
+            case CPACR_EL1:
+                read_cpacr_el1(desc->set.data);
+                break;
+            }
+        } else if (desc->set.el == 3) {
+            memcpy(smc_interop_buf, desc, sizeof(smc_op_desc_t));
+            __smc(SMC_OP_SET_REG, smc_interop_buf);
+        }
         break;
     case SVC_OP_TEST:
         el1_interop_test((op_test_t *)desc);

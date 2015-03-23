@@ -30,9 +30,17 @@ typedef struct {
     uintptr_t ret;
 } op_dispatch_t;
 
+typedef enum {
+    CURRENTEL = 1,
+    CPTR_EL3,
+    CPACR_EL1
+} op_reg_key_t;
+
 typedef struct {
+    uint64_t key;
     uint64_t data;
-} op_get_data_t;
+    uint64_t el;
+} op_data_t;
 
 typedef struct {
     uint64_t orig;
