@@ -14,11 +14,11 @@ void interop_test()
     TEST_CONDITION(!test.fail && test.val == (test.orig >> test.count));
 }
 
-void run_test(tztest_func_id_t fid)
+void run_test(tztest_func_id_t fid, uint32_t el)
 {
     op_dispatch_t disp;
 
-    tztest[fid]();
+    tztest[fid](el);
 
     disp.func_id = fid;
     __svc(SVC_OP_DISPATCH, (svc_op_desc_t *)&disp);
@@ -51,9 +51,10 @@ int main()
         __svc(SVC_OP_EXIT, &desc);
     }
 
-    run_test(TZTEST_P0_SMC);
-    run_test(TZTEST_REG_ACCESS);
-    run_test(TZTEST_TRAP_TO_EL3);
+    run_test(TZTEST_SMC, 0);
+    run_test(TZTEST_REG_ACCESS, 0);
+    run_test(TZTEST_CPACR_TRAP, 0);
+    run_test(TZTEST_WFX_TRAP, 0);
 
     printf("\nValidation complete.  Passed %d of %d tests\n",
            syscntl->test_cntl->test_count - syscntl->test_cntl->fail_count,

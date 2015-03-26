@@ -40,4 +40,27 @@ WRITE_REG cptr_el3
 READ_REG cpacr_el1
 WRITE_REG cpacr_el1
 
+READ_REG sctlr_el1
+WRITE_REG sctlr_el1
+
+.globl __set_exception_return
+__set_exception_return:
+    str x30, [sp, #-8]!
+    mrs x7, currentel
+    cmp x7, #0x4
+    b.eq __set_exception_return_el1
+    cmp x7, #0x8
+    b.eq __set_exception_return_el2
+__set_exception_return_el3:
+    msr elr_el3, x0
+    b __set_exception_return_done
+__set_exception_return_el2:
+    msr elr_el2, x0
+    b __set_exception_return_done
+__set_exception_return_el1:
+    msr elr_el1, x0
+__set_exception_return_done:
+    ldr x30, [sp], #8
+    ret
+
 #undef __ASSEMBLY__

@@ -3,19 +3,14 @@
 
 #include "stdint.h"
 
+#define CPTR_TFP    (1 << 10)
+#define CPTR_TCPAC  (1 << 31)
+#define SCTLR_nTWI  (1 << 16)
+#define SCTLR_nTWE  (1 << 18)
+#define SCR_WFI     (1 << 12)
+#define SCR_WFE     (1 << 13)
+
 #define __exception_return(_x0) asm volatile ("eret\n")
-#define __set_exception_return(_elr) \
-    asm volatile("mrs x7, currentel\n"  \
-                 "cmp x7, #0x4\n"   \
-                 "b.eq setelrel1\n"   \
-                 "cmp x7, #0x8\n"   \
-                 "b.eq setelrel2\n"   \
-                 "setelrel3: msr elr_el3, %[elr]\n"   \
-                 "b setelrdone\n"   \
-                 "setelrel2: msr elr_el2, %[elr]\n"   \
-                 "b setelrdone\n"   \
-                 "setelrel1: msr elr_el1, %[elr]\n"   \
-                 "setelrdone:\n":: [elr] "r" (_elr) : "r7")
 
 #define __get_exception_return(_addr) \
     asm volatile("mrs x0, currentel\n"  \
@@ -53,4 +48,9 @@ extern uint64_t read_cptr_el3();
 extern void write_cptr_el3(uint64_t);
 extern uint64_t read_cpacr_el1();
 extern void write_cpacr_el1(uint64_t);
+extern uint64_t read_cpacr_el1();
+extern void write_cpacr_el1(uint64_t);
+extern uint64_t read_sctlr_el1();
+extern void write_sctlr_el1(uint64_t);
+extern void __set_exception_return(uint64_t);
 #endif

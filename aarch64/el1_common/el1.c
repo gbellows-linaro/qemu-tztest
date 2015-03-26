@@ -221,6 +221,9 @@ int el1_handle_svc(uint32_t op, svc_op_desc_t *desc)
             case CPACR_EL1:
                 desc->get.data = read_cpacr_el1();
                 break;
+            case SCR_EL3:
+                desc->get.data = read_scr_el3();
+                break;
             }
         } else if (desc->get.el == 3) {
             memcpy(smc_interop_buf, desc, sizeof(smc_op_desc_t));
@@ -232,13 +235,16 @@ int el1_handle_svc(uint32_t op, svc_op_desc_t *desc)
         if (desc->set.el == 1) {
             switch (desc->set.key) {
             case CURRENTEL:
-                read_currentel(desc->set.data);
+                write_currentel(desc->set.data);
                 break;
             case CPTR_EL3:
-                read_cptr_el3(desc->set.data);
+                write_cptr_el3(desc->set.data);
                 break;
             case CPACR_EL1:
-                read_cpacr_el1(desc->set.data);
+                write_cpacr_el1(desc->set.data);
+                break;
+            case SCR_EL3:
+                write_scr_el3(desc->set.data);
                 break;
             }
         } else if (desc->set.el == 3) {
@@ -290,7 +296,6 @@ void el1_handle_exception(uint64_t ec, uint64_t iss)
             __set_exception_return(elr);
         }
         break;
-
     case EC_IABORT_LOWER:
         DEBUG_MSG("Instruction abort at lower level: far = %0lx\n", far);
         SMC_EXIT();
@@ -308,6 +313,16 @@ void el1_handle_exception(uint64_t ec, uint64_t iss)
         DEBUG_MSG("Data abort (%s) at EL1: far = %0lx elr = %0lx\n",
                   dai.wnr ? "write" : "read", far, elr);
         SMC_EXIT();
+        break;
+    case EC_WFI_WFE:
+        DEBUG_MSG("WFI/WFE instruction exception far = 0x%lx  elr = 0x%lx\n",
+                  far, elr);
+
+        if (syscntl->el1_excp[SEC_STATE].action == EXCP_ACTION_SKIP ||
+            syscntl->excp_action == EXCP_ACTION_SKIP) {
+            elr +=4;
+            __set_exception_return(elr);
+        }
         break;
     default:
         DEBUG_MSG("Unhandled EL1 exception: EC = %d  ISS = %d\n", ec, iss);

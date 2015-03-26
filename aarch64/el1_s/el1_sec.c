@@ -13,6 +13,6 @@ void el1_init_el0()
 
     main = el1_load_el0((char *)EL0_S_FLASH_BASE, (char *)EL0_NS_BASE_VA);
 
-    __set_exception_return(main);
+    __set_exception_return((uint64_t)main);
     __exception_return();
 }

@@ -28,7 +28,7 @@ void el0_sec_loop()
             op = SVC_OP_YIELD;
             break;
         case SVC_OP_DISPATCH:
-            tztest[desc->disp.func_id]();
+            tztest[desc->disp.func_id](0);
             op = SVC_OP_YIELD;
             break;
         case 0:

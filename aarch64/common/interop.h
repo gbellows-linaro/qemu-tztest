@@ -33,7 +33,9 @@ typedef struct {
 typedef enum {
     CURRENTEL = 1,
     CPTR_EL3,
-    CPACR_EL1
+    CPACR_EL1,
+    SCR_EL3,
+    SCTLR_EL1,
 } op_reg_key_t;
 
 typedef struct {

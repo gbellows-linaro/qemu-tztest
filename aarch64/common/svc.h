@@ -27,6 +27,24 @@ typedef union {
 
 extern uint32_t __svc(uint32_t, const svc_op_desc_t *);
 
+#define SVC_GET_REG(__reg, __el, __val)     \
+    do {                                \
+        svc_op_desc_t desc;             \
+        desc.get.key = (__reg);         \
+        desc.get.el = (__el);           \
+        __svc(SVC_OP_GET_REG, &desc);   \
+        (__val) = desc.get.data;        \
+    } while (0)
+
+#define SVC_SET_REG(__reg, __el, __val)     \
+    do {                                \
+        svc_op_desc_t desc;             \
+        desc.get.key = (__reg);         \
+        desc.get.el = (__el);           \
+        desc.get.data = (__val);        \
+        __svc(SVC_OP_SET_REG, &desc);   \
+    } while (0)
+
 #endif
 
 #endif

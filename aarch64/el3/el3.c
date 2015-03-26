@@ -219,6 +219,9 @@ int el3_handle_smc(uint64_t op, smc_op_desc_t *desc)
             case CPACR_EL1:
                 desc->get.data = read_cpacr_el1();
                 break;
+            case SCR_EL3:
+                desc->get.data = read_scr_el3();
+                break;
             }
         }
         break;
@@ -233,6 +236,9 @@ int el3_handle_smc(uint64_t op, smc_op_desc_t *desc)
                 break;
             case CPACR_EL1:
                 write_cpacr_el1(desc->set.data);
+                break;
+            case SCR_EL3:
+                write_scr_el3(desc->set.data);
                 break;
             }
         }
@@ -288,6 +294,34 @@ int el3_handle_exception(uint64_t ec, uint64_t iss)
         DEBUG_MSG("System instruction exception far = 0x%lx  elr = 0x%lx\n",
                   far, elr);
 
+        /* Other than system calls, synchronous exceptions return to the
+         * offending instruction.  The user should have issued a SKIP.
+         */
+        if (syscntl->el3_excp.action == EXCP_ACTION_SKIP ||
+            syscntl->excp_action == EXCP_ACTION_SKIP) {
+            elr +=4;
+            __set_exception_return(elr);
+        }
+        break;
+    case EC_WFI_WFE:
+        DEBUG_MSG("WFI/WFE instruction exception far = 0x%lx  elr = 0x%lx\n",
+                  far, elr);
+
+        /* Other than system calls, synchronous exceptions return to the
+         * offending instruction.  The user should have issued a SKIP.
+         */
+        if (syscntl->el3_excp.action == EXCP_ACTION_SKIP ||
+            syscntl->excp_action == EXCP_ACTION_SKIP) {
+            elr +=4;
+            __set_exception_return(elr);
+        }
+        break;
+    case EC_SIMD:
+        DEBUG_MSG("Adv SIMD or FP access exception - far = 0x%lx elr = 0x%lx\n",
+                  far, elr);
+        /* Other than system calls, synchronous exceptions return to the
+         * offending instruction.  The user should have issued a SKIP.
+         */
         if (syscntl->el3_excp.action == EXCP_ACTION_SKIP ||
             syscntl->excp_action == EXCP_ACTION_SKIP) {
             elr +=4;

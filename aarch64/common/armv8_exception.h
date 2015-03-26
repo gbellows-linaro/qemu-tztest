@@ -2,6 +2,7 @@
 #define _EXCEPTION_H
 
 #define EC_UNKNOWN 0x00
+#define EC_WFI_WFE 0x01
 #define EC_SIMD 0x07
 #define EC_ILLEGAL_STATE 0x0E
 #define EC_SVC32 0x11
