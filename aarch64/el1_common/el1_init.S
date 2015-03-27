@@ -23,7 +23,6 @@ el1_init:
     ldr x10, =EL1_PGTBL_BASE+0x1000
     str x10, [sp]
 
-loc:
     /* Save the input SMC interop buf pointer */
     str x4, [sp, #-8]!
 
@@ -49,7 +48,7 @@ el1_init_mmu:
 el1_map_init:
     /* Direct map the init code */
     ldr x0, =_EL1_INIT_BASE
-    mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_USER_RW)
+    mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_USER_RO)
     ldr x2, =_EL1_INIT_SIZE
     bl map_pa_range
 
@@ -58,7 +57,7 @@ el1_map_flash:
      * the MMU has been enabled.
      */
     ldr x0, =_EL1_FLASH_TEXT
-    mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_USER_RW)
+    mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_USER_RO)
     ldr x2, =_EL1_TEXT_SIZE
     bl map_pa_range
 
