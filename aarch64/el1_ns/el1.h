@@ -3,6 +3,23 @@
 
 #include "platform.h"
 
+#ifndef __ASSEMBLY__
+extern uintptr_t _EL1_NS_INIT_BASE;
+extern uintptr_t EL1_NS_INIT_BASE;
+extern uintptr_t _EL1_NS_INIT_SIZE;
+extern uintptr_t EL1_NS_INIT_SIZE;
+extern uintptr_t _EL1_NS_FLASH_TEXT;
+extern uintptr_t EL1_NS_FLASH_TEXT;
+extern uintptr_t _EL1_NS_TEXT_BASE;
+extern uintptr_t EL1_NS_TEXT_BASE;
+extern uintptr_t _EL1_NS_DATA_BASE;
+extern uintptr_t EL1_NS_DATA_BASE;
+extern uintptr_t _EL1_NS_TEXT_SIZE;
+extern uintptr_t EL1_NS_TEXT_SIZE;
+extern uintptr_t _EL1_NS_DATA_SIZE;
+extern uintptr_t EL1_NS_DATA_SIZE;
+#endif
+
 #define _EL1_INIT_BASE _EL1_NS_INIT_BASE
 #define _EL1_INIT_SIZE _EL1_NS_INIT_SIZE
 #define _EL1_FLASH_TEXT _EL1_NS_FLASH_TEXT

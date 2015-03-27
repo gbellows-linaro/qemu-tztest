@@ -6,13 +6,14 @@ EL1_S_LOAD		= el1_sec.lds
 EL1_S_OBJS		= el1_init.o \
                   el1_exception.o \
                   el1.o \
+                  el1_loader.o \
                   el1_sec.o \
 				  svc.o \
 				  builtins.o
 
 -include .*.d
 
-CFLAGS += -I../el0_s/
+CFLAGS += -I../el0_s/ -I../el1_common
 
 ##################################################################
 

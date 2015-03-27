@@ -16,11 +16,11 @@ el1_init:
     /* The stack still needs to be allocated and mapped so we set up a
      * temporary stack for the time being.
      */
-    ldr x10, =RAM_BASE+0x2000
+    ldr x10, =RAM_BASE + (2 * PAGE_SIZE)
 	mov sp, x10
 
     /* Use the top of the stack to track our PA pool pointer */
-    ldr x10, =EL1_PGTBL_BASE+0x1000
+    ldr x10, =EL1_PGTBL_BASE + PAGE_SIZE
     str x10, [sp]
 
     /* Save the input SMC interop buf pointer */
@@ -82,11 +82,11 @@ el1_map_data:
 
 el1_map_stacks:
     /* Map the first page of the stack so we can get off the ground */
-    ldr x0, =EL1_STACK_BASE-0x1000
+    ldr x0, =EL1_STACK_BASE - PAGE_SIZE
     mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_PRIV_RW)
     bl map_va
 
-    ldr x0, =EL0_STACK_BASE-0x1000
+    ldr x0, =EL0_STACK_BASE - PAGE_SIZE
     mov x1, #(PTE_PAGE|PTE_ACCESS|PTE_USER_RW)
     bl map_va
 

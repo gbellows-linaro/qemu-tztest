@@ -1,25 +1,12 @@
-#include "libcflat.h"
-#include "platform.h"
-#include "smc.h"
-#include "svc.h"
-#include "string.h"
-#include "el1.h"
-#include "el1_loader.h"
-#include "armv8_exception.h"
-#include "armv8_vmsa.h"
-#include "arm_builtins.h"
-#include "elf.h"
-#include "debug.h"
-#include "syscntl.h"
-
-extern void el1_init_el0();
+#include "el1_common.h"
 
 smc_op_desc_t *smc_interop_buf;
 sys_control_t *syscntl;
 uint64_t el1_next_pa = 0;
 uint64_t el1_heap_pool = 0x40000000;
 
-uint64_t el1_allocate_pa() {
+uint64_t el1_allocate_pa()
+{
     uint64_t next = el1_next_pa;
     el1_next_pa += 0x1000;
     return next;
@@ -213,16 +200,16 @@ int el1_handle_svc(uint32_t op, svc_op_desc_t *desc)
         if (desc->get.el == 1) {
             switch (desc->get.key) {
             case CURRENTEL:
-                desc->get.data = read_currentel();
+                desc->get.data = READ_CURRENTEL();
                 break;
             case CPTR_EL3:
-                desc->get.data = read_cptr_el3();
+                desc->get.data = READ_CPTR_EL3();
                 break;
-            case CPACR_EL1:
-                desc->get.data = read_cpacr_el1();
+            case CPACR:
+                desc->get.data = READ_CPACR();
                 break;
-            case SCR_EL3:
-                desc->get.data = read_scr_el3();
+            case SCR:
+                desc->get.data = READ_SCR();
                 break;
             }
         } else if (desc->get.el == 3) {
@@ -235,16 +222,16 @@ int el1_handle_svc(uint32_t op, svc_op_desc_t *desc)
         if (desc->set.el == 1) {
             switch (desc->set.key) {
             case CURRENTEL:
-                write_currentel(desc->set.data);
+                WRITE_CURRENTEL(desc->set.data);
                 break;
             case CPTR_EL3:
-                write_cptr_el3(desc->set.data);
+                WRITE_CPTR_EL3(desc->set.data);
                 break;
-            case CPACR_EL1:
-                write_cpacr_el1(desc->set.data);
+            case CPACR:
+                WRITE_CPACR(desc->set.data);
                 break;
-            case SCR_EL3:
-                write_scr_el3(desc->set.data);
+            case SCR:
+                WRITE_SCR(desc->set.data);
                 break;
             }
         } else if (desc->set.el == 3) {
@@ -270,10 +257,6 @@ int el1_handle_svc(uint32_t op, svc_op_desc_t *desc)
 
 void el1_handle_exception(uint64_t ec, uint64_t iss)
 {
-#ifdef DEBUG
-    armv8_data_abort_iss_t dai = {.raw = iss};
-//    armv8_inst_abort_iss_t iai = {.raw = iss};
-#endif
     uint64_t elr, far;
 
     __get_exception_address(far);
@@ -305,13 +288,12 @@ void el1_handle_exception(uint64_t ec, uint64_t iss)
         SMC_EXIT();
         break;
     case EC_DABORT_LOWER:
-        DEBUG_MSG("Data abort (%s) at lower level: far = %0lx elr = %0lx\n",
-                  dai.wnr ? "write" : "read", far, elr);
+        DEBUG_MSG("Data abort at lower level: far = %0lx elr = %0lx\n",
+                  far, elr);
         SMC_EXIT();
         break;
     case EC_DABORT:
-        DEBUG_MSG("Data abort (%s) at EL1: far = %0lx elr = %0lx\n",
-                  dai.wnr ? "write" : "read", far, elr);
+        DEBUG_MSG("Data abort at EL1: far = %0lx elr = %0lx\n", far, elr);
         SMC_EXIT();
         break;
     case EC_WFI_WFE:
@@ -325,71 +307,10 @@ void el1_handle_exception(uint64_t ec, uint64_t iss)
         }
         break;
     default:
-        DEBUG_MSG("Unhandled EL1 exception: EC = %d  ISS = %d\n", ec, iss);
+        DEBUG_MSG("Unhandled EL1 exception: ec = %d iss = %d\n", ec, iss);
         SMC_EXIT();
         break;
     }
-}
-
-/* Simple ELF loader for loading EL0 image */
-void *el1_load_el0(char *elfbase, char *start_va)
-{
-    Elf64_Ehdr *ehdr = (Elf64_Ehdr *)elfbase;
-    size_t off;
-    int i;
-
-    /* Map the ELF header in so we can determine how much more to map */
-    el1_map_pa((uint64_t)elfbase, (uint64_t)elfbase);
-
-    /* Make sure this is an appropriate ELF image */
-    if (ehdr->e_ident[EI_MAG0] != ELFMAG0 ||
-        ehdr->e_ident[EI_MAG1] != ELFMAG1 ||
-        ehdr->e_ident[EI_MAG2] != ELFMAG2 ||
-        ehdr->e_ident[EI_MAG3] != ELFMAG3) {
-        printf("Invalid ELF header, exiting...\n");
-        SMC_EXIT();
-    } else if (ehdr->e_type != ET_DYN &&
-               (ehdr->e_machine != EM_ARM || ehdr->e_machine != EM_AARCH64)) {
-        printf("Incorrect ELF type (type = %d, machine = %d), exiting...\n",
-               ehdr->e_type, ehdr->e_machine);
-        SMC_EXIT();
-    } else {
-        printf("Loading %s EL0 test image...\n",
-               (ehdr->e_machine == EM_ARM) ?  "aarch32" : "aarch64");
-    }
-
-    /* Size of the ELF to map */
-    size_t elf_len = ehdr->e_shoff + (ehdr->e_shentsize * ehdr->e_shnum);
-
-    /* Finish mapping the remainder of the ELF pages in if any */
-    for (off = 0x1000; off < elf_len; off += 0x1000) {
-        el1_map_pa((uint64_t)elfbase + off, (uint64_t)elfbase + off);
-    }
-
-    Elf64_Shdr *shdr = (Elf64_Shdr *)((char *)elfbase + ehdr->e_shoff);
-
-    Elf64_Shdr *strshdr = &shdr[ehdr->e_shstrndx];
-    char *strsec = (char *)ehdr + strshdr->sh_offset;
-    for (i = 0; i < ehdr->e_shnum; i++) {
-        char *secname = strsec + shdr[i].sh_name;
-        if (!strcmp(secname, ".text") || !strcmp(secname, ".data")) {
-            uint64_t sect = (uint64_t)((char *)elfbase + shdr[i].sh_offset);
-            char *base_va = start_va + shdr[i].sh_addr;
-            DEBUG_MSG("\tloading %s section: 0x%x bytes @ 0x%lx\n",
-                      secname, shdr[i].sh_size, base_va);
-            for (off = 0; off < shdr[i].sh_size; off += 0x1000) {
-                el1_map_va((uintptr_t)(base_va + off));
-                memcpy((void *)(base_va + off), (void *)(sect + off), 0x1000);
-            }
-        }
-    }
-
-    /* Unmap the FLASH ELF image */
-    for (off = 0; off < elf_len; off += 0x1000) {
-        el1_map_va((uint64_t)elfbase + off);
-    }
-
-    return (void *)(start_va + ehdr->e_entry);
 }
 
 void el1_start(uint64_t base, uint64_t size)
@@ -400,13 +321,13 @@ void el1_start(uint64_t base, uint64_t size)
     printf("EL1 (%s) started...\n", SEC_STATE_STR);
 
     /* Unmap the init segement so we don't accidentally use it */
-    for (len = 0; len < ((size + 0xFFF) & ~0xFFF);
-         len += 0x1000, addr += 0x1000) {
+    for (len = 0; len < ((size + (PAGE_SIZE - 1)) & ~(PAGE_SIZE - 1));
+         len += PAGE_SIZE, addr += PAGE_SIZE) {
         el1_unmap_va(addr);
     }
 
     void *pa = syscntl;
-    syscntl = (sys_control_t *)el1_heap_allocate(0x1000);
+    syscntl = (sys_control_t *)el1_heap_allocate(PAGE_SIZE);
     el1_map_pa((uintptr_t)syscntl, (uintptr_t)pa);
     el1_map_pa((uintptr_t)syscntl->smc_interop.buf_va,
                (uintptr_t)syscntl->smc_interop.buf_pa);

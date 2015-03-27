@@ -6,6 +6,7 @@ TZTEST_NS_IMAGE = el0_ns/el0_nsec.elf
 TZTEST_S_IMAGE 	= el0_s/el0_sec.elf
 
 CFLAGS += -I../../platform/$(PLAT) -I../../libcflat/include -I../common
+CFLAGS += -DAARCH64
 
 -include .*.d
 

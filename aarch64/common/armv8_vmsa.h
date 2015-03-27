@@ -36,6 +36,7 @@ typedef union {
 } armv8_4k_tbl_pte_t;
 */
 
+#define PAGE_SIZE 0x1000
 #define ARMV8_PAGE_ATTRINDX_SHIFT 2
 #define ARMV8_PAGE_NS_SHIFT 5
 #define ARMV8_PAGE_AP_SHIFT 6

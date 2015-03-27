@@ -15,6 +15,20 @@
 #define SEC_STATE_STR "EL3"
 #include "debug.h"
 
+#if DEBUG
+const char *smc_op_name[] = {
+    [SMC_OP_NOOP] = "SMC_OP_NOOP",
+    [SMC_OP_DISPATCH_MONITOR] = "SMC_DISPATCH_MONITOR",
+    [SMC_OP_YIELD] = "SMC_OP_YIELD",
+    [SMC_OP_EXIT] = "SMC_OP_EXIT",
+    [SMC_OP_MAP] = "SMC_OP_MAP",
+    [SMC_OP_GET_REG] = "SMC_OP_GET_REG",
+    [SMC_OP_SET_REG] = "SMC_OP_SET_REG",
+    [SMC_OP_TEST] = "SMC_OP_TEST",
+    [SMC_OP_DISPATCH] = "SMC_OP_DISPATCH",
+};
+#endif
+
 state_buf sec_state;
 state_buf nsec_state;
 
@@ -211,16 +225,16 @@ int el3_handle_smc(uint64_t op, smc_op_desc_t *desc)
         if (desc->get.el == 3) {
             switch (desc->get.key) {
             case CURRENTEL:
-                desc->get.data = read_currentel();
+                desc->get.data = READ_CURRENTEL();
                 break;
             case CPTR_EL3:
-                desc->get.data = read_cptr_el3();
+                desc->get.data = READ_CPTR_EL3();
                 break;
-            case CPACR_EL1:
-                desc->get.data = read_cpacr_el1();
+            case CPACR:
+                desc->get.data = READ_CPACR();
                 break;
-            case SCR_EL3:
-                desc->get.data = read_scr_el3();
+            case SCR:
+                desc->get.data = READ_SCR();
                 break;
             }
         }
@@ -229,16 +243,16 @@ int el3_handle_smc(uint64_t op, smc_op_desc_t *desc)
         if (desc->set.el == 3) {
             switch (desc->set.key) {
             case CURRENTEL:
-                write_currentel(desc->set.data);
+                WRITE_CURRENTEL(desc->set.data);
                 break;
             case CPTR_EL3:
-                write_cptr_el3(desc->set.data);
+                WRITE_CPTR_EL3(desc->set.data);
                 break;
-            case CPACR_EL1:
-                write_cpacr_el1(desc->set.data);
+            case CPACR:
+                WRITE_CPACR(desc->set.data);
                 break;
-            case SCR_EL3:
-                write_scr_el3(desc->set.data);
+            case SCR:
+                WRITE_SCR(desc->set.data);
                 break;
             }
         }
@@ -254,7 +268,6 @@ int el3_handle_smc(uint64_t op, smc_op_desc_t *desc)
 
 int el3_handle_exception(uint64_t ec, uint64_t iss)
 {
-    armv8_data_abort_iss_t dai = {.raw = iss};
     uint64_t elr, far;
 
     __get_exception_address(far);
@@ -281,13 +294,12 @@ int el3_handle_exception(uint64_t ec, uint64_t iss)
         el3_shutdown();
         break;
     case EC_DABORT_LOWER:
-        printf("Data abort (%s) at lower level: far = %0lx elr = %0lx\n",
-               dai.wnr ? "write" : "read", far, elr);
+        printf("Data abort at lower level: far = %0lx elr = %0lx\n",
+               far, elr);
         el3_shutdown();
         break;
     case EC_DABORT:
-        printf("Data abort (%s) at EL3: far = %0lx elr = %0lx\n",
-               dai.wnr ? "write" : "read", far, elr);
+        printf("Data abort at EL3: far = %0lx elr = %0lx\n", far, elr);
         el3_shutdown();
         break;
     case EC_SYSINSN:
@@ -347,18 +359,22 @@ void el3_monitor_init()
      * sequence. This will occur when we return from exception after monitor
      * initialization.
      */
+#ifdef AARCH64
     sec_state.elr_el3 = EL1_S_FLASH_BASE;
     sec_state.spsr_el3 = 0x5;
     sec_state.spsel = 0x1;
+#endif
     sec_state.x[0] = (uint64_t)el3_lookup_pa(syscntl);
 
     /* Set-up the nonsecure state buffer to return to the non-secure
      * initialization sequence. This will occur on the first monitor context
      * switch (smc) from secure to non-secure.
      */
+#ifdef AARCH64
     nsec_state.elr_el3 = EL1_NS_FLASH_BASE;
     nsec_state.spsr_el3 = 0x5;
     nsec_state.spsel = 0x1;
+#endif
     nsec_state.x[0] = (uint64_t)el3_lookup_pa(syscntl);
 }
 
@@ -370,14 +386,14 @@ void el3_start(uint64_t base, uint64_t size)
     printf("EL3 started...\n");
 
     /* Unmap the init segement so we don't accidentally use it */
-    for (len = 0; len < ((size + 0xFFF) & ~0xFFF);
-         len += 0x1000, addr += 0x1000) {
+    for (len = 0; len < ((size + (PAGE_SIZE - 1)) & ~(PAGE_SIZE - 1));
+         len += PAGE_SIZE, addr += PAGE_SIZE) {
         el3_unmap_va(addr);
     }
 
-    syscntl = el3_heap_allocate(0x1000);
+    syscntl = el3_heap_allocate(PAGE_SIZE);
 
-    smc_interop_buf = el3_heap_allocate(0x1000);
+    smc_interop_buf = el3_heap_allocate(PAGE_SIZE);
     syscntl->smc_interop.buf_va = smc_interop_buf;
     syscntl->smc_interop.buf_pa = el3_lookup_pa(smc_interop_buf);
 

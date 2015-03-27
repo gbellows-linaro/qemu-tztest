@@ -6,13 +6,14 @@ EL1_NS_LOAD		= el1_nsec.lds
 EL1_NS_OBJS		= el1_init.o \
                   el1_exception.o \
                   el1.o \
+                  el1_loader.o \
                   el1_nsec.o \
 				  svc.o \
                   builtins.o
 
 -include .*.d
 
-CFLAGS += -I../el0_ns/
+CFLAGS += -I../el0_ns/ -I../el1_common
 
 ##################################################################
 
