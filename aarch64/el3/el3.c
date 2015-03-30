@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "platform.h"
-#include "el3_loader.h"
+#include "el3.h"
 #include "string.h"
 #include "libcflat.h"
 #include "smc.h"
@@ -32,15 +32,20 @@ const char *smc_op_name[] = {
 const char *sec_state_str = "EL3";
 #endif
 
+uintptr_t EL3_TEXT_BASE = (uintptr_t)&_EL3_TEXT_BASE;
+uintptr_t EL3_DATA_BASE = (uintptr_t)&_EL3_DATA_BASE;
+uintptr_t EL3_TEXT_SIZE = (uintptr_t)&_EL3_TEXT_SIZE;
+uintptr_t EL3_DATA_SIZE = (uintptr_t)&_EL3_DATA_SIZE;
+
 state_buf sec_state;
 state_buf nsec_state;
 
 sys_control_t *syscntl;
 smc_op_desc_t *smc_interop_buf;
 
-uint64_t mem_pgtbl_base = EL3_PGTBL_BASE;
-uint64_t mem_next_pa = 0;
-uint64_t mem_heap_pool = 0xF800000000;
+uintptr_t mem_pgtbl_base = EL3_PGTBL_BASE;
+uintptr_t mem_next_pa = 0;
+uintptr_t mem_heap_pool = 0xF800000000;
 
 void el3_shutdown() {
     uintptr_t *sysreg_cfgctrl = (uintptr_t *)(SYSREG_BASE + SYSREG_CFGCTRL);
@@ -73,7 +78,7 @@ uint32_t el3_map_mem(op_map_mem_t *map)
     return 0;
 }
 
-int el3_handle_smc(uint64_t op, smc_op_desc_t *desc)
+int el3_handle_smc(uintptr_t op, smc_op_desc_t *desc)
 {
     op_test_t *test = (op_test_t*)desc;
 
@@ -145,9 +150,9 @@ int el3_handle_smc(uint64_t op, smc_op_desc_t *desc)
     return 0;
 }
 
-int el3_handle_exception(uint64_t ec, uint64_t iss)
+int el3_handle_exception(uintptr_t ec, uintptr_t iss)
 {
-    uint64_t elr, far;
+    uintptr_t elr, far;
 
     __get_exception_address(far);
     __get_exception_return(elr);
@@ -243,7 +248,7 @@ void el3_monitor_init()
     sec_state.spsr_el3 = 0x5;
     sec_state.spsel = 0x1;
 #endif
-    sec_state.x[0] = (uint64_t)mem_lookup_pa(syscntl);
+    sec_state.x[0] = (uintptr_t)mem_lookup_pa(syscntl);
 
     /* Set-up the nonsecure state buffer to return to the non-secure
      * initialization sequence. This will occur on the first monitor context
@@ -254,12 +259,12 @@ void el3_monitor_init()
     nsec_state.spsr_el3 = 0x5;
     nsec_state.spsel = 0x1;
 #endif
-    nsec_state.x[0] = (uint64_t)mem_lookup_pa(syscntl);
+    nsec_state.x[0] = (uintptr_t)mem_lookup_pa(syscntl);
 }
 
-void el3_start(uint64_t base, uint64_t size)
+void el3_start(uintptr_t base, uintptr_t size)
 {
-    uint64_t addr = base;
+    uintptr_t addr = base;
     size_t len;
 
     printf("EL3 started...\n");
