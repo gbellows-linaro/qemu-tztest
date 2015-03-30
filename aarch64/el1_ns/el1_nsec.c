@@ -8,6 +8,8 @@ uintptr_t EL1_NS_DATA_BASE = (uintptr_t)&_EL1_NS_DATA_BASE;
 uintptr_t EL1_NS_TEXT_SIZE = (uint64_t)&_EL1_NS_TEXT_SIZE;
 uintptr_t EL1_NS_DATA_SIZE = (uintptr_t)&_EL1_NS_DATA_SIZE;
 
+const char *sec_state_str = "non-secure";
+
 void el1_init_el0()
 {
     int (*main)(void);

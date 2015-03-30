@@ -11,6 +11,7 @@
 #include "el3_monitor.h"
 #include "arm_builtins.h"
 #include "syscntl.h"
+#include "mem_util.h"
 
 #define SEC_STATE_STR "EL3"
 #include "debug.h"
@@ -27,6 +28,8 @@ const char *smc_op_name[] = {
     [SMC_OP_TEST] = "SMC_OP_TEST",
     [SMC_OP_DISPATCH] = "SMC_OP_DISPATCH",
 };
+
+const char *sec_state_str = "EL3";
 #endif
 
 state_buf sec_state;
@@ -35,153 +38,29 @@ state_buf nsec_state;
 sys_control_t *syscntl;
 smc_op_desc_t *smc_interop_buf;
 
-uint64_t el3_next_pa = 0;
-uint64_t el3_heap_pool = 0xF800000000;
+uint64_t mem_pgtbl_base = EL3_PGTBL_BASE;
+uint64_t mem_next_pa = 0;
+uint64_t mem_heap_pool = 0xF800000000;
 
 void el3_shutdown() {
     uintptr_t *sysreg_cfgctrl = (uintptr_t *)(SYSREG_BASE + SYSREG_CFGCTRL);
 
-    printf("\nTest complete\n");
+    DEBUG_MSG("Test complete");
 
     *sysreg_cfgctrl = SYS_SHUTDOWN;
 
     while(1);   /* Shutdown does not work on all machines */
 }
 
-uint64_t el3_allocate_pa()
-{
-    uint64_t next = el3_next_pa;
-    el3_next_pa += 0x1000;
-    return next;
-}
-
-void el3_map_pa(uintptr_t vaddr, uint64_t paddr)
-{
-    uint64_t pa = EL3_PGTBL_BASE, off;
-    uint32_t i;
-    uint64_t *pte;
-
-    for (i = 0; i < 3; i++) {
-        /* Each successive level uses the next lower 9 VA bits in a 48-bit
-         * address, hence the i*9.
-         */
-        off = ((vaddr >> (39-(i*9))) & 0x1FF) << 3;
-        pte = (uint64_t *)(pa | off);
-        if (!(*pte & 0x1)) {
-            pa = el3_allocate_pa();
-            *pte = pa;
-            *pte |= PTE_PAGE;
-        } else {
-            pa = *pte & 0x000FFFFFF000;
-        }
-    }
-
-    /* The last level is the physical page to map */
-    off = ((vaddr >> (39-(i*9))) & 0x1FF) << 3;
-    pte = (uint64_t *)(pa | off);
-    *pte = paddr & ~0xFFF;
-    *pte |= (PTE_PAGE | PTE_ACCESS);
-    DEBUG_MSG("mapped VA:0x%lx to PA:0x%x (PTE:0x%lx)",
-              vaddr, paddr, pte);
-}
-
-void el3_map_va(uintptr_t addr)
-{
-    uint64_t pa = EL3_PGTBL_BASE, off;
-    uint32_t i;
-    uint64_t *pte;
-
-    for (i = 0; i < 4; i++) {
-        /* Each successive level uses the next lower 9 VA bits in a 48-bit
-         * address, hence the i*9.
-         */
-        off = ((addr >> (39-(i*9))) & 0x1FF) << 3;
-        pte = (uint64_t *)(pa | off);
-        if (!(*pte & 0x1)) {
-            pa = el3_allocate_pa();
-            *pte = pa;
-            *pte |= PTE_PAGE;
-        } else {
-            pa = *pte & 0x000FFFFFF000;
-        }
-    }
-
-    *pte |= PTE_ACCESS;
-}
-
-int el3_unmap_va(uint64_t addr)
-{
-    uint64_t pa = EL3_PGTBL_BASE;
-    uint32_t i;
-    uint64_t *pte;
-
-    for (i = 0; i < 4; i++) {
-        /* Each successive level uses the next lower 9 VA bits in a 48-bit
-         * address, hence the i*9.
-         */
-        uint64_t off = ((addr >> (39-(i*9))) & 0x1FF) << 3;
-        pte = (uint64_t *)(pa | off);
-        if (!(*pte & 0x1)) {
-            /* This is not a valid page, return an error */
-            return -1;
-        } else {
-            pa = *pte & 0x000FFFFFF000;
-        }
-    }
-
-    /* Clear the page descriptor */
-    *pte = 0;
-
-    return 0;
-}
-
-void *el3_heap_allocate(size_t len)
-{
-    void *addr = (void *)el3_heap_pool;
-    size_t off;
-
-    for (off = 0; off < len; off += 0x1000) {
-        el3_map_va(el3_heap_pool + off);
-    }
-
-    el3_heap_pool += off;
-
-    return addr;
-}
-
 void el3_alloc_mem(op_alloc_mem_t *alloc)
 {
-    alloc->addr = el3_heap_allocate(alloc->len);
-}
-
-void *el3_lookup_pa(void *va)
-{
-    uint64_t pa = EL3_PGTBL_BASE;
-    uint32_t i;
-    uint64_t *pte;
-
-    for (i = 0; i < 4; i++) {
-        /* Each successive level uses the next lower 9 VA bits in a 48-bit
-         * address, hence the i*9.
-         */
-        uint64_t off = ((((uint64_t)va) >> (39-(i*9))) & 0x1FF) << 3;
-        pte = (uint64_t *)(pa | off);
-        if (!(*pte & 0x1)) {
-            DEBUG_MSG("Failed Lookup: invalid table page");
-            /* This is not a valid page, return an error */
-            return (void *)-1;
-        } else {
-            pa = *pte & 0x000FFFFFF000;
-        }
-    }
-
-    return (void *)pa;
+    alloc->addr = mem_heap_allocate(alloc->len);
 }
 
 uint32_t el3_map_mem(op_map_mem_t *map)
 {
     if ((map->type & OP_MAP_EL3) == OP_MAP_EL3) {
-        el3_map_pa((uintptr_t)map->va, (uintptr_t)map->pa);
+        mem_map_pa((uintptr_t)map->va, (uintptr_t)map->pa, 0, PTE_PRIV_RW);
         DEBUG_MSG("Mapped VA:0x%lx to PA:0x%lx\n", map->va, map->pa);
     }
 
@@ -364,7 +243,7 @@ void el3_monitor_init()
     sec_state.spsr_el3 = 0x5;
     sec_state.spsel = 0x1;
 #endif
-    sec_state.x[0] = (uint64_t)el3_lookup_pa(syscntl);
+    sec_state.x[0] = (uint64_t)mem_lookup_pa(syscntl);
 
     /* Set-up the nonsecure state buffer to return to the non-secure
      * initialization sequence. This will occur on the first monitor context
@@ -375,7 +254,7 @@ void el3_monitor_init()
     nsec_state.spsr_el3 = 0x5;
     nsec_state.spsel = 0x1;
 #endif
-    nsec_state.x[0] = (uint64_t)el3_lookup_pa(syscntl);
+    nsec_state.x[0] = (uint64_t)mem_lookup_pa(syscntl);
 }
 
 void el3_start(uint64_t base, uint64_t size)
@@ -388,14 +267,14 @@ void el3_start(uint64_t base, uint64_t size)
     /* Unmap the init segement so we don't accidentally use it */
     for (len = 0; len < ((size + (PAGE_SIZE - 1)) & ~(PAGE_SIZE - 1));
          len += PAGE_SIZE, addr += PAGE_SIZE) {
-        el3_unmap_va(addr);
+        mem_unmap_va(addr);
     }
 
-    syscntl = el3_heap_allocate(PAGE_SIZE);
+    syscntl = mem_heap_allocate(PAGE_SIZE);
 
-    smc_interop_buf = el3_heap_allocate(PAGE_SIZE);
+    smc_interop_buf = mem_heap_allocate(PAGE_SIZE);
     syscntl->smc_interop.buf_va = smc_interop_buf;
-    syscntl->smc_interop.buf_pa = el3_lookup_pa(smc_interop_buf);
+    syscntl->smc_interop.buf_pa = mem_lookup_pa(smc_interop_buf);
 
     el3_monitor_init();
 

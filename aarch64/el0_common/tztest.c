@@ -6,14 +6,9 @@
 #include "el0.h"
 #include "debug.h"
 #include "el0_common.h"
+#include "tztest.h"
 
 sys_control_t *syscntl = NULL;
-
-#define TEST_HEAD(_str, ...) \
-    printf("\nValidating %s EL%d " _str ":\n", SEC_STATE_STR, el, ##__VA_ARGS__)
-
-#define TEST_MSG(_str, ...) \
-    printf("\tEL%d (%s): " _str "... ", el, SEC_STATE_STR, ##__VA_ARGS__)
 
 uint32_t check_smc(uint32_t el)
 {

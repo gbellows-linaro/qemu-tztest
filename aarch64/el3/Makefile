@@ -4,6 +4,7 @@ EL3_OBJS		= el3_init.o \
                   el3_exception.o \
                   el3.o \
                   el3_monitor_asm.o \
+                  mem_util.o \
                   builtins.o
 EL3_ELF			= el3.elf
 EL3_IMAGE		= el3.bin

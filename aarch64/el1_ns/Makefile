@@ -9,6 +9,7 @@ EL1_NS_OBJS		= el1_init.o \
                   el1_loader.o \
                   el1_nsec.o \
 				  svc.o \
+                  mem_util.o \
                   builtins.o
 
 -include .*.d

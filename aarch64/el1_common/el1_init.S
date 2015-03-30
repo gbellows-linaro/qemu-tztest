@@ -165,7 +165,7 @@ el1_init_start:
     ldp x16, x17, [sp], #16
 
 /* Migrate the next PA to the non-init code */
-    ldr x10, =el1_next_pa
+    ldr x10, =mem_next_pa
     str x17, [x10]
     ldr x10, =syscntl
     str x16, [x10]

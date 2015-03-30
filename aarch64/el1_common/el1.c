@@ -1,143 +1,15 @@
 #include "el1_common.h"
+#include "mem_util.h"
 
+uint64_t mem_pgtbl_base = EL1_PGTBL_BASE;
 smc_op_desc_t *smc_interop_buf;
 sys_control_t *syscntl;
-uint64_t el1_next_pa = 0;
-uint64_t el1_heap_pool = 0x40000000;
-
-uint64_t el1_allocate_pa()
-{
-    uint64_t next = el1_next_pa;
-    el1_next_pa += 0x1000;
-    return next;
-}
-
-void el1_map_pa(uintptr_t vaddr, uintptr_t paddr)
-{
-    uint64_t pa = EL1_PGTBL_BASE, off;
-    uint32_t i;
-    uint64_t *pte;
-
-    for (i = 0; i < 3; i++) {
-        /* Each successive level uses the next lower 9 VA bits in a 48-bit
-         * address, hence the i*9.
-         */
-        off = ((vaddr >> (39-(i*9))) & 0x1FF) << 3;
-        pte = (uint64_t *)(pa | off);
-        if (!(*pte & 0x1)) {
-            pa = el1_allocate_pa();
-            *pte = pa;
-            *pte |= PTE_PAGE;
-        } else {
-            pa = *pte & 0x000FFFFFF000;
-        }
-    }
-
-    /* The last level is the physical page to map */
-    off = ((vaddr >> (39-(i*9))) & 0x1FF) << 3;
-    pte = (uint64_t *)(pa | off);
-    *pte = paddr & ~0xFFF;
-    *pte |= (PTE_PAGE | PTE_ACCESS | PTE_USER_RW);
-    DEBUG_MSG("mapped VA:0x%lx to PA:0x%x (PTE:0x%lx)",
-              vaddr, paddr, pte);
-}
-
-void el1_map_va(uintptr_t addr)
-{
-    uint64_t pa = EL1_PGTBL_BASE, off;
-    uint32_t i;
-    uint64_t *pte;
-
-    for (i = 0; i < 4; i++) {
-        /* Each successive level uses the next lower 9 VA bits in a 48-bit
-         * address, hence the i*9.
-         */
-        off = ((addr >> (39-(i*9))) & 0x1FF) << 3;
-        pte = (uint64_t *)(pa | off);
-        if (!(*pte & 0x1)) {
-            pa = el1_allocate_pa();
-            *pte = pa;
-            *pte |= PTE_PAGE;
-        } else {
-            pa = *pte & 0x000FFFFFF000;
-        }
-    }
-
-    *pte |= (PTE_ACCESS | PTE_USER_RW);
-    DEBUG_MSG("mapped VA:0x%lx to PA:0x%x (PTE:0x%lx)",
-                addr, pa, pte);
-}
-
-int el1_unmap_va(uint64_t addr)
-{
-    uint64_t pa = EL1_PGTBL_BASE;
-    uint32_t i;
-    uint64_t *pte;
-
-    for (i = 0; i < 4; i++) {
-        /* Each successive level uses the next lower 9 VA bits in a 48-bit
-         * address, hence the i*9.
-         */
-        uint64_t off = ((addr >> (39-(i*9))) & 0x1FF) << 3;
-        pte = (uint64_t *)(pa | off);
-        if (!(*pte & 0x1)) {
-            DEBUG_MSG("Failed unmap: invalid table page");
-            /* This is not a valid page, return an error */
-            return -1;
-        } else {
-            pa = *pte & 0x000FFFFFF000;
-        }
-    }
-
-    /* Clear the page descriptor */
-    *pte = 0;
-    DEBUG_MSG("unmapped PTE 0x%lx (VA:0x%lx, PA:0x%x)",
-              pte, addr, pa);
-
-    return 0;
-}
-
-void *el1_heap_allocate(size_t len)
-{
-    void *addr = (void *)el1_heap_pool;
-    size_t off;
-
-    for (off = 0; off < len; off += 0x1000) {
-        el1_map_va(el1_heap_pool + off);
-    }
-
-    el1_heap_pool += off;
-
-    return addr;
-}
+uint64_t mem_next_pa = 0;
+uint64_t mem_heap_pool = 0x40000000;
 
 void el1_alloc_mem(op_alloc_mem_t *alloc)
 {
-    alloc->addr = el1_heap_allocate(alloc->len);
-}
-
-void *el1_lookup_pa(void *va)
-{
-    uint64_t pa = EL1_PGTBL_BASE;
-    uint32_t i;
-    uint64_t *pte;
-
-    for (i = 0; i < 4; i++) {
-        /* Each successive level uses the next lower 9 VA bits in a 48-bit
-         * address, hence the i*9.
-         */
-        uint64_t off = ((((uint64_t)va) >> (39-(i*9))) & 0x1FF) << 3;
-        pte = (uint64_t *)(pa | off);
-        if (!(*pte & 0x1)) {
-            DEBUG_MSG("Failed Lookup: invalid table page");
-            /* This is not a valid page, return an error */
-            return (void *)-1;
-        } else {
-            pa = *pte & 0x000FFFFFF000;
-        }
-    }
-
-    return (void *)pa;
+    alloc->addr = mem_heap_allocate(alloc->len);
 }
 
 void el1_map_secure(op_map_mem_t *map)
@@ -146,11 +18,11 @@ void el1_map_secure(op_map_mem_t *map)
         smc_op_desc_t *desc = (smc_op_desc_t *)smc_interop_buf;
         memcpy(desc, map, sizeof(op_map_mem_t));
         if (desc->map.pa) {
-            desc->map.pa = el1_lookup_pa(desc->map.va);
+            desc->map.pa = mem_lookup_pa(desc->map.va);
         }
         __smc(SMC_OP_MAP, desc);
     } else {
-        el1_map_pa((uint64_t)map->va, (uint64_t)map->pa);
+        mem_map_pa((uint64_t)map->va, (uint64_t)map->pa, 0, PTE_USER_RW);
     }
 }
 
@@ -318,19 +190,19 @@ void el1_start(uint64_t base, uint64_t size)
     uint64_t addr = base;
     size_t len;
 
-    printf("EL1 (%s) started...\n", SEC_STATE_STR);
+    printf("EL1 (%s) started...\n", sec_state_str);
 
     /* Unmap the init segement so we don't accidentally use it */
     for (len = 0; len < ((size + (PAGE_SIZE - 1)) & ~(PAGE_SIZE - 1));
          len += PAGE_SIZE, addr += PAGE_SIZE) {
-        el1_unmap_va(addr);
+        mem_unmap_va(addr);
     }
 
     void *pa = syscntl;
-    syscntl = (sys_control_t *)el1_heap_allocate(PAGE_SIZE);
-    el1_map_pa((uintptr_t)syscntl, (uintptr_t)pa);
-    el1_map_pa((uintptr_t)syscntl->smc_interop.buf_va,
-               (uintptr_t)syscntl->smc_interop.buf_pa);
+    syscntl = (sys_control_t *)mem_heap_allocate(PAGE_SIZE);
+    mem_map_pa((uintptr_t)syscntl, (uintptr_t)pa, 0, PTE_USER_RW);
+    mem_map_pa((uintptr_t)syscntl->smc_interop.buf_va,
+               (uintptr_t)syscntl->smc_interop.buf_pa, 0, PTE_USER_RW);
     smc_interop_buf = syscntl->smc_interop.buf_va;
 
     el1_init_el0();

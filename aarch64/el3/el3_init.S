@@ -158,7 +158,7 @@ el3_copy_data:
 
 el3_init_start:
     ldr x17, [sp], #8       /* next PA */
-    ldr x10, =el3_next_pa
+    ldr x10, =mem_next_pa
     str x17, [x10]
 
     ldr x0, =_EL3_INIT_BASE

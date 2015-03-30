@@ -8,11 +8,13 @@ uintptr_t EL1_S_DATA_BASE = (uintptr_t)&_EL1_S_DATA_BASE;
 uintptr_t EL1_S_TEXT_SIZE = (uint64_t)&_EL1_S_TEXT_SIZE;
 uintptr_t EL1_S_DATA_SIZE = (uint64_t)&_EL1_S_DATA_SIZE;
 
+const char *sec_state_str = "secure";
+
 void el1_init_el0()
 {
     int (*main)(void);
 
-    main = el1_load_el0((char *)EL0_S_FLASH_BASE, (char *)EL0_NS_BASE_VA);
+    main = el1_load_el0((char *)EL0_S_FLASH_BASE, (char *)EL0_S_BASE_VA);
 
     __set_exception_return((uint64_t)main);
     __exception_return();
