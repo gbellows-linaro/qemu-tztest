@@ -1,6 +1,7 @@
 #include "tztest.h"
 
 #ifdef DEBUG
+extern void test_handshake();
 uint32_t tztest_div_by_2(uint32_t arg) {return arg/2;}
 SECURE_USR_FUNC(tztest_div_by_2);
 
