@@ -3,7 +3,7 @@ OUTPUT_ARCH(aarch64)
 TARGET(binary)
 ENTRY(main)
 
-#include "platform.h"
+#include "memory.h"
 
 SECTIONS
 {

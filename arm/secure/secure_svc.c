@@ -2,6 +2,8 @@
 #include "common_svc.h"
 #include "common_mmu.h"
 #include "common_defs.h"
+#include "arm32.h"
+#include "platform.h"
 
 /* Make the below globals volatile as  found that the compiler uses the
  * register value ratherh than the memory value making it look like the writes

@@ -1,3 +1,4 @@
+#include "arm32.h"
 #include "common_defs.h"
 
 .arch_extension sec

@@ -1,9 +1,6 @@
 #ifndef _TZTEST_CONSTANTS_H
 #define _TZTEST_CONSTANTS_H
 
-#include "arm32.h"
-#include "platform.h"
-
 #define STDOUT 1
 #define TZTEST_STATE_SECURE !SCR_NS
 #define TZTEST_STATE_NONSECURE SCR_NS

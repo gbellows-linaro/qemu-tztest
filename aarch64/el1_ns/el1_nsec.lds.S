@@ -2,7 +2,7 @@ OUTPUT_FORMAT("elf64-littleaarch64")
 OUTPUT_ARCH(aarch64)
 TARGET(binary)
 
-#include "platform.h"
+#include "memory.h"
 
 SECTIONS
 {

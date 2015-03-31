@@ -2,7 +2,7 @@
 #define __EL1_COMMON_H
 
 #include "libcflat.h"
-#include "platform.h"
+#include "memory.h"
 #include "svc.h"
 #include "smc.h"
 #include "string.h"

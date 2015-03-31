@@ -1,7 +1,7 @@
 #ifndef _EL1_S_H
 #define _EL1_S_H
 
-#include "platform.h"
+#include "memory.h"
 
 #ifndef __ASSEMBLY__
 extern uintptr_t _EL1_S_INIT_BASE;

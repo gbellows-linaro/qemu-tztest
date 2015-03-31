@@ -2,6 +2,7 @@
 #include "common_mmu.h"
 #include "common_defs.h"
 #include "sm.h"
+#include "platform.h"
 
 extern uint32_t _shared_memory_heap_base;
 

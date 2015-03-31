@@ -1,4 +1,4 @@
-
+#include "arm32.h"
 #include "common_defs.h"
 
 .align 5

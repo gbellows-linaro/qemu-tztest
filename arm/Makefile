@@ -2,7 +2,7 @@ BIOS_IMAGE 		= tztest.img
 SEC_IMAGE		= secure/sec.bin
 NSEC_IMAGE		= nonsecure/nsec.bin
 
-CFLAGS += -I../../platform/$(PLAT)/$(ARCH) -I../../libcflat/include
+CFLAGS += -I../../platform/$(PLAT) -I../../libcflat/include
 CFLAGS += -I../common -I../monitor
 CFLAGS += -DAARCH64
 

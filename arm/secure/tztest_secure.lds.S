@@ -11,7 +11,7 @@ OUTPUT_FORMAT("elf32-littlearm")
 OUTPUT_ARCH(arm)
 TARGET(binary)
 
-#include "platform.h"
+#include "memory.h"
 
 _ram_nsec_base = RAM_NSEC_BASE;
 

@@ -1,4 +1,5 @@
-
+#include "arm32.h"
+#include "platform.h"
 #include "common_defs.h"
 
 .global secure_dispatch_usr

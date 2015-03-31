@@ -1,4 +1,5 @@
 #include "tztest.h"
+#include "arm32.h"
 
 extern void test_handshake();
 

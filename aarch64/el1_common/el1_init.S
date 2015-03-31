@@ -1,4 +1,5 @@
 #define __ASSEMBLY__
+#include "memory.h"
 #include "el1.h"
 #include "el0.h"
 #include "armv8_vmsa.h"

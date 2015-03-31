@@ -11,7 +11,7 @@ OUTPUT_FORMAT("elf32-littlearm")
 OUTPUT_ARCH(arm)
 TARGET(binary)
 
-#include "platform.h"
+#include "memory.h"
 
 /* NORFLASH0 on Vexpress aseries (a15) is mapped from 0x08000000 to 0x0A000000
  * which is 32MB.  It is also aliased to 0x0 (to 0x2000000).

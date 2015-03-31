@@ -1,4 +1,5 @@
 #include "platform.h"
+#include "memory.h"
 
 .align 5
 /* We use the same vector table for Hyp and Monitor mode, since

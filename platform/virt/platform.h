@@ -5,11 +5,11 @@
  * which is 32MB.  It is also aliased to 0x0 (to 0x2000000).
  * It is acceptable to have the text here as it is RO.
  */
-#define FLASH_SEC_BASE 0x00000000
-#define FLASH_NSEC_BASE 0x00010000
+#define FLASH_BASE 0x00000000               // From QEMU virt.c
+#define FLASH_SIZE 0x08000000               // From QEMU virt.c
 
-#define RAM_SEC_BASE 0x40000000
-#define RAM_NSEC_BASE 0x48000000
+#define RAM_BASE 0x40000000                 // From QEMU virt.c
+#define RAM_SIZE (2*1024*1024*1024)         // Only 2GB needed
 
 #define UART0_BASE 0x09000000
 
@@ -26,8 +26,4 @@
 #define SYS_RESET       (SYS_CFGCTRL_FUNC(SYS_CFGFUNC_SHUTDOWN) | \
                          SYS_CFGCTRL_START | SYS_CFGCTRL_WRITE)
 
-#define STACK_SIZE 0x4000
-
-#define TZTEST_COMMON_HEAP_BASE 0x49000000
-#define TZTEST_SHARED_HEAP_BASE 0x4A000000
 #endif

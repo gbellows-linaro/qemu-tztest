@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "platform.h"
+#include "memory.h"
 #include "el3.h"
 #include "string.h"
 #include "libcflat.h"

@@ -1,7 +1,7 @@
 #ifndef _EL0_H
 #define _EL0_H
 
-#include "platform.h"
+#include "memory.h"
 
 #define EL0_STACK_BASE EL0_NS_STACK_BASE
 

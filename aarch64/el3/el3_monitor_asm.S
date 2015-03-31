@@ -1,5 +1,4 @@
 #define __ASSEMBLY__
-#include "platform.h"
 #include "smc.h"
 
 .section .text

@@ -2,6 +2,7 @@
 #include "common_svc.h"
 #include "common_mmu.h"
 #include "common_defs.h"
+#include "arm32.h"
 
 uint32_t nonsecure_dispatch_sec_usr_function(uint32_t (*)(uint32_t), uint32_t);
 uint32_t nonsecure_dispatch_sec_svc_function(uint32_t (*)(uint32_t), uint32_t);

@@ -1,4 +1,5 @@
 #include "platform.h"
+#include "memory.h"
 #include "armv8_vmsa.h"
 
 #define PT_BASE EL3_PGTBL_BASE
