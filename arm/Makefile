@@ -12,7 +12,7 @@ CFLAGS += -DAARCH64
 
 $(BIOS_IMAGE): $(SEC_IMAGE) $(NSEC_IMAGE)
 	dd if=$(SEC_IMAGE) of=$@ 2> /dev/null
-	dd oflag=seek_bytes seek=65536 if=$(NSEC_IMAGE) of=$@ 2> /dev/null
+	dd oflag=seek_bytes seek=131072 if=$(NSEC_IMAGE) of=$@ 2> /dev/null
 	chmod +x $(BIOS_IMAGE)
 
 $(SEC_IMAGE):

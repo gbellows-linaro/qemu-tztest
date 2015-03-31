@@ -13,16 +13,16 @@ TARGET(binary)
 
 #include "memory.h"
 
-_ram_nsec_base = RAM_NSEC_BASE;
+_ram_nsec_base = EL1_NS_RAM_BASE;
 
 SECTIONS
 {
-	. = FLASH_SEC_BASE;
+	. = EL3_FLASH_BASE;
 	.boot : { tzboot.o }
 	_eboot = .;
 
 	_flash_secvecs_start = .;
-	. = RAM_SEC_BASE;
+	. = EL3_RAM_BASE;
 	_ram_sec_base = .;
 
 	/* We separate out the secure vector table and level 1 handlers, so we

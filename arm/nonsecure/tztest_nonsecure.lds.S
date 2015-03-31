@@ -20,9 +20,9 @@ TARGET(binary)
 
 SECTIONS
 {
- . = FLASH_NSEC_BASE;
+ . = EL1_NS_FLASH_BASE;
  _flash_nsectext_start = .;
- . = RAM_NSEC_BASE;
+ . = EL1_NS_RAM_BASE;
  _ram_nsec_base = .;
  _ram_nsectext_start = .;
  .text : AT ( _flash_nsectext_start ) { *(.text); }

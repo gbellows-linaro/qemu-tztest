@@ -81,13 +81,13 @@ copy_secdata:
     /* Branch to the nonsecure image base.  It should be set-up so that this is
      * the image loader which returns the starting execution point.
      */
-    mov r0, #FLASH_NSEC_BASE
+    mov r0, #EL1_NS_FLASH_BASE
     blx r0
 
     /* Branch to the starting point of the secure image in RAM which should
      * kick off initialization.
      */
-    mov r1, #RAM_SEC_BASE
+    mov r1, #EL3_RAM_BASE
     bx r1
 
     /* We shouldn't get here as the secure image will shutdown */
