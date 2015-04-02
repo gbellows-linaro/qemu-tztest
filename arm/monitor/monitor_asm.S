@@ -1,29 +1,6 @@
 #include "arm32.h"
+#include "memory.h"
 #include "common_defs.h"
-
-.align 5
-.global monitor_vectors
-monitor_vectors:
-	b	.		/* Reset			*/
-	b	.		/* Undefined instruction	*/
-	b	monitor_smc_vect /* Secure monitor call		*/
-	b	.		/* Prefetch abort		*/
-	b	.		/* Data abort			*/
-	b	.		/* Reserved			*/
-	b	.		/* IRQ				*/
-	b	.       /* FIQ				*/
-
-monitor_smc_vect:
-    cmp r0, #SMC_YIELD
-    bge sm_smc_entry
-	srsdb sp!, #CPSR_MODE_MON
-    cmp r0, #SMC_NOOP
-    beq 1f
-	push {r0-r3}
-    mov r0, r1
-    bl monitor_dispatch
-	pop	{r0-r3}
-1:  rfefd sp!
 
 .global monitor_init
 /* monitor_init(nonsecure_entrypt) */
@@ -33,7 +10,7 @@ monitor_init:
     /* Set-up the monitor stack */
 	mrs	r10, cpsr
     cps #CPSR_MODE_MON
-    ldr sp, =mon_stacktop
+    ldr sp, =EL3_STACK_BASE
 	msr	cpsr, r10
 
     /* Set-up mvbar */

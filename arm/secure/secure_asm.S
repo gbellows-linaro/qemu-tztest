@@ -1,7 +1,9 @@
 #include "arm32.h"
+#include "memory.h"
 #include "platform.h"
 #include "common_defs.h"
 
+.section .text
 .global secure_dispatch_usr
 secure_dispatch_usr:
     /* Push the LR onto the stack so we can return immediately from the svc
@@ -11,7 +13,7 @@ secure_dispatch_usr:
 
     /* Reset the user stack for the dispatch, so we have a clean stack */
     cps #CPSR_MODE_SYS
-	ldr sp, =sec_usr_stacktop
+	ldr sp, =EL0_S_STACK_BASE
     push {r0, r1}
     cps #CPSR_MODE_SVC
 

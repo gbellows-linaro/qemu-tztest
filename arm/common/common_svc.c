@@ -4,25 +4,15 @@
 #include "sm.h"
 #include "platform.h"
 
-extern uint32_t _shared_memory_heap_base;
-
 pagetable_map_entry_t uart_pagetable_entries[] = {
     {.va = UART0_BASE, .pa = UART0_BASE, .type = PAGE, .len = 0x1000,
      .attr = SHARED | NOTGLOBAL | UNCACHED | P1_R | P1_W | P0_R | P0_W |
              NONSECURE },
 };
 
-pagetable_map_entry_t heap_pagetable_entries[] = {
-    {.va = (uint32_t)&_shared_memory_heap_base,
-     .pa = (uint32_t)&_shared_memory_heap_base,
-     .type = PAGE, .len = 0x1000,
-     .attr = SHARED | NOTGLOBAL | UNCACHED | P1_R | P1_W | P0_R | P0_W },
-};
-
 void pagetable_init_common(uint32_t *table)
 {
     PT_ADD_ENTRIES(table, uart_pagetable_entries);
-    PT_ADD_ENTRIES(table, heap_pagetable_entries);
 }
 
 #ifdef DEBUG

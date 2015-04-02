@@ -1,16 +1,12 @@
-VPATH			= ../common:../monitor
+VPATH			= ../common
 
 SEC_ELF			= sec.elf
 SEC_IMAGE 		= sec.bin
 SEC_LOAD		= tztest_secure.lds
-SEC_OBJS		= tzboot.o \
-				  secure_init.o \
+SEC_OBJS		= secure_init.o \
+				  secure_exception.o \
 				  secure_svc.o \
 				  secure_asm.o \
-				  monitor.o \
-				  monitor_asm.o \
-				  sm_asm.o \
-				  sm.o \
 				  common_mmu.o \
 				  common_svc.o
 

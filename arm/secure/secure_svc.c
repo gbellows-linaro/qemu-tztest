@@ -13,6 +13,21 @@
 int secure_dispatch_usr(int, int);
 void secure_svc_loop(int initial_r0, int initial_r1);
 
+volatile uint32_t *exception;
+volatile uint32_t *exception_addr;
+volatile uint32_t *exception_status;
+uint32_t *sec_l1_page_table;
+uint32_t ram_secvecs_start;
+uint32_t ram_sectext_start;
+uint32_t ram_secdata_start;
+uint32_t secstack_start;
+uint32_t secvecs_size;
+uint32_t sectext_size;
+uint32_t secdata_size;
+uint32_t secstack_size;
+uintptr_t mem_next_pa;
+
+#if 0
 volatile uint32_t *exception = &_tztest_exception;
 volatile uint32_t *exception_addr = &_tztest_exception_addr;
 volatile uint32_t *exception_status = &_tztest_exception_status;
@@ -25,13 +40,7 @@ uint32_t secvecs_size = (uint32_t)&_secvecs_size;
 uint32_t sectext_size = (uint32_t)&_sectext_size;
 uint32_t secdata_size = (uint32_t)&_secdata_size;
 uint32_t secstack_size = (uint32_t)&_secstack_size;
-
-pagetable_map_entry_t nsec_pagetable_entries[] = {
-    {.va = (uint32_t)&_ram_nsec_base, .pa = (uint32_t)&_ram_nsec_base,
-     .type = SECTION, .len = SECTION_SIZE * 2,
-     .attr = SHARED | NOTGLOBAL | WBA_CACHED | P1_R | P1_W | P1_X | P0_R |
-             P0_W | P0_X | NONSECURE },
-};
+#endif
 
 pagetable_map_entry_t sysreg_pagetable_entries[] = {
     {.va = SYSREG_BASE, .pa = SYSREG_BASE,
@@ -180,7 +189,6 @@ void secure_pagetable_init()
 
     PT_ADD_ENTRIES(sec_l1_page_table, sysreg_pagetable_entries);
     PT_ADD_ENTRIES(sec_l1_page_table, sec_pagetable_entries);
-    PT_ADD_ENTRIES(sec_l1_page_table, nsec_pagetable_entries);
 
     pagetable_init_common(sec_l1_page_table);
 }
