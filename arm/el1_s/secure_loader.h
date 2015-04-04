@@ -1,6 +1,6 @@
 #ifndef _SECURE_LOADER_H
 #define _SECURE_LOADER_H
-#include "sm.h"
+#include <stdint.h>
 
 extern int _ram_nsec_base;
 extern uint32_t _sec_l1_page_table;

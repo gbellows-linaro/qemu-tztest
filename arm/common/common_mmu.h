@@ -1,8 +1,7 @@
-
 #ifndef _TZTEST_MMU_H
 #define _TZTEST_MMU_H
 
-#include "sm.h"
+#include <stdint.h>
 
 #define LARGE_PAGE  (0 << 0)
 #define PAGE        (1 << 0)

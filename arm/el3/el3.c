@@ -250,23 +250,17 @@ void el3_monitor_init()
      * sequence. This will occur when we return from exception after monitor
      * initialization.
      */
-#ifdef AARCH64
-    sec_state.elr_el3 = EL1_S_FLASH_BASE;
-    sec_state.spsr_el3 = 0x5;
-    sec_state.spsel = 0x1;
-#endif
-    sec_state.x[0] = (uintptr_t)mem_lookup_pa(syscntl);
+    sec_state.lr_mon = EL1_S_FLASH_BASE;
+    sec_state.spsr_mon = CPSR_MODE_SVC | CPSR_I;
+    sec_state.r[0] = (uintptr_t)mem_lookup_pa(syscntl);
 
     /* Set-up the nonsecure state buffer to return to the non-secure
      * initialization sequence. This will occur on the first monitor context
      * switch (smc) from secure to non-secure.
      */
-#ifdef AARCH64
-    nsec_state.elr_el3 = EL1_NS_FLASH_BASE;
-    nsec_state.spsr_el3 = 0x5;
-    nsec_state.spsel = 0x1;
-#endif
-    nsec_state.x[0] = (uintptr_t)mem_lookup_pa(syscntl);
+    nsec_state.lr_mon = EL1_NS_FLASH_BASE;
+    nsec_state.spsr_mon = CPSR_MODE_SVC | CPSR_I;
+    nsec_state.r[0] = (uintptr_t)mem_lookup_pa(syscntl);
 }
 
 void el3_start(uintptr_t base, uintptr_t size)
@@ -293,6 +287,6 @@ void el3_start(uintptr_t base, uintptr_t size)
     /* Set-up our state to return to secure EL1 to start its init on exception
      * return.
      */
-//    monitor_restore_state(&sec_state);
-//    __exception_return();
+    monitor_restore_state(&sec_state);
+    __exception_return();
 }

@@ -3,7 +3,7 @@
 /* allocate_pa() - Allocates and returns next pool PA */
 allocate_pa:
     push {r10, r11, lr}
-    ldr r10, =TEMP_STACK
+    ldr r10, =INIT_STACK
     ldr r0, [r10, #-4]
     add r11, r0, #0x1000
     str r11, [r10, #-4]
@@ -12,7 +12,7 @@ allocate_pa:
 
 allocate_l1_page:
     push {r10, r11, lr}
-    ldr r10, =TEMP_STACK
+    ldr r10, =INIT_STACK
     ldr r0, [r10, #-8]
     add r11, r0, #0x1000
     str r11, [r10, #-8]

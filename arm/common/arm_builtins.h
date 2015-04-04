@@ -10,36 +10,15 @@
 #define SCR_WFI     (1 << 12)
 #define SCR_WFE     (1 << 13)
 
-#define __exception_return(_x0) asm volatile ("eret\n")
+#define __exception_return(_r0) \
+    asm volatile ("rfefd sp\n")
 
 #define __get_exception_return(_addr) \
-    asm volatile("mrs x0, currentel\n"  \
-                 "cmp x0, #0x4\n"   \
-                 "b.eq elrel1\n"   \
-                 "cmp x0, #0x8\n"   \
-                 "b.eq elrel2\n"   \
-                 "elrel3: mrs %0, elr_el3\n"   \
-                 "b elrdone\n"   \
-                 "elrel2: mrs %0, elr_el2\n"   \
-                 "b elrdone\n"   \
-                 "elrel1: mrs %0, elr_el1\n"   \
-                 "elrdone:\n" : "=r" (_addr))
+    asm volatile("mov r0, r0\n")
 
 #define __get_exception_address(_addr) \
-    asm volatile("mrs x0, currentel\n"  \
-                 "cmp x0, #0x4\n"   \
-                 "b.eq farel1\n"   \
-                 "cmp x0, #0x8\n"   \
-                 "b.eq farel2\n"   \
-                 "farel3: mrs %0, far_el3\n"   \
-                 "b fardone\n"   \
-                 "farel2: mrs %0, far_el2\n"   \
-                 "b fardone\n"   \
-                 "farel1: mrs %0, far_el1\n"   \
-                 "fardone:\n" : "=r" (_addr))
+    asm volatile("mov r0, r0\n")
 
-extern uint64_t read_currentel();
-extern void write_currentel(uint64_t);
 extern uint64_t read_scr_el3();
 extern void write_scr_el3(uint64_t);
 extern uint64_t read_sder32_el3();
@@ -62,7 +41,5 @@ extern void __set_exception_return(uint64_t);
 #define WRITE_CPTR_EL3(_val) write_cptr_el3(_val)
 #define READ_CPACR() read_cpacr_el1()
 #define WRITE_CPACR(_val) write_cpacr_el1(_val)
-#define READ_CURRENTEL() read_currentel()
-#define WRITE_CURRENTEL(_val) read_currentel(_val)
 
 #endif

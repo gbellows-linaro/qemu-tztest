@@ -1,7 +1,6 @@
 #ifndef _TZTEST_BUILTINS_H
 #define _TZTEST_BUILTINS_H
-
-#include "sm.h"
+#include <stdint.h>
 
 /* SMC intrinsic
  * Need to enable the security extension on v7 or the assembler will complain

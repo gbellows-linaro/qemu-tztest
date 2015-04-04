@@ -26,6 +26,7 @@ uint32_t sectext_size;
 uint32_t secdata_size;
 uint32_t secstack_size;
 uintptr_t mem_next_pa;
+uintptr_t mem_next_l1_page;
 
 #if 0
 volatile uint32_t *exception = &_tztest_exception;

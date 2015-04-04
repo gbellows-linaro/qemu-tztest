@@ -1,6 +1,6 @@
 #ifndef _NONSECURE_LOADER_H
 #define _NONSECURE_LOADER_H
-#include "sm.h"
+#include <stdint.h>
 
 extern uint32_t _nsec_l1_page_table;
 extern uint32_t _ram_nsectext_start;

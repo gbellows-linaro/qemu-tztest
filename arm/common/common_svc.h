@@ -2,8 +2,8 @@
 #define _COMMON_SVC_H
 
 #include "tztest_builtins.h"
-#include "sm.h"
 #include "libcflat.h"
+#include <stdint.h>
 
 typedef struct {
     uint32_t (*func)(uint32_t);

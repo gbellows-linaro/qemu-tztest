@@ -1,0 +1,39 @@
+VPATH			= ../el1_common:../common
+
+EL1_S_ELF		= el1_sec.elf
+EL1_S_IMAGE 	= el1_sec.bin
+EL1_S_LOAD		= el1_sec.lds
+EL1_S_OBJS		= el1_init.o \
+				  el1_exception.o \
+				  el1.o \
+				  el1_sec.o \
+				  el1_loader.o \
+				  mem_util.o \
+				  builtins.o
+
+ifneq (,$(findstring DEBUG, $(CFLAGS)))
+	EL1_S_OBJS += tztest_debug.o
+endif
+
+-include .*.d
+
+CFLAGS += -I../el0_s/ -I../el1_common
+
+##################################################################
+
+$(EL1_S_ELF): $(EL1_S_OBJS) $(EL1_S_LOAD)
+	$(LD) -o $@ $(EL1_S_OBJS) $(FLATLIBS) --script=$(EL1_S_LOAD)
+
+$(EL1_S_IMAGE): $(EL1_S_ELF)
+	$(OBJCOPY) -O binary $(EL1_S_ELF) $(EL1_S_IMAGE)
+
+$(EL1_S_LOAD): el1_sec.lds.S Makefile
+	$(CC) $(CFLAGS) -E -P -C -o $@ $<
+
+%.o: %.S
+	$(CC) $(CFLAGS) -c -nostdlib -o $@ $<
+
+all: $(EL1_S_IMAGE)
+
+clean:
+	$(RM) $(EL1_S_OBJS) $(EL1_S_LOAD) $(EL1_S_ELF) $(EL1_S_IMAGE) .*.d

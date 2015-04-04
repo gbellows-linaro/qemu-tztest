@@ -1,7 +1,6 @@
 #include "common_svc.h"
 #include "common_mmu.h"
 #include "common_defs.h"
-#include "sm.h"
 #include "platform.h"
 
 pagetable_map_entry_t uart_pagetable_entries[] = {
