@@ -30,7 +30,7 @@ init_uart:
      * During startup, before the MMU is enabled we'll set-up the vecs in low
      * mem.
      */
-    ldr r10, =monitor_vectors
+    ldr r10, =el3_vectors
     mcr p15, 0, r10, c12, c0, 1         /* MVBAR */
 
     /* The stack still needs to be allocated and mapped so we set up a

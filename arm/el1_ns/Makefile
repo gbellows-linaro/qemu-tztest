@@ -8,6 +8,7 @@ NSEC_OBJS		= el1_init.o \
 				  el1.o \
 				  el1_nsec.o \
 				  el1_loader.o \
+				  svc.o \
 				  mem_util.o \
 				  builtins.o
 

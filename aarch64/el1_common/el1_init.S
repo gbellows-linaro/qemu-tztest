@@ -8,7 +8,7 @@
 .section .init
 .align 12
 .global el1_init
-/* el1_init()  - x4 = smc_interop_buf PA */
+/* el1_init()  - x4 = syscntl PA */
 el1_init:
     /* Set-up the EL1 vbar */
     ldr x10, =el1_vectors
@@ -24,7 +24,7 @@ el1_init:
     ldr x10, =EL1_PGTBL_BASE + PAGE_SIZE
     str x10, [sp]
 
-    /* Save the input SMC interop buf pointer */
+    /* Save the input syscntl buf pointer */
     str x4, [sp, #-8]!
 
     /* Enable floating point register usage as printf uses it */

@@ -1,32 +1,45 @@
 #define __ASSEMBLY__
 #include "arm32.h"
 #include "common_defs.h"
+#include "armv7_exception.h"
 #undef __ASSEMBLY__
 
 .section .vectors
 .align 12
-.global monitor_vectors
-monitor_vectors:
-	b	.		/* Reset			*/
-	b	monitor_handle_exception /* Undefined instruction	*/
-	b	monitor_smc_vect /* Secure monitor call		*/
-	b	monitor_handle_exception    /* Prefetch abort		*/
-	b	monitor_handle_exception    /* Data abort			*/
-	b	.		/* Reserved			*/
-	b	.		/* IRQ				*/
-	b	.       /* FIQ				*/
+.global el3_vectors
+el3_vectors:
+	b	.					/* Unused			*/
+	b	.					/* Unused			*/
+	b	el3_smc_vect 		/* Secure el3 call	*/
+	b	el3_iabort_vect 	/* Prefetch abort 	*/
+	b	el3_dabort_vect 	/* Data abort 		*/
+	b	.					/* Unused			*/
+	b	.					/* IRQ				*/
+	b	.       			/* FIQ				*/
 
-monitor_smc_vect:
+el3_smc_vect:
 	srsdb sp!, #CPSR_MODE_MON
     bl el3_handle_smc
     cmp r0, #0
-    beq monitor_smc_vect_done
+    beq el3_smc_vect_done
     b monitor_switch
-monitor_smc_vect_done:
+el3_smc_vect_done:
     rfefd sp!
 
-monitor_handle_exception:
+el3_iabort_vect:
+	srsdb sp!, #CPSR_MODE_MON
     push {r0-r3}
+	mov r0, #EC_IABORT				/* Treat ARMv7 iaborts as at same level */
+	mrc p15, 0, r1, c5, c0, 1		/* ISS = IFSR on ARMv7 */
+    bl el3_handle_exception
+    pop {r0-r3}
+    rfefd sp!
+
+el3_dabort_vect:
+	srsdb sp!, #CPSR_MODE_MON
+    push {r0-r3}
+	mov r0, #EC_DABORT				/* Treat ARMv7 iaborts as at same level */
+	mrc p15, 0, r1, c5, c0, 0		/* ISS = DFSR on ARMv7 */
     bl el3_handle_exception
     pop {r0-r3}
     rfefd sp!

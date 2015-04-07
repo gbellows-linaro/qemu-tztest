@@ -157,13 +157,9 @@ int el3_handle_smc(uintptr_t op, smc_op_desc_t *desc)
     return 0;
 }
 
-int el3_handle_exception(uintptr_t ec, uintptr_t iss)
+int el3_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
+					     uintptr_t elr)
 {
-    uintptr_t elr=0, far=0;
-
-//    __get_exception_address(far);
-//    __get_exception_return(elr);
-
     if (syscntl->excp_log || syscntl->el3_excp.log) {
         syscntl->el3_excp.taken = true;
         syscntl->el3_excp.ec = ec;

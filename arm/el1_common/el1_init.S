@@ -11,6 +11,7 @@
 .arch_extension sec
 
 .section .init
+/* el1_init()  - r4 = syscntl PA */
 el1_init:
     cps #CPSR_MODE_SVC
 
@@ -21,6 +22,7 @@ el1_init:
     and r10, r10, #~0x1
     mcr p15, 0, r10, c1, c0, 0
 
+/* This may be a duplicate from EL3/monitor, but just in case */
 init_uart:
 	/* UART initialisation (38400 8N1) */
 	ldr	r0,	=UART0_BASE     // UART base (Versatile Express)
@@ -55,6 +57,9 @@ init_uart:
     ldr r11, =EL1_PA_POOL_BASE
     ldr r10, =EL1_PTE_POOL_BASE
     push {r10, r11}
+
+    /* Save the input syscntl buf pointer */
+    push {r4}
 
 el1_mmu_init:
     /* Disable data and instruction caches */
@@ -118,9 +123,29 @@ el1_map_data:
 
 el1_map_stack:
     /* Map the first page of the stack so we can get off the ground */
-	ldr r0, =EL1_STACK_BASE
+	ldr r0, =EL1_ABT_STACK_BASE
     sub r0, r0, #PAGE_SIZE
     mov r1, #PTE_PRIV_RW
+    bl map_va
+
+	ldr r0, =EL1_IRQ_STACK_BASE
+    sub r0, r0, #PAGE_SIZE
+    mov r1, #PTE_PRIV_RW
+    bl map_va
+
+	ldr r0, =EL1_UND_STACK_BASE
+    sub r0, r0, #PAGE_SIZE
+    mov r1, #PTE_PRIV_RW
+    bl map_va
+
+	ldr r0, =EL1_SVC_STACK_BASE
+    sub r0, r0, #PAGE_SIZE
+    mov r1, #PTE_PRIV_RW
+    bl map_va
+
+    ldr r0, =EL0_STACK_BASE
+    sub r0, r0, #PAGE_SIZE
+    mov r1, #PTE_USER_RW
     bl map_va
 
 /* Map the PT page pool so we can access the PT after the MMU is enabled.
@@ -145,7 +170,7 @@ el1_map_sysreg:
     bl map_pa
 
 save_last_pa:
-    pop {r9, r8}
+    pop {r4, r9, r8}
 
 el1_mmu_enable:
     /* Enable the mmu */
@@ -158,12 +183,21 @@ el1_mmu_enable:
 
 el1_init_stack:
     /* Set-up the el1 SVC stack */
-	ldr sp, =EL1_STACK_BASE
+	ldr sp, =EL1_SVC_STACK_BASE
 
     /* Migrate the next PA to the new stack we should not use it again until
      * after we transition to start.
      */
-    push {r8, r9}
+    push {r4, r8, r9}
+
+    cps #CPSR_MODE_ABT
+	ldr sp, =EL1_ABT_STACK_BASE
+
+    cps #CPSR_MODE_IRQ
+	ldr sp, =EL1_IRQ_STACK_BASE
+
+    cps #CPSR_MODE_UND
+	ldr sp, =EL1_UND_STACK_BASE
 
     /* Have to set user (and system) stack from SYS mode so we can get back to
      * SVC.
@@ -189,7 +223,9 @@ el1_copy_data:
     bl memcpy
 
 el1_init_start:
-    pop {r9, r8}
+    pop {r4, r9, r8}
+    ldr r10, =syscntl
+    str r4, [r10]
     ldr r10, =mem_next_pa
     str r9, [r10]
     ldr r10, =mem_next_l1_page

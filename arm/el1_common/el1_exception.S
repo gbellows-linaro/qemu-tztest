@@ -1,54 +1,47 @@
+#define __ASSEMBLY__
 #include "arm32.h"
 #include "common_defs.h"
+#include "armv7_exception.h"
+#undef __ASSEMBLY__
 
-.section .vectors, "ax"
-.globl el1_vectors
+.section .vectors
+.align 12
+.global el1_vectors
 el1_vectors:
-	.word 0                 /* reset */
-	b   el1_undef_vec    /* undef */
-	b   el1_svc_vec      /* svc */
-	b   el1_pabort_vec   /* pabt */
-	b   el1_dabort_vec   /* dabt */
-	.word 0 /* hmc */
-	.word 0 /* irq */
-	.word 0 /* fiq */
+	b	.					/* Unused			*/
+	b	.					/* Unused			*/
+	b	el1_svc_vect 		/* System call	*/
+	b	el1_iabort_vect 	/* Prefetch abort 	*/
+	b	el1_dabort_vect 	/* Data abort 		*/
+	b	.					/* Unused			*/
+	b	.					/* IRQ				*/
+	b	.       			/* FIQ				*/
 
-el1_undef_vec:
-    srsdb sp!, #CPSR_MODE_UND
-    push {r10}
-    ldr r10, =el1_handle_exception
-    blx r10
-    pop {r10}
+el1_svc_vect:
+	srsdb sp!, #CPSR_MODE_SVC
+    push {r0-r3}
+    bl el1_handle_svc
+    pop {r0-r3}
     rfefd sp!
 
-el1_pabort_vec:
-    mrc p15, 0, r0, c5, c0, 1       /* IFSR */
-    mrc p15, 0, r1, c6, c0, 2       /* IFAR */
+el1_iabort_vect:
+	srsdb sp!, #CPSR_MODE_ABT
+    push {r0-r3}
+	mov r0, #EC_IABORT				/* Treat ARMv7 iaborts as at same level */
+	mrc p15, 0, r1, c5, c0, 1		/* ISS = IFSR on ARMv7 */
+	mrc p15, 0, r2, c6, c0, 2		/* IFAR */
+	ldr r3, [sp], #4
     bl el1_handle_exception
-
-el1_dabort_vec:
-    mrc p15, 0, r0, c5, c0, 0       /* DFSR */
-    mrc p15, 0, r1, c6, c0, 0       /* DFAR */
-    bl el1_handle_exception
-
-el1_svc_vec:
-    /* Check if this is a return from USR mode and pop the return address off
-     * the stack.  If so, we got here through the dispatch mechanism that
-     * pushed the return on the stack which should be el1 svc loop.  For
-     * this reason we want to return to SVC mode and not a return from
-     * exception.
-     * Otherwise, route handling to the el1 svc_handler.  This is the case
-     * where we came from el1 usr mode.
-     */
-    cmp r0, #SVC_RETURN_FROM_SECURE_USR
-    bne 1f
-    mov r0, r1
-    pop {pc}
-1:
-    srsdb sp!, #CPSR_MODE_SVC
-    push {r10}
-    ldr r10, =el1_handle_svc
-    blx r10
-    pop {r10}
+    pop {r0-r3}
     rfefd sp!
 
+el1_dabort_vect:
+	srsdb sp!, #CPSR_MODE_ABT
+    push {r0-r3}
+	mov r0, #EC_DABORT				/* Treat ARMv7 iaborts as at same level */
+	mrc p15, 0, r1, c5, c0, 0		/* ISS = DFSR on ARMv7 */
+	mrc p15, 0, r2, c6, c0, 0		/* DFAR */
+	ldr r3, [sp], #4
+    bl el1_handle_exception
+    pop {r0-r3}
+    rfefd sp!

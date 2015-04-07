@@ -30,10 +30,16 @@ write_\reg:
     WRITE_CPREG \reg, \opc1, \crm, \crn, \opc2
 .endm
 
-RWCP scr_el3, 0, 1, 1, 0
-RWCP sder32_el3, 0, 1, 1, 1
-RWCP cpacr_el1, 0, 1, 0, 2
-RWCP sctlr_el1, 0, 1, 0, 0
+RWCP scr, 0, 1, 1, 0
+RWCP sder, 0, 1, 1, 1
+RWCP cpacr, 0, 1, 0, 2
+RWCP sctlr, 0, 1, 0, 0
+RWCP mvbar, 0, 12, 0, 1
+RWCP nsacr, 0, 1, 1, 2
+RWCP dfsr, 0, 5, 0, 0
+RWCP dfar, 0, 6, 0, 0
+RWCP ifsr, 0, 5, 0, 1
+RWCP ifar, 0, 6, 0, 2
 
 .globl __set_exception_return
 __set_exception_return:

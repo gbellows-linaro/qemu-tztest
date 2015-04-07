@@ -6,7 +6,7 @@ smc_op_desc_t *smc_interop_buf;
 sys_control_t *syscntl;
 uintptr_t mem_next_pa = 0;
 uintptr_t mem_next_l1_page = 0;
-uintptr_t mem_heap_pool = 0x40000000;
+uintptr_t mem_heap_pool = EL1_BASE_VA + 0x1000000;
 
 void el1_alloc_mem(op_alloc_mem_t *alloc)
 {
@@ -132,13 +132,9 @@ int el1_handle_svc(uint32_t op, svc_op_desc_t *desc)
     return ret;
 }
 
-void el1_handle_exception(uintptr_t ec, uintptr_t iss)
+void el1_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
+     					uintptr_t elr)
 {
-    uintptr_t elr=0, far=0;
-
-    __get_exception_address(far);
-    __get_exception_return(elr);
-
     if (syscntl->excp_log || syscntl->el1_excp[SEC_STATE].log) {
         syscntl->el1_excp[SEC_STATE].taken = true;
         syscntl->el1_excp[SEC_STATE].ec = ec;

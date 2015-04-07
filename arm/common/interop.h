@@ -39,15 +39,15 @@ typedef enum {
 } op_reg_key_t;
 
 typedef struct {
-    uint64_t key;
-    uint64_t data;
-    uint64_t el;
+    uintptr_t key;
+    uintptr_t data;
+    uint32_t el;
 } op_data_t;
 
 typedef struct {
-    uint64_t orig;
-    uint64_t val;
-    uint64_t count;
-    uint64_t fail;
+    uintptr_t orig;
+    uintptr_t val;
+    uint32_t count;
+    uint32_t fail;
 } op_test_t;
 #endif
