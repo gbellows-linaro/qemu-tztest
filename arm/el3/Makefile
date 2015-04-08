@@ -3,11 +3,11 @@ VPATH			= ../common
 EL3_ELF			= el3.elf
 EL3_IMAGE 		= el3.bin
 EL3_LOAD		= el3.lds
-EL3_OBJS		= monitor_init.o \
-				  monitor_exception.o \
+EL3_OBJS		= el3_init.o \
+				  el3_exception.o \
 				  el3.o \
-				  mem_util.o \
 				  el3_monitor_asm.o \
+				  mem_util.o \
 				  builtins.o \
 				  common_mmu.o
 
