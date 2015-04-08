@@ -30,7 +30,7 @@ el1_iabort_vect:
 	mov r0, #EC_IABORT				/* Treat ARMv7 iaborts as at same level */
 	mrc p15, 0, r1, c5, c0, 1		/* ISS = IFSR on ARMv7 */
 	mrc p15, 0, r2, c6, c0, 2		/* IFAR */
-	ldr r3, [sp], #4
+	ldr r3, [sp, #16]               /* Jump back over the saved args for LR */
     bl el1_handle_exception
     pop {r0-r3}
     rfefd sp!
@@ -41,7 +41,7 @@ el1_dabort_vect:
 	mov r0, #EC_DABORT				/* Treat ARMv7 iaborts as at same level */
 	mrc p15, 0, r1, c5, c0, 0		/* ISS = DFSR on ARMv7 */
 	mrc p15, 0, r2, c6, c0, 0		/* DFAR */
-	ldr r3, [sp], #4
+	ldr r3, [sp, #16]               /* Jump back over the saved args for LR */
     bl el1_handle_exception
     pop {r0-r3}
     rfefd sp!
