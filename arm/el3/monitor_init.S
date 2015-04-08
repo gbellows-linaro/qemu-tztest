@@ -139,7 +139,7 @@ monitor_map_pt:
 
 monitor_map_uart:
     ldr r0, =UART0_BASE
-    mov r1, #PTE_PRIV_RW
+    mov r1, #PTE_USER_RW
     bl map_pa
 
 monitor_map_sysreg:

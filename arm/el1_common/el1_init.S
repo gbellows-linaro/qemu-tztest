@@ -161,7 +161,7 @@ el1_map_pt:
 
 el1_map_uart:
     ldr r0, =UART0_BASE
-    mov r1, #PTE_PRIV_RW
+    mov r1, #PTE_USER_RW
     bl map_pa
 
 el1_map_sysreg:
