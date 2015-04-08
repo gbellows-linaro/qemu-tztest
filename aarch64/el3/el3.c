@@ -288,5 +288,5 @@ void el3_start(uintptr_t base, uintptr_t size)
      * return.
      */
     monitor_restore_state(&sec_state);
-    __exception_return();
+    __exception_return(sec_state.elr_el3, sec_state.spsr_el3);
 }

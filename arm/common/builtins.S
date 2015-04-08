@@ -45,4 +45,8 @@ RWCP ifar, 0, 6, 0, 2
 __set_exception_return:
     bx lr
 
+.globl __exception_return
+__exception_return:
+    push {r0, r1}
+    rfefd sp!
 #undef __ASSEMBLY__

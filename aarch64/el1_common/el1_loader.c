@@ -3,14 +3,14 @@
 #include "mem_util.h"
 
 /* Simple ELF loader for loading EL0 image */
-void *el1_load_el0(char *elfbase, char *start_va)
+uintptr_t el1_load_el0(uintptr_t elfbase, uintptr_t start_va)
 {
     Elf64_Ehdr *ehdr = (Elf64_Ehdr *)elfbase;
     size_t off;
     int i;
 
     /* Map the ELF header in so we can determine how much more to map */
-    mem_map_pa((uint64_t)elfbase, (uint64_t)elfbase, 0, PTE_USER_RW);
+    mem_map_pa(elfbase, elfbase, 0, PTE_USER_RW);
 
     /* Make sure this is an appropriate ELF image */
     if (ehdr->e_ident[EI_MAG0] != ELFMAG0 ||
@@ -37,15 +37,15 @@ void *el1_load_el0(char *elfbase, char *start_va)
                    0, PTE_USER_RW);
     }
 
-    Elf64_Shdr *shdr = (Elf64_Shdr *)((char *)elfbase + ehdr->e_shoff);
+    Elf64_Shdr *shdr = (Elf64_Shdr *)(elfbase + ehdr->e_shoff);
 
     Elf64_Shdr *strshdr = &shdr[ehdr->e_shstrndx];
     char *strsec = (char *)ehdr + strshdr->sh_offset;
     for (i = 0; i < ehdr->e_shnum; i++) {
         char *secname = strsec + shdr[i].sh_name;
         if (!strcmp(secname, ".text") || !strcmp(secname, ".data")) {
-            uint64_t sect = (uint64_t)((char *)elfbase + shdr[i].sh_offset);
-            char *base_va = start_va + shdr[i].sh_addr;
+            uint64_t sect = (uint64_t)(elfbase + shdr[i].sh_offset);
+            uintptr_t base_va = start_va + shdr[i].sh_addr;
             DEBUG_MSG("\tloading %s section: 0x%x bytes @ 0x%lx\n",
                       secname, shdr[i].sh_size, base_va);
             for (off = 0; off < shdr[i].sh_size; off += 0x1000) {
@@ -60,6 +60,6 @@ void *el1_load_el0(char *elfbase, char *start_va)
         mem_map_va((uint64_t)elfbase + off);
     }
 
-    return (void *)(start_va + ehdr->e_entry);
+    return start_va + ehdr->e_entry;
 }
 

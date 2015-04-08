@@ -12,10 +12,9 @@ const char *sec_state_str = "secure";
 
 void el1_init_el0()
 {
-    int (*main)(void);
+    uintptr_t main;
 
-    main = el1_load_el0((char *)EL0_S_FLASH_BASE, (char *)EL0_S_BASE_VA);
+    main = el1_load_el0(EL0_S_FLASH_BASE, EL0_S_BASE_VA);
 
-    __set_exception_return((uintptr_t)main);
-    __exception_return();
+    __exception_return(main, CPSR_MODE_USR);
 }

@@ -12,8 +12,9 @@
 #include "arm_builtins.h"
 #include "debug.h"
 #include "syscntl.h"
+#include "arm32.h"
 
 extern void el1_init_el0();
-extern void *el1_load_el0(char *base, char *start_va);
+extern uintptr_t el1_load_el0(uintptr_t base, uintptr_t start_va);
 
 #endif

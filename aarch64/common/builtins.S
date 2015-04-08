@@ -63,4 +63,25 @@ __set_exception_return_done:
     ldr x30, [sp], #8
     ret
 
+.globl __exception_return
+__exception_return:
+    mrs x7, currentel
+    cmp x7, #0x4
+    b.eq __exception_return_el1
+    cmp x7, #0x8
+    b.eq __exception_return_el2
+__exception_return_el3:
+    msr elr_el3, x0
+    msr spsr_el3, x1
+    b __exception_return_done
+__exception_return_el2:
+    msr elr_el2, x0
+    msr spsr_el2, x1
+    b __exception_return_done
+__exception_return_el1:
+    msr elr_el1, x0
+    msr spsr_el1, x1
+__exception_return_done:
+    eret
+
 #undef __ASSEMBLY__

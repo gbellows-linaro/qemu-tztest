@@ -8,6 +8,7 @@ EL3_OBJS		= monitor_init.o \
 				  el3.o \
 				  mem_util.o \
 				  el3_monitor_asm.o \
+				  builtins.o \
 				  common_mmu.o
 
 ifneq (,$(findstring DEBUG, $(CFLAGS)))

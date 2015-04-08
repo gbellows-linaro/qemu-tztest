@@ -10,9 +10,6 @@
 #define SCR_WFI     (1 << 12)
 #define SCR_WFE     (1 << 13)
 
-#define __exception_return(_r0) \
-    asm volatile ("rfefd sp\n")
-
 #define __get_exception_return(_addr) \
     asm volatile("mov r0, r0\n")
 
@@ -44,6 +41,7 @@ extern void write_ifar(uintptr_t);
 extern uintptr_t read_ifsr();
 extern void write_ifsr(uintptr_t);
 extern void __set_exception_return(uintptr_t);
+extern void __exception_return(uintptr_t, uint32_t);
 
 #define READ_SCR() read_scr()
 #define WRITE_SCR(_val) write_scr(_val)

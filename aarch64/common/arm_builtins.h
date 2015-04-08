@@ -10,8 +10,6 @@
 #define SCR_WFI     (1 << 12)
 #define SCR_WFE     (1 << 13)
 
-#define __exception_return(_x0) asm volatile ("eret\n")
-
 #define __get_exception_return(_addr) \
     asm volatile("mrs x0, currentel\n"  \
                  "cmp x0, #0x4\n"   \
@@ -53,6 +51,7 @@ extern void write_cpacr_el1(uint64_t);
 extern uint64_t read_sctlr_el1();
 extern void write_sctlr_el1(uint64_t);
 extern void __set_exception_return(uint64_t);
+extern void __exception_return(uintptr_t, uint32_t);
 
 #define READ_SCR() read_scr_el3()
 #define WRITE_SCR(_val) write_scr_el3(_val)
