@@ -10,13 +10,12 @@ EL0_S_OBJS		= tztest_sec.o \
 
 -include .*.d
 
-CFLAGS += -pie
 CFLAGS += -I../el0_common
 
 ##################################################################
 
 $(EL0_S_ELF): $(EL0_S_OBJS) $(EL0_S_LOAD)
-	$(LD) -pie -o $@ $(EL0_S_OBJS) $(FLATLIBS) --script=$(EL0_S_LOAD)
+	$(LD) -o $@ $(EL0_S_OBJS) $(FLATLIBS) --script=$(EL0_S_LOAD)
 
 $(EL0_S_IMAGE): $(EL0_S_ELF)
 	$(OBJCOPY) -O binary $< $@

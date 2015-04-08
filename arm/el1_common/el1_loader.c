@@ -19,8 +19,7 @@ void *el1_load_el0(char *elfbase, char *start_va)
         ehdr->e_ident[EI_MAG3] != ELFMAG3) {
         DEBUG_MSG("Invalid ELF header, exiting...\n");
         SMC_EXIT();
-    } else if (ehdr->e_type != ET_DYN &&
-               (ehdr->e_machine != EM_ARM || ehdr->e_machine != EM_AARCH64)) {
+    } else if (ehdr->e_machine != EM_ARM && ehdr->e_machine != EM_AARCH64) {
         DEBUG_MSG("Incorrect ELF type (type = %d, machine = %d), exiting...\n",
                   ehdr->e_type, ehdr->e_machine);
         SMC_EXIT();

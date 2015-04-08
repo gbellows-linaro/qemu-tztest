@@ -10,7 +10,6 @@ EL0_S_OBJS		= tztest_sec.o \
 
 -include .*.d
 
-CFLAGS += -pie
 CFLAGS += -I../el0_common
 
 ##################################################################

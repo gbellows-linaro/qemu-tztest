@@ -10,7 +10,6 @@ EL0_NS_OBJS		= tztest_nsec.o \
 
 -include .*.d
 
-CFLAGS += -pie
 CFLAGS += -I../el0_common
 
 ##################################################################

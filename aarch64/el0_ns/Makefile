@@ -15,13 +15,13 @@ CFLAGS += -I../el0_common
 ##################################################################
 
 $(EL0_NS_ELF): $(EL0_NS_OBJS) $(EL0_NS_LOAD)
-	$(LD) -fpic -pie -o $@ $(EL0_NS_OBJS) $(FLATLIBS) --script=$(EL0_NS_LOAD)
+	$(LD) -o $@ $(EL0_NS_OBJS) $(FLATLIBS) --script=$(EL0_NS_LOAD)
 
 $(EL0_NS_IMAGE): $(EL0_NS_ELF)
 	$(OBJCOPY) -O binary $< $@
 
 $(EL0_NS_LOAD): el0_nsec.lds.S Makefile ../../platform/$(PLAT)/
-	$(CC) $(CFLAGS) -fpic -pie -E -P -C -o $@ $<
+	$(CC) $(CFLAGS) -E -P -C -o $@ $<
 
 %.o: %.S
 	$(CC) $(CFLAGS) -mcmodel=large -c -nostdlib -o $(notdir $@) $<

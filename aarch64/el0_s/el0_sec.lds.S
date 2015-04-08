@@ -7,15 +7,16 @@ ENTRY(main)
 
 SECTIONS
 {
-    . = 0x0;
+    . = EL0_S_BASE_VA;
     .text . : {
+        _EL0_S_TEXT_BASE = .;
         *(.text);
-        _EL0_S_TEXT_BASE = EL0_S_BASE_VA;
         _EL0_S_TEXT_SIZE = SIZEOF(.text);
     }
 
     . = ALIGN(4k);
     .data . : {
+        _EL0_S_DATA_BASE = .;
         *(.*data);
         *(.*bss);
         _EL0_S_DATA_SIZE = SIZEOF(.data);
