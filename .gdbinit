@@ -18,9 +18,9 @@ add-symbol-file arm/el1_ns/el1_nsec.elf &_EL1_NS_TEXT_BASE
 end
 
 define load_el0ns
-add-symbol-file aarch64/el0_ns/el0_nsec.elf 0x80000
+add-symbol-file arm/el0_ns/el0_nsec.elf 0x80000
 end
 
 define load_el0s
-add-symbol-file aarch64/el0_s/el0_sec.elf 0xc0000
+add-symbol-file arm/el0_s/el0_sec.elf 0xc0000
 end
