@@ -15,6 +15,6 @@
 #include "arm32.h"
 
 extern void el1_init_el0();
-extern uintptr_t el1_load_el0(uintptr_t base, uintptr_t start_va);
+extern bool el1_load_el0(uintptr_t base, uintptr_t *entry);
 
 #endif

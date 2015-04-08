@@ -3,7 +3,7 @@
 #include "mem_util.h"
 
 /* Simple ELF loader for loading EL0 image */
-uintptr_t el1_load_el0(uintptr_t elfbase, uintptr_t start_va)
+bool el1_load_el0(uintptr_t elfbase, uintptr_t *entry)
 {
     Elf32_Ehdr *ehdr = (Elf32_Ehdr *)elfbase;
     size_t off;
@@ -45,7 +45,7 @@ uintptr_t el1_load_el0(uintptr_t elfbase, uintptr_t start_va)
         char *secname = strsec + shdr[i].sh_name;
         if (!strcmp(secname, ".text") || !strcmp(secname, ".data")) {
             uintptr_t sect = (uintptr_t)(elfbase + shdr[i].sh_offset);
-            uintptr_t base_va = start_va + shdr[i].sh_addr;
+            uintptr_t base_va = shdr[i].sh_addr;
             DEBUG_MSG("\tloading %s section: 0x%x bytes @ 0x%lx\n",
                       secname, shdr[i].sh_size, base_va);
             for (off = 0; off < shdr[i].sh_size; off += 0x1000) {
@@ -60,6 +60,7 @@ uintptr_t el1_load_el0(uintptr_t elfbase, uintptr_t start_va)
         mem_map_va((uintptr_t)elfbase + off);
     }
 
-    return start_va + ehdr->e_entry;
+    *entry = ehdr->e_entry;
+    return true;
 }
 

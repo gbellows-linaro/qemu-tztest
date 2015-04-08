@@ -8,7 +8,7 @@ ENTRY(main)
 SECTIONS
 {
     . = EL0_S_BASE_VA;
-    .text . : {
+    .text . : AT(0x0) {
         _EL0_S_TEXT_BASE = .;
         *(.text);
         _EL0_S_TEXT_SIZE = SIZEOF(.text);
