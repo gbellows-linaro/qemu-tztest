@@ -19,13 +19,6 @@ uintptr_t mem_allocate_pa()
     return next;
 }
 
-uintptr_t mem_allocate_l1_page()
-{
-    uintptr_t next = mem_next_l1_page;
-    mem_next_l1_page += PAGE_SIZE;
-    return next;
-}
-
 void mem_map_pa(uintptr_t vaddr, uintptr_t paddr,
                 uintptr_t tblattr, uintptr_t pgattr)
 {
@@ -41,7 +34,8 @@ void mem_map_pa(uintptr_t vaddr, uintptr_t paddr,
 
     /* Check that the PTE is valid and return an error if not */
     if ((*pte & 0x3) == 0x0) {
-        pa = mem_allocate_l1_page();
+        pa = mem_allocate_pa();
+        mem_map_pa(pa, pa, 0, PTE_USER_RW);
         *pte = pa;
         *pte |= (PTE_TABLE | tblattr);
     }
@@ -56,31 +50,9 @@ void mem_map_pa(uintptr_t vaddr, uintptr_t paddr,
 
 void mem_map_va(uintptr_t addr)
 {
-    uintptr_t pa = mem_pgtbl_base;
-    uint32_t l1idx, l2idx;
-    uintptr_t *pte;
+    uintptr_t pa = mem_allocate_pa();
 
-    l1idx = (addr >> 20) & 0xFFF;   /* Mask based on TRBCR.N-0 */
-    l2idx = (addr >> 12) & 0xFF;
-
-    /* Get the L1 PTE address */
-    pte = (uintptr_t *)((pa & 0xFFFFC000) | (l1idx << 2));
-
-    /* Check if the L1 PTE is valid. If not, allocate it now. */
-    if ((*pte & 0x3) == 0x0) {
-        pa = mem_allocate_l1_page();
-        *pte = pa;
-        *pte |= PTE_TABLE;
-    }
-
-    /* Get the L2 PTE address */
-    pte = (uintptr_t *)((*pte & 0xFFFFFC00) | (l2idx << 2));
-
-    pa = mem_allocate_pa();
-    *pte = pa;
-    *pte |= (PTE_PAGE | PTE_ACCESS | PTE_USER_RW);
-    DEBUG_MSG("mapped VA:0x%lx to PA:0x%x - PTE:0x%lx (0x%lx)",
-                addr, pa, pte, *pte);
+    mem_map_pa(addr, pa, 0, PTE_USER_RW);
 }
 
 int mem_unmap_va(uintptr_t addr)
