@@ -48,11 +48,11 @@ void mem_map_pa(uintptr_t vaddr, uintptr_t paddr,
               vaddr, paddr, pte, *pte);
 }
 
-void mem_map_va(uintptr_t addr)
+void mem_map_va(uintptr_t addr, uintptr_t tblattr, uintptr_t pgattr)
 {
     uintptr_t pa = mem_allocate_pa();
 
-    mem_map_pa(addr, pa, 0, PTE_USER_RW);
+    mem_map_pa(addr, pa, tblattr, pgattr);
 }
 
 int mem_unmap_va(uintptr_t addr)
@@ -89,7 +89,7 @@ void *mem_heap_allocate(size_t len)
     size_t off;
 
     for (off = 0; off < len; off += 0x1000) {
-        mem_map_va(mem_heap_pool + off);
+        mem_map_va(mem_heap_pool + off, 0, PTE_USER_RW);
     }
 
     mem_heap_pool += off;
