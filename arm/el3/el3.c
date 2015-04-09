@@ -199,7 +199,7 @@ int el3_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
         if (syscntl->el3_excp.action == EXCP_ACTION_SKIP ||
             syscntl->excp_action == EXCP_ACTION_SKIP) {
             elr +=4;
-//            __set_exception_return(elr);
+            __set_exception_return(elr);
         }
         break;
     case EC_WFI_WFE:
@@ -212,7 +212,7 @@ int el3_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
         if (syscntl->el3_excp.action == EXCP_ACTION_SKIP ||
             syscntl->excp_action == EXCP_ACTION_SKIP) {
             elr +=4;
-//            __set_exception_return(elr);
+            __set_exception_return(elr);
         }
         break;
     case EC_SIMD:
@@ -224,7 +224,7 @@ int el3_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
         if (syscntl->el3_excp.action == EXCP_ACTION_SKIP ||
             syscntl->excp_action == EXCP_ACTION_SKIP) {
             elr +=4;
-//            __set_exception_return(elr);
+            __set_exception_return(elr);
         }
         break;
     default:
@@ -238,6 +238,8 @@ int el3_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
 
 void el3_monitor_init()
 {
+    uintptr_t syscntl_pa = (uintptr_t)mem_lookup_pa(syscntl);
+
     /* Clear out our secure and non-secure state buffers */
     memset(&sec_state, 0, sizeof(sec_state));
     memset(&nsec_state, 0, sizeof(nsec_state));
@@ -246,9 +248,7 @@ void el3_monitor_init()
      * sequence. This will occur when we return from exception after monitor
      * initialization.
      */
-    sec_state.lr_mon = EL1_S_FLASH_BASE;
-    sec_state.spsr_mon = CPSR_MODE_SVC | CPSR_I;
-    sec_state.r[0] = (uintptr_t)mem_lookup_pa(syscntl);
+    sec_state.r[0] = syscntl_pa;
 
     /* Set-up the nonsecure state buffer to return to the non-secure
      * initialization sequence. This will occur on the first monitor context
@@ -256,7 +256,7 @@ void el3_monitor_init()
      */
     nsec_state.lr_mon = EL1_NS_FLASH_BASE;
     nsec_state.spsr_mon = CPSR_MODE_SVC | CPSR_I;
-    nsec_state.r[0] = (uintptr_t)mem_lookup_pa(syscntl);
+    nsec_state.r[0] = syscntl_pa;
 }
 
 void el3_start(uintptr_t base, uintptr_t size)
@@ -284,5 +284,5 @@ void el3_start(uintptr_t base, uintptr_t size)
      * return.
      */
     monitor_restore_state(&sec_state);
-    __exception_return(sec_state.lr_mon, sec_state.spsr_mon);
+    __exception_return(EL1_S_FLASH_BASE, CPSR_MODE_SVC | CPSR_I);
 }

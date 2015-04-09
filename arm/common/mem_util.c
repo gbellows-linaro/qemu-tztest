@@ -22,7 +22,7 @@ uintptr_t mem_allocate_pa()
 uintptr_t mem_allocate_l1_page()
 {
     uintptr_t next = mem_next_l1_page;
-    mem_next_pa += PAGE_SIZE;
+    mem_next_l1_page += PAGE_SIZE;
     return next;
 }
 

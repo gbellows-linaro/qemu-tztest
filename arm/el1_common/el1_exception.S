@@ -19,9 +19,9 @@ el1_vectors:
 
 el1_svc_vect:
 	srsdb sp!, #CPSR_MODE_SVC
-    push {r0-r3}
+    push {r1-r3}
     bl el1_handle_svc
-    pop {r0-r3}
+    pop {r1-r3}
     rfefd sp!
 
 el1_iabort_vect:

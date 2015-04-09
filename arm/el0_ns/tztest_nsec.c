@@ -64,8 +64,10 @@ int main()
 
     run_test(TZTEST_SMC, 0);
     run_test(TZTEST_REG_ACCESS, 0);
+#if AARCH64
     run_test(TZTEST_CPACR_TRAP, 0);
     run_test(TZTEST_WFX_TRAP, 0);
+#endif
 
     printf("\nValidation complete.  Passed %d of %d tests.\n",
               syscntl->test_cntl->test_count - syscntl->test_cntl->fail_count,

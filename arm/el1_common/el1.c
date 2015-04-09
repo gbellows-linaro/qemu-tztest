@@ -146,11 +146,26 @@ void el1_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
     case EC_UNKNOWN:
         DEBUG_MSG("Unknown exception far = 0x%lx  elr = 0x%lx\n", far, elr);
 
+        /* The preferred return address in the case of an undefined instruction
+         * is the actual offending instruction.  In the case of ARMv7, we need
+         * to decrement the address by 4 to get this behavior as the PC has
+         * already been moved past this instruction.
+         * If SKIP is enabled then we can just do nothing and get the correct
+         * behavior.
+         */
+#if AARCH32
+        if (syscntl->el1_excp[SEC_STATE].action != EXCP_ACTION_SKIP &&
+            syscntl->excp_action != EXCP_ACTION_SKIP) {
+            elr += 4;
+            __set_exception_return(elr);
+        }
+#else
         if (syscntl->el1_excp[SEC_STATE].action == EXCP_ACTION_SKIP ||
             syscntl->excp_action == EXCP_ACTION_SKIP) {
             elr +=4;
             __set_exception_return(elr);
         }
+#endif
         break;
     case EC_IABORT_LOWER:
         DEBUG_MSG("Instruction abort at lower level: far = %0lx\n", far);
