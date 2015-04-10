@@ -1,5 +1,5 @@
 #include "libcflat.h"
-#include "armv7_vmsa.h"
+#include "arch.h"
 #include <stdint.h>
 #include <stddef.h>
 #include "mem_util.h"
@@ -40,7 +40,7 @@ void mem_map_pa(uintptr_t vaddr, uintptr_t paddr,
         *pte |= (PTE_TABLE | tblattr);
     }
 
-    /* Ge tthe L2 PTE address */
+    /* Get the L2 PTE address */
     pte = (uintptr_t *)((*pte & 0xFFFFFC00) | (l2idx << 2));
     *pte = paddr & ~0xFFF;
     *pte |= (PTE_PAGE | PTE_ACCESS | pgattr);

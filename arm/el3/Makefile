@@ -21,8 +21,7 @@ $(EL3_IMAGE): $(EL3_ELF)
 	$(OBJCOPY) -O binary $< $@
 
 $(EL3_LOAD): el3.lds.S Makefile ../../platform/$(PLAT)/
-	$(CC) $(CFLAGS) -DARCH=$(ARCH) \
-		-E -P -C -o $@ $<
+	$(CC) $(CFLAGS) -E -P -C -o $@ $<
 
 %.o: %.S
 	$(CC) $(CFLAGS) -c -nostdlib -o $@ $<

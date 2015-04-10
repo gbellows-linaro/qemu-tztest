@@ -10,7 +10,7 @@ bool el1_load_el0(uintptr_t elfbase, uintptr_t *entry)
     int i;
 
     /* Map the ELF header in so we can determine how much more to map */
-    mem_map_pa((uintptr_t)elfbase, elfbase, 0, PTE_USER_RW);
+    mem_map_pa(elfbase, elfbase, 0, PTE_USER_RW);
 
     /* Make sure this is an appropriate ELF image */
     if (ehdr->e_ident[EI_MAG0] != ELFMAG0 ||

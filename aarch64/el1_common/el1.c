@@ -1,11 +1,24 @@
 #include "el1_common.h"
 #include "mem_util.h"
 
-uint64_t mem_pgtbl_base = EL1_PGTBL_BASE;
+uintptr_t mem_pgtbl_base = EL1_PGTBL_BASE;
 smc_op_desc_t *smc_interop_buf;
 sys_control_t *syscntl;
-uint64_t mem_next_pa = 0;
-uint64_t mem_heap_pool = 0x40000000;
+uintptr_t mem_next_pa = 0;
+uintptr_t mem_next_l1_page = 0;
+uintptr_t mem_heap_pool = EL1_VA_HEAP_BASE;
+
+const char *svc_op_name[] = {
+    [SVC_OP_EXIT] = "SVC_OP_EXIT",
+    [SVC_OP_ALLOC] = "SVC_OP_ALLOC",
+    [SVC_OP_MAP] = "SVC_OP_MAP",
+    [SVC_OP_YIELD] = "SVC_OP_YIELD",
+    [SVC_OP_GET_SYSCNTL] = "SVC_OP_GET_SYSCNTL",
+    [SVC_OP_GET_REG] = "SVC_OP_GET_REG",
+    [SVC_OP_SET_REG] = "SVC_OP_SET_REG",
+    [SVC_OP_TEST] = "SVC_OP_TEST",
+    [SVC_OP_DISPATCH] = "SVC_OP_DISPATCH"
+};
 
 void el1_alloc_mem(op_alloc_mem_t *alloc)
 {
@@ -22,7 +35,7 @@ void el1_map_secure(op_map_mem_t *map)
         }
         __smc(SMC_OP_MAP, desc);
     } else {
-        mem_map_pa((uint64_t)map->va, (uint64_t)map->pa, 0, PTE_USER_RW);
+        mem_map_pa((uintptr_t)map->va, (uintptr_t)map->pa, 0, PTE_USER_RW);
     }
 }
 
@@ -66,11 +79,12 @@ int el1_handle_svc(uint32_t op, svc_op_desc_t *desc)
         el1_map_secure((op_map_mem_t *)desc);
         break;
     case SVC_OP_GET_SYSCNTL:
-        desc->get.data = (uint64_t)syscntl;
+        desc->get.data = (uintptr_t)syscntl;
         break;
     case SVC_OP_GET_REG:
         if (desc->get.el == 1) {
             switch (desc->get.key) {
+#if AARCH64
             case CURRENTEL:
                 desc->get.data = READ_CURRENTEL();
                 break;
@@ -83,6 +97,7 @@ int el1_handle_svc(uint32_t op, svc_op_desc_t *desc)
             case SCR:
                 desc->get.data = READ_SCR();
                 break;
+#endif
             }
         } else if (desc->get.el == 3) {
             memcpy(smc_interop_buf, desc, sizeof(smc_op_desc_t));
@@ -93,6 +108,7 @@ int el1_handle_svc(uint32_t op, svc_op_desc_t *desc)
     case SVC_OP_SET_REG:
         if (desc->set.el == 1) {
             switch (desc->set.key) {
+#if AARCH64
             case CURRENTEL:
                 WRITE_CURRENTEL(desc->set.data);
                 break;
@@ -105,6 +121,7 @@ int el1_handle_svc(uint32_t op, svc_op_desc_t *desc)
             case SCR:
                 WRITE_SCR(desc->set.data);
                 break;
+#endif
             }
         } else if (desc->set.el == 3) {
             memcpy(smc_interop_buf, desc, sizeof(smc_op_desc_t));
@@ -127,13 +144,9 @@ int el1_handle_svc(uint32_t op, svc_op_desc_t *desc)
     return ret;
 }
 
-void el1_handle_exception(uint64_t ec, uint64_t iss)
+void el1_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
+     					uintptr_t elr)
 {
-    uint64_t elr, far;
-
-    __get_exception_address(far);
-    __get_exception_return(elr);
-
     if (syscntl->excp_log || syscntl->el1_excp[SEC_STATE].log) {
         syscntl->el1_excp[SEC_STATE].taken = true;
         syscntl->el1_excp[SEC_STATE].ec = ec;
@@ -145,11 +158,26 @@ void el1_handle_exception(uint64_t ec, uint64_t iss)
     case EC_UNKNOWN:
         DEBUG_MSG("Unknown exception far = 0x%lx  elr = 0x%lx\n", far, elr);
 
+        /* The preferred return address in the case of an undefined instruction
+         * is the actual offending instruction.  In the case of ARMv7, we need
+         * to decrement the address by 4 to get this behavior as the PC has
+         * already been moved past this instruction.
+         * If SKIP is enabled then we can just do nothing and get the correct
+         * behavior.
+         */
+#if AARCH32
+        if (syscntl->el1_excp[SEC_STATE].action != EXCP_ACTION_SKIP &&
+            syscntl->excp_action != EXCP_ACTION_SKIP) {
+            elr += 4;
+            __set_exception_return(elr);
+        }
+#else
         if (syscntl->el1_excp[SEC_STATE].action == EXCP_ACTION_SKIP ||
             syscntl->excp_action == EXCP_ACTION_SKIP) {
             elr +=4;
             __set_exception_return(elr);
         }
+#endif
         break;
     case EC_IABORT_LOWER:
         DEBUG_MSG("Instruction abort at lower level: far = %0lx\n", far);
@@ -185,9 +213,9 @@ void el1_handle_exception(uint64_t ec, uint64_t iss)
     }
 }
 
-void el1_start(uint64_t base, uint64_t size)
+void el1_start(uintptr_t base, uintptr_t size)
 {
-    uint64_t addr = base;
+    uintptr_t addr = base;
     size_t len;
 
     printf("EL1 (%s) started...\n", sec_state_str);

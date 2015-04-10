@@ -8,6 +8,18 @@ uintptr_t mem_next_pa = 0;
 uintptr_t mem_next_l1_page = 0;
 uintptr_t mem_heap_pool = EL1_VA_HEAP_BASE;
 
+const char *svc_op_name[] = {
+    [SVC_OP_EXIT] = "SVC_OP_EXIT",
+    [SVC_OP_ALLOC] = "SVC_OP_ALLOC",
+    [SVC_OP_MAP] = "SVC_OP_MAP",
+    [SVC_OP_YIELD] = "SVC_OP_YIELD",
+    [SVC_OP_GET_SYSCNTL] = "SVC_OP_GET_SYSCNTL",
+    [SVC_OP_GET_REG] = "SVC_OP_GET_REG",
+    [SVC_OP_SET_REG] = "SVC_OP_SET_REG",
+    [SVC_OP_TEST] = "SVC_OP_TEST",
+    [SVC_OP_DISPATCH] = "SVC_OP_DISPATCH"
+};
+
 void el1_alloc_mem(op_alloc_mem_t *alloc)
 {
     alloc->addr = mem_heap_allocate(alloc->len);
@@ -221,7 +233,6 @@ void el1_start(uintptr_t base, uintptr_t size)
                (uintptr_t)syscntl->smc_interop.buf_pa, 0, PTE_USER_RW);
     smc_interop_buf = syscntl->smc_interop.buf_va;
 
-    __smc(SMC_OP_YIELD, NULL);
     el1_init_el0();
 
     return;

@@ -33,8 +33,7 @@ bool el1_load_el0(uintptr_t elfbase, uintptr_t *entry)
 
     /* Finish mapping the remainder of the ELF pages in if any */
     for (off = 0x1000; off < elf_len; off += 0x1000) {
-        mem_map_pa((uint64_t)elfbase + off, (uint64_t)elfbase + off,
-                   0, PTE_USER_RW);
+        mem_map_pa(elfbase + off, elfbase + off, 0, PTE_USER_RW);
     }
 
     Elf64_Shdr *shdr = (Elf64_Shdr *)(elfbase + ehdr->e_shoff);
@@ -44,12 +43,12 @@ bool el1_load_el0(uintptr_t elfbase, uintptr_t *entry)
     for (i = 0; i < ehdr->e_shnum; i++) {
         char *secname = strsec + shdr[i].sh_name;
         if (!strcmp(secname, ".text") || !strcmp(secname, ".data")) {
-            uint64_t sect = (uint64_t)(elfbase + shdr[i].sh_offset);
+            uintptr_t sect = elfbase + shdr[i].sh_offset;
             uintptr_t base_va = shdr[i].sh_addr;
             DEBUG_MSG("\tloading %s section: 0x%x bytes @ 0x%lx\n",
                       secname, shdr[i].sh_size, base_va);
             for (off = 0; off < shdr[i].sh_size; off += 0x1000) {
-                mem_map_va((uintptr_t)(base_va + off));
+                mem_map_va(base_va + off, 0, PTE_USER_RW);
                 memcpy((void *)(base_va + off), (void *)(sect + off), 0x1000);
             }
         }
@@ -57,7 +56,7 @@ bool el1_load_el0(uintptr_t elfbase, uintptr_t *entry)
 
     /* Unmap the FLASH ELF image */
     for (off = 0; off < elf_len; off += 0x1000) {
-        mem_map_va((uint64_t)elfbase + off);
+        mem_unmap_va(elfbase + off);
     }
 
     *entry = ehdr->e_entry;

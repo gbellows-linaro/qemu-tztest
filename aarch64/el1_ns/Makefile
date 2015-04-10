@@ -1,4 +1,4 @@
-VPATH	= ../el1_common:../common
+VPATH	= $(ARCH):../el1_common/$(ARCH):../el1_common:../common
 
 EL1_NS_ELF		= el1_nsec.elf
 EL1_NS_IMAGE 	= el1_nsec.bin
@@ -8,7 +8,6 @@ EL1_NS_OBJS		= el1_init.o \
                   el1.o \
                   el1_loader.o \
                   el1_nsec.o \
-				  svc.o \
                   mem_util.o \
                   builtins.o
 
@@ -28,7 +27,7 @@ $(EL1_NS_LOAD): el1_nsec.lds.S Makefile ../../platform/$(PLAT)/
 	$(CC) $(CFLAGS) -E -P -C -o $@ $<
 
 %.o: %.S
-	$(CC) $(CFLAGS) -mcmodel=large -c -nostdlib -o $(notdir $@) $<
+	$(CC) $(CFLAGS) -c -nostdlib -o $(notdir $@) $<
 
 all: $(EL1_NS_IMAGE)
 

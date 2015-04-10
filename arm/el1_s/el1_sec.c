@@ -57,11 +57,8 @@ void el1_sec_check_init()
 void el1_init_el0()
 {
     uintptr_t main;
-    bool is_32 = false;
 
-    is_32 = el1_load_el0(EL0_S_FLASH_BASE, &main);
+    el1_load_el0(EL0_S_FLASH_BASE, &main);
 
-    if (is_32) {
-        __exception_return(main, CPSR_M_USR);
-    }
+        __exception_return(main, SPSR_EL0);
 }

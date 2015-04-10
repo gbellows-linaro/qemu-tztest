@@ -1,5 +1,5 @@
-OUTPUT_FORMAT("elf64-littleaarch64")
-OUTPUT_ARCH(aarch64)
+OUTPUT_FORMAT(FORMAT)
+OUTPUT_ARCH(ARCH)
 TARGET(binary)
 
 #include "memory.h"
