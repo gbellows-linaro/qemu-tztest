@@ -8,13 +8,9 @@ EL1_S_OBJS		= el1_init.o \
 				  el1.o \
 				  el1_sec.o \
 				  el1_loader.o \
-				  svc.o \
+				  el1_svc.o \
 				  mem_util.o \
 				  builtins.o
-
-ifneq (,$(findstring DEBUG, $(CFLAGS)))
-	EL1_S_OBJS += tztest_debug.o
-endif
 
 -include .*.d
 

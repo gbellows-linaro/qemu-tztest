@@ -3,7 +3,6 @@
 #include "armv7_vmsa.h"
 #include "platform.h"
 #include "memory.h"
-#include "common_defs.h"
 #include "el1.h"
 #include "el0.h"
 #undef __ASSEMBLY__
@@ -22,6 +21,11 @@ el1_init:
     and r10, r10, #~0x1
     mcr p15, 0, r10, c1, c0, 0
 
+    /* Disable interrupts for now */
+    mrs r10, cpsr
+    orr r10, r10, #0xc0     /* Mask IRQ and FIQ */
+    msr cpsr, r10
+
 /* This may be a duplicate from EL3/monitor, but just in case */
 init_uart:
 	/* UART initialisation (38400 8N1) */
@@ -32,15 +36,7 @@ init_uart:
 	orr	r1, #0x0001			// cr
 	str	r1, [r0, #0x30]
 
-    /* Disable interrupts for now */
-    mrs r10, cpsr
-    orr r10, r10, #0xc0     /* Mask IRQ and FIQ */
-    msr cpsr, r10
-
-    /* Set-up the el1 vbar
-     * During startup, before the MMU is enabled we'll set-up the vecs in low
-     * mem.
-     */
+    /* Set-up the el1 vbar to use low mem.  */
     mrc p15, 0, r10, c1, c0, 0
     bic r10, r10, #0x2000           /* SCTLR.V = 0 */
     mcr p15, 0, r10, c1, c0, 0
@@ -170,7 +166,7 @@ el1_map_sysreg:
     bl map_pa
 
 save_last_pa:
-    pop {r4, r9, r8}
+    pop {r4, r8, r9}
 
 el1_mmu_enable:
     /* Enable the mmu */
@@ -223,7 +219,7 @@ el1_copy_data:
     bl memcpy
 
 el1_init_start:
-    pop {r4, r9, r8}
+    pop {r4, r8, r9}
     ldr r10, =syscntl
     str r4, [r10]
     ldr r10, =mem_next_pa

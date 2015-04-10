@@ -1,20 +1,16 @@
 VPATH			= ../el1_common:../common
 
-NSEC_ELF		= el1_nsec.elf
-NSEC_IMAGE 		= el1_nsec.bin
-NSEC_LOAD		= el1_nsec.lds
-NSEC_OBJS		= el1_init.o \
+EL1_NS_ELF		= el1_nsec.elf
+EL1_NS_IMAGE 	= el1_nsec.bin
+EL1_NS_LOAD		= el1_nsec.lds
+EL1_NS_OBJS		= el1_init.o \
 				  el1_exception.o \
 				  el1.o \
 				  el1_nsec.o \
 				  el1_loader.o \
-				  svc.o \
+				  el1_svc.o \
 				  mem_util.o \
 				  builtins.o
-
-ifneq (,$(findstring DEBUG, $(CFLAGS)))
-	NSEC_OBJS += tztest_debug.o
-endif
 
 -include .*.d
 
@@ -22,19 +18,19 @@ CFLAGS += -I../el0_ns/ -I../el1_common
 
 ##################################################################
 
-$(NSEC_ELF): $(NSEC_OBJS) $(NSEC_LOAD)
-	$(LD) -o $@ $(NSEC_OBJS) $(FLATLIBS) --script=$(NSEC_LOAD)
+$(EL1_NS_ELF): $(EL1_NS_OBJS) $(EL1_NS_LOAD)
+	$(LD) -o $@ $(EL1_NS_OBJS) $(FLATLIBS) --script=$(EL1_NS_LOAD)
 
-$(NSEC_IMAGE): $(NSEC_ELF)
-	$(OBJCOPY) -O binary $(NSEC_ELF) $(NSEC_IMAGE)
+$(EL1_NS_IMAGE): $(EL1_NS_ELF)
+	$(OBJCOPY) -O binary $(EL1_NS_ELF) $(EL1_NS_IMAGE)
 
-$(NSEC_LOAD): el1_nsec.lds.S Makefile
+$(EL1_NS_LOAD): el1_nsec.lds.S Makefile
 	$(CC) $(CFLAGS) -E -P -C -o $@ $<
 
 %.o: %.S
 	$(CC) $(CFLAGS) -c -nostdlib -o $@ $<
 
-all: $(NSEC_IMAGE)
+all: $(EL1_NS_IMAGE)
 
 clean:
-	$(RM) $(NSEC_OBJS)  $(NSEC_LOAD) $(NSEC_ELF) $(NSEC_IMAGE) .*.d
+	$(RM) $(EL1_NS_OBJS) $(EL1_NS_LOAD) $(EL1_NS_ELF) $(EL1_NS_IMAGE) .*.d

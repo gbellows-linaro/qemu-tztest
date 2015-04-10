@@ -1,6 +1,5 @@
 #define __ASSEMBLY__
 #include "arm32.h"
-#include "common_defs.h"
 #include "armv7_exception.h"
 #undef __ASSEMBLY__
 

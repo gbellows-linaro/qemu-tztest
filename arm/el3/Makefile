@@ -8,12 +8,7 @@ EL3_OBJS		= el3_init.o \
 				  el3.o \
 				  el3_monitor_asm.o \
 				  mem_util.o \
-				  builtins.o \
-				  common_mmu.o
-
-ifneq (,$(findstring DEBUG, $(CFLAGS)))
-	EL3_OBJS += tztest_debug.o
-endif
+				  builtins.o
 
 -include .*.d
 

@@ -2,7 +2,6 @@
 #include "armv7_vmsa.h"
 #include "platform.h"
 #include "memory.h"
-#include "common_defs.h"
 
 .arch_extension sec
 
@@ -158,7 +157,7 @@ monitor_map_el1:
     bl map_pa
 
 save_last_pa:
-    pop {r9, r8}
+    pop {r8, r9}
 
 monitor_mmu_enable:
     /* Enable the mmu */
@@ -176,7 +175,7 @@ monitor_init_stack:
     /* Migrate the next PA to the new stack we should not use it again until
      * after we transition to start.
      */
-    push {r9, r8}
+    push {r8, r9}
 
 /* The EL3 address space is set-up and the MMU is started so it is safe to copy
  * the text and data sections in.
@@ -194,7 +193,7 @@ monitor_copy_data:
     bl memcpy
 
 monitor_init_start:
-    pop {r9, r8}
+    pop {r8, r9}
     ldr r10, =mem_next_pa
     str r9, [r10]
     ldr r10, =mem_next_l1_page
