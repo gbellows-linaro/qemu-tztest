@@ -1,6 +1,5 @@
 #define __ASSEMBLY__
-#include "arm32.h"
-#include "armv7_exception.h"
+#include "arch.h"
 #undef __ASSEMBLY__
 
 .section .vectors
@@ -17,14 +16,14 @@ el1_vectors:
 	b	.       			/* FIQ				*/
 
 el1_svc_vect:
-	srsdb sp!, #CPSR_MODE_SVC
+	srsdb sp!, #CPSR_M_SVC
     push {r1-r3}
     bl el1_handle_svc
     pop {r1-r3}
     rfefd sp!
 
 el1_iabort_vect:
-	srsdb sp!, #CPSR_MODE_ABT
+	srsdb sp!, #CPSR_M_ABT
     push {r0-r3}
 	mov r0, #EC_IABORT				/* Treat ARMv7 iaborts as at same level */
 	mrc p15, 0, r1, c5, c0, 1		/* ISS = IFSR on ARMv7 */
@@ -35,7 +34,7 @@ el1_iabort_vect:
     rfefd sp!
 
 el1_dabort_vect:
-	srsdb sp!, #CPSR_MODE_ABT
+	srsdb sp!, #CPSR_M_ABT
     push {r0-r3}
 	mov r0, #EC_DABORT				/* Treat ARMv7 iaborts as at same level */
 	mrc p15, 0, r1, c5, c0, 0		/* ISS = DFSR on ARMv7 */
@@ -46,7 +45,7 @@ el1_dabort_vect:
     rfefd sp!
 
 el1_undef_vect:
-	srsdb sp!, #CPSR_MODE_UND
+	srsdb sp!, #CPSR_M_UND
     push {r0-r3}
 	mov r0, #EC_UNKNOWN				/* Treat ARMv7 iaborts as at same level */
 	mrc p15, 0, r1, c5, c0, 0		/* ISS = DFSR on ARMv7 */

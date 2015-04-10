@@ -1,6 +1,5 @@
 #define __ASSEMBLY__
-#include "arm32.h"
-#include "armv7_exception.h"
+#include "arch.h"
 #undef __ASSEMBLY__
 
 .section .vectors
@@ -17,7 +16,7 @@ el3_vectors:
 	b	.       			/* FIQ				*/
 
 el3_smc_vect:
-	srsdb sp!, #CPSR_MODE_MON
+	srsdb sp!, #CPSR_M_MON
     bl el3_handle_smc
     cmp r0, #0
     beq el3_smc_vect_done
@@ -26,7 +25,7 @@ el3_smc_vect_done:
     rfefd sp!
 
 el3_iabort_vect:
-	srsdb sp!, #CPSR_MODE_MON
+	srsdb sp!, #CPSR_M_MON
     push {r0-r3}
 	mov r0, #EC_IABORT				/* Treat ARMv7 iaborts as at same level */
 	mrc p15, 0, r1, c5, c0, 1		/* ISS = IFSR on ARMv7 */
@@ -37,7 +36,7 @@ el3_iabort_vect:
     rfefd sp!
 
 el3_dabort_vect:
-	srsdb sp!, #CPSR_MODE_MON
+	srsdb sp!, #CPSR_M_MON
     push {r0-r3}
 	mov r0, #EC_DABORT				/* Treat ARMv7 iaborts as at same level */
 	mrc p15, 0, r1, c5, c0, 0		/* ISS = DFSR on ARMv7 */

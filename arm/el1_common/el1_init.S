@@ -1,6 +1,5 @@
 #define __ASSEMBLY__
-#include "arm32.h"
-#include "armv7_vmsa.h"
+#include "arch.h"
 #include "platform.h"
 #include "memory.h"
 #include "el1.h"
@@ -12,7 +11,7 @@
 .section .init
 /* el1_init()  - r4 = syscntl PA */
 el1_init:
-    cps #CPSR_MODE_SVC
+    cps #CPSR_M_SVC
 
     /* Disable the MMU in case it is enabled.  This happens when we came from
      * aarch32 monitor mode.
@@ -186,22 +185,22 @@ el1_init_stack:
      */
     push {r4, r8, r9}
 
-    cps #CPSR_MODE_ABT
+    cps #CPSR_M_ABT
 	ldr sp, =EL1_ABT_STACK_BASE
 
-    cps #CPSR_MODE_IRQ
+    cps #CPSR_M_IRQ
 	ldr sp, =EL1_IRQ_STACK_BASE
 
-    cps #CPSR_MODE_UND
+    cps #CPSR_M_UND
 	ldr sp, =EL1_UND_STACK_BASE
 
     /* Have to set user (and system) stack from SYS mode so we can get back to
      * SVC.
      */
-    cps #CPSR_MODE_SYS
+    cps #CPSR_M_SYS
 	ldr sp, =EL0_STACK_BASE
 
-    cps #CPSR_MODE_SVC
+    cps #CPSR_M_SVC
 
 /* The EL1 address space is set-up and the MMU is started so it is safe to copy
  * the text and data sections in.

@@ -1,5 +1,3 @@
-#include "arm32.h"
-
 /* allocate_pa() - Allocates and returns next pool PA */
 allocate_pa:
     push {r10, r11, lr}

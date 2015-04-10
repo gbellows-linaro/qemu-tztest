@@ -31,11 +31,11 @@ void el1_sec_check_init()
     }
 
     printf("\tChecking initial processor mode... ");
-    if (CPSR_MODE_SVC != (_read_cpsr() & 0x1f)) {
+    if (CPSR_M_SVC != (_read_cpsr() & 0x1f)) {
         printf("FAILED\n");
         DEBUG_MSG("current CPSR (%d) != expected CPSR (%d)\n",
-                  (_read_cpsr() & 0x1f), CPSR_MODE_SVC);
-        assert(CPSR_MODE_SVC == (_read_cpsr() & 0x1f));
+                  (_read_cpsr() & 0x1f), CPSR_M_SVC);
+        assert(CPSR_M_SVC == (_read_cpsr() & 0x1f));
     } else {
         printf("PASSED\n");
     }
@@ -62,6 +62,6 @@ void el1_init_el0()
     is_32 = el1_load_el0(EL0_S_FLASH_BASE, &main);
 
     if (is_32) {
-        __exception_return(main, CPSR_MODE_USR);
+        __exception_return(main, CPSR_M_USR);
     }
 }

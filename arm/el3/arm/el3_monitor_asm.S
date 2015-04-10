@@ -1,32 +1,32 @@
 #define __ASSEMBLY__
 #include "smc.h"
-#include "arm32.h"
+#include "arch.h"
 
 .section .text
 
 .globl monitor_restore_state
 monitor_restore_state:
     push {lr}
-    cps #CPSR_MODE_SYS
+    cps #CPSR_M_SYS
     ldmia r0!, {sp, lr}
 
-    cps #CPSR_MODE_IRQ
+    cps #CPSR_M_IRQ
     ldmia r0!, {r3, sp, lr}
 	msr	spsr, r3
 
-    cps #CPSR_MODE_SVC
+    cps #CPSR_M_SVC
     ldmia r0!, {r3, sp, lr}
 	msr	spsr, r3
 
-    cps #CPSR_MODE_ABT
+    cps #CPSR_M_ABT
     ldmia r0!, {r3, sp, lr}
 	msr	spsr, r3
 
-    cps #CPSR_MODE_UND
+    cps #CPSR_M_UND
     ldmia r0!, {r3, sp, lr}
 	msr	spsr, r3
 
-    cps #CPSR_MODE_MON
+    cps #CPSR_M_MON
     ldmia r0!, {r1, r2}
     ldmia r0!, {r4-r12}
 
@@ -38,26 +38,26 @@ monitor_restore_state:
 .globl monitor_save_state
 monitor_save_state:
     push {lr}
-    cps #CPSR_MODE_SYS
+    cps #CPSR_M_SYS
     stmia r0!, {sp, lr}
 
-    cps #CPSR_MODE_IRQ
+    cps #CPSR_M_IRQ
     mrs r3, spsr
     stmia r0!, {r3, sp, lr}
 
-    cps #CPSR_MODE_SVC
+    cps #CPSR_M_SVC
     mrs r3, spsr
     stmia r0!, {r3, sp, lr}
 
-    cps #CPSR_MODE_ABT
+    cps #CPSR_M_ABT
     mrs r3, spsr
     stmia r0!, {r3, sp, lr}
 
-    cps #CPSR_MODE_UND
+    cps #CPSR_M_UND
     mrs r3, spsr
     stmia r0!, {r3, sp, lr}
 
-    cps #CPSR_MODE_MON
+    cps #CPSR_M_MON
     stmia r0!, {r1, r2}
     stmia r0!, {r4-r12}
 
@@ -83,7 +83,7 @@ monitor_switch:
     beq switch_to_nsec
 switch_to_sec:
     mrc p15, 0, r3, c1, c1, 0       /* Read SCR */
-    bic r3, r3, #(SCR_NS | SCR_FIQ)
+    bic r3, r3, #SCR_NS
     mcr p15, 0, r3, c1, c1, 0       /* Write NS disabled SCR */
     ldr r0, =nsec_state
     bl monitor_save_state
@@ -96,7 +96,7 @@ switch_to_nsec:
     ldr r0, =nsec_state
     bl monitor_restore_state
     mrc p15, 0, r3, c1, c1, 0       /* Read SCR */
-    orr r3, r3, #(SCR_NS | SCR_FIQ)
+    orr r3, r3, #SCR_NS
     mcr p15, 0, r3, c1, c1, 0       /* Write NS enabled SCR */
 switch_state:
     pop {r2, r3}

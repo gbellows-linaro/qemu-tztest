@@ -7,13 +7,11 @@
 #include "libcflat.h"
 #include "smc.h"
 #include "svc.h"
+#include "arch.h"
 #include "el3_monitor.h"
 #include "arm_builtins.h"
 #include "syscntl.h"
 #include "mem_util.h"
-#include "arm32.h"
-#include "armv7_exception.h"
-#include "armv7_vmsa.h"
 
 #define SEC_STATE_STR "EL3"
 #include "debug.h"
@@ -48,7 +46,7 @@ smc_op_desc_t *smc_interop_buf;
 uintptr_t mem_pgtbl_base = EL3_PGTBL_BASE;
 uintptr_t mem_next_pa = 0;
 uintptr_t mem_next_l1_page = 0;
-uintptr_t mem_heap_pool = 0x71000000;
+uintptr_t mem_heap_pool = EL3_VA_HEAP_BASE;
 
 void el3_shutdown() {
     uintptr_t *sysreg_cfgctrl = (uintptr_t *)(SYSREG_BASE + SYSREG_CFGCTRL);
@@ -111,7 +109,7 @@ int el3_handle_smc(uintptr_t op, smc_op_desc_t *desc)
     case SMC_OP_GET_REG:
         if (desc->get.el == 3) {
             switch (desc->get.key) {
-#if 0
+#if AARCH64
             case CURRENTEL:
                 desc->get.data = READ_CURRENTEL();
                 break;
@@ -131,7 +129,7 @@ int el3_handle_smc(uintptr_t op, smc_op_desc_t *desc)
     case SMC_OP_SET_REG:
         if (desc->set.el == 3) {
             switch (desc->set.key) {
-#if 0
+#if AARCH64
             case CURRENTEL:
                 WRITE_CURRENTEL(desc->set.data);
                 break;
@@ -244,19 +242,27 @@ void el3_monitor_init()
     memset(&sec_state, 0, sizeof(sec_state));
     memset(&nsec_state, 0, sizeof(nsec_state));
 
-    /* Set-up the secure state buffer to return to the secure initialization
-     * sequence. This will occur when we return from exception after monitor
-     * initialization.
+    /* Below we setup the initial register states for when we start the secure
+     * and non-secure images.  In both cases we set up register 4 (index 0) to
+     * contain the system control block physical address.
+     * In the case of AArch64, we also have to set SPSEL to 1 so that the stack
+     * used before and after the switch is the same.
+     * In the case of the non-secure state, we also have to set-up the initial
+     * exception LR and SPSR as we do an SMC from secure to non-secure.  For
+     * the secure side, we just perform an exception return with the target LR
+     * and SPSR.
      */
-    sec_state.r[0] = syscntl_pa;
+#ifdef AARCH64
+    sec_state.spsel = 0x1;
+#endif
+    sec_state.reg[0] = syscntl_pa;
 
-    /* Set-up the nonsecure state buffer to return to the non-secure
-     * initialization sequence. This will occur on the first monitor context
-     * switch (smc) from secure to non-secure.
-     */
-    nsec_state.lr_mon = EL1_NS_FLASH_BASE;
-    nsec_state.spsr_mon = CPSR_MODE_SVC | CPSR_I;
-    nsec_state.r[0] = syscntl_pa;
+    nsec_state.elr_el3 = EL1_NS_FLASH_BASE;
+    nsec_state.spsr_el3 = SPSR_EL1;
+#ifdef AARCH64
+    nsec_state.spsel = 0x1;
+#endif
+    nsec_state.reg[0] = syscntl_pa;
 }
 
 void el3_start(uintptr_t base, uintptr_t size)
@@ -284,5 +290,5 @@ void el3_start(uintptr_t base, uintptr_t size)
      * return.
      */
     monitor_restore_state(&sec_state);
-    __exception_return(EL1_S_FLASH_BASE, CPSR_MODE_SVC | CPSR_I);
+    __exception_return(EL1_S_FLASH_BASE, SPSR_EL1);
 }

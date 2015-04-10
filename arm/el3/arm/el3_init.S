@@ -1,7 +1,8 @@
-#include "arm32.h"
-#include "armv7_vmsa.h"
+#define __ASSEMBLY__
+#include "arch.h"
 #include "platform.h"
 #include "memory.h"
+#undef __ASSEMBLY__
 
 .arch_extension sec
 
@@ -9,7 +10,7 @@
 
 .section .init
 monitor_init:
-    cps #CPSR_MODE_MON
+    cps #CPSR_M_MON
 
 init_uart:
 	/* UART initialisation (38400 8N1) */

@@ -6,7 +6,7 @@ smc_op_desc_t *smc_interop_buf;
 sys_control_t *syscntl;
 uintptr_t mem_next_pa = 0;
 uintptr_t mem_next_l1_page = 0;
-uintptr_t mem_heap_pool = EL1_BASE_VA + 0x1000000;
+uintptr_t mem_heap_pool = EL1_VA_HEAP_BASE;
 
 void el1_alloc_mem(op_alloc_mem_t *alloc)
 {

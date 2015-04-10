@@ -18,6 +18,6 @@ void el1_init_el0()
     is_32 = el1_load_el0(EL0_NS_FLASH_BASE, &main);
 
     if (is_32) {
-        __exception_return(main, CPSR_MODE_USR);
+        __exception_return(main, CPSR_M_USR);
     }
 }

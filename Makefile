@@ -30,6 +30,10 @@ CFLAGS += $(call cc-option, -fomit-frame-pointer, "")
 CFLAGS += $(call cc-option, -fno-stack-protector, "")
 CFLAGS += $(call cc-option, -fno-stack-protector-all, "")
 CFLAGS += -I/usr/$(CROSS)/include
+CFLAGS += -I$(ARCH)
+
+# Pick up architecture specific build rules
+include $(ARCH)/arch.mk
 
 export CFLAGS
 

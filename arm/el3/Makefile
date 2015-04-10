@@ -1,4 +1,4 @@
-VPATH			= ../common
+VPATH	= ../common:$(ARCH)
 
 EL3_ELF			= el3.elf
 EL3_IMAGE 		= el3.bin
@@ -18,10 +18,11 @@ $(EL3_ELF): $(EL3_OBJS) $(EL3_LOAD)
 	$(LD) -o $@ $(EL3_OBJS) $(FLATLIBS) --script=$(EL3_LOAD)
 
 $(EL3_IMAGE): $(EL3_ELF)
-	$(OBJCOPY) -O binary $(EL3_ELF) $(EL3_IMAGE)
+	$(OBJCOPY) -O binary $< $@
 
-$(EL3_LOAD): el3.lds.S Makefile
-	$(CC) $(CFLAGS) -E -P -C -o $@ $<
+$(EL3_LOAD): el3.lds.S Makefile ../../platform/$(PLAT)/
+	$(CC) $(CFLAGS) -DARCH=$(ARCH) \
+		-E -P -C -o $@ $<
 
 %.o: %.S
 	$(CC) $(CFLAGS) -c -nostdlib -o $@ $<

@@ -32,7 +32,7 @@ typedef struct state_buf {
     uintptr_t far_el1;
     uintptr_t afsr0_el1;
     uintptr_t afsr1_el1;
-    uintptr_t x[27];        /* X4:X30 */
+    uintptr_t reg[27];        /* X4:X30 */
 } state_buf;
 
 extern void monitor_switch(int op, smc_op_desc_t *desc);
