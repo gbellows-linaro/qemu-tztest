@@ -10,12 +10,12 @@ usage() {
 	Usage: $0 [options]
 
 	Options include:
-	    --arch=ARCH            architecture to compile for
-	    --plat=PLATFORM        platform to compile for
-	    --cpu=PROCESSOR        cpu to compile for
-	    --cross-prefix=PREFIX  cross compiler prefix
-	    --cc=CC		           c compiler to use
-	    --ld=LD		           ld linker to use
+	    --arch=ARCH            Architecture: arm or aarch64
+	    --plat=PLATFORM        Platform: virt or vexpress-a15
+	    --cpu=PROCESSOR        CPU: cortex-a15 or cortex-a57
+	    --cross-prefix=PREFIX  Cross compiler
+	    --cc=CC		           C compiler to use (blank is auto)
+	    --ld=LD		           Loader to use (blank is auto)
 EOF
     exit 1
 }
@@ -88,7 +88,7 @@ if [ "$arch" = "arm" ]; then
 fi
 
 # create the config
-cat <<EOF > config.mak
+cat <<EOF > config.mk
 export ARCH=$arch
 export PLAT=$plat
 export PROCESSOR=$cpu
