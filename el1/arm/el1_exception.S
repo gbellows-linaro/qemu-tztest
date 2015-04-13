@@ -1,5 +1,5 @@
 #define __ASSEMBLY__
-#include "register.h"
+#include "cpu.h"
 #include "exception.h"
 #undef __ASSEMBLY__
 

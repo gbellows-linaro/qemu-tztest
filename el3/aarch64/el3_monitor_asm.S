@@ -1,6 +1,6 @@
 #define __ASSEMBLY__
 #include "smc.h"
-#include "register.h"
+#include "cpu.h"
 #undef __ASSEMBLY__
 
 .section .text

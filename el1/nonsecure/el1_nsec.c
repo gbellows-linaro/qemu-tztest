@@ -1,5 +1,5 @@
 #include "el1_common.h"
-#include "register.h"
+#include "cpu.h"
 
 uintptr_t EL1_NS_INIT_BASE = (uintptr_t)&_EL1_NS_INIT_BASE;
 uintptr_t EL1_NS_INIT_SIZE = (uintptr_t)&_EL1_NS_INIT_SIZE;

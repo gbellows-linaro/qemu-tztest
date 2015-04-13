@@ -1,7 +1,7 @@
 #define __ASSEMBLY__
 #include "platform.h"
 #include "memory.h"
-#include "register.h"
+#include "cpu.h"
 #include "vmsa.h"
 #include "el1.h"
 #include "el0.h"

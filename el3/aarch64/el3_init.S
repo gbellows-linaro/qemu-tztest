@@ -1,6 +1,6 @@
 #include "platform.h"
 #include "memory.h"
-#include "register.h"
+#include "cpu.h"
 #include "vmsa.h"
 
 #define PT_BASE EL3_PGTBL_BASE

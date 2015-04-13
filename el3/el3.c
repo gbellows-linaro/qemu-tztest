@@ -4,7 +4,7 @@
 #include "memory.h"
 #include "exception.h"
 #include "vmsa.h"
-#include "register.h"
+#include "cpu.h"
 #include "el3.h"
 #include "string.h"
 #include "libcflat.h"

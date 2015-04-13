@@ -1,6 +1,6 @@
 #define __ASSEMBLY__
 #include "memory.h"
-#include "register.h"
+#include "cpu.h"
 #include "vmsa.h"
 #include "platform.h"
 #undef __ASSEMBLY__
