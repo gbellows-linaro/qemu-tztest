@@ -1,7 +1,7 @@
 #include "libcflat.h"
 #include "svc.h"
 #include "syscntl.h"
-#include "armv8_exception.h"
+#include "arch.h"
 #include "arm_builtins.h"
 #include "el0.h"
 #include "debug.h"

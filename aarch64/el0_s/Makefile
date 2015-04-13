@@ -24,7 +24,7 @@ $(EL0_S_LOAD): el0_sec.lds.S Makefile ../../platform/$(PLAT)/
 	$(CC) $(CFLAGS) -E -P -C -o $@ $<
 
 %.o: %.S
-	$(CC) $(CFLAGS) -mcmodel=large -c -nostdlib -o $(notdir $@) $<
+	$(CC) $(CFLAGS) -c -nostdlib -o $(notdir $@) $<
 
 all: $(EL0_S_IMAGE)
 

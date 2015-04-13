@@ -7,6 +7,7 @@ EL0_NS_OBJS		= tztest_nsec.o \
 				  tztest.o \
 				  el0.o \
                   builtins.o
+
 -include .*.d
 
 CFLAGS += -I../el0_common
