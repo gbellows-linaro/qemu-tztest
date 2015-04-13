@@ -5,11 +5,11 @@
  * which is 32MB.  It is also aliased to 0x0 (to 0x2000000).
  * It is acceptable to have the text here as it is RO.
  */
-#define FLASH_BASE 0x00000000               // From QEMU virt.c
-#define FLASH_SIZE 0x08000000               // From QEMU virt.c
+#define FLASH_BASE 0x00000000
+#define FLASH_SIZE 0x08000000
 
-#define RAM_BASE 0x40000000                 // From QEMU virt.c
-#define RAM_SIZE (2*1024*1024*1024)         // Only 2GB needed
+#define RAM_BASE 0x40000000
+#define RAM_SIZE (2*1024*1024*1024)
 
 #define UART0_BASE 0x09000000
 
