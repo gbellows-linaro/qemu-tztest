@@ -7,4 +7,4 @@
 *.swp
 *.lds
 cscope.*
-/config.mak
+/config.mk

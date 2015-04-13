@@ -1,9 +1,0 @@
-export ARCH=aarch64
-export PLAT=virt
-export PROCESSOR=cortex-a57
-export CROSS=aarch64-linux-gnu
-export CC=aarch64-linux-gnu-gcc
-export LD=aarch64-linux-gnu-ld
-export OBJCOPY=aarch64-linux-gnu-objcopy
-export AR=aarch64-linux-gnu-ar
-export CFLAGS+=

@@ -10,12 +10,12 @@ usage() {
 	Usage: $0 [options]
 
 	Options include:
-	    --arch=ARCH            Architecture: arm or aarch64
-	    --plat=PLATFORM        Platform: virt or vexpress-a15
-	    --cpu=PROCESSOR        CPU: cortex-a15 or cortex-a57
-	    --cross-prefix=PREFIX  Cross compiler
-	    --cc=CC		           C compiler to use (blank is auto)
-	    --ld=LD		           Loader to use (blank is auto)
+	    --arch=ARCH             Architecture: arm or aarch64
+	    --plat=PLATFORM         Platform: virt or vexpress-a15
+	    --cpu=PROCESSOR         CPU: cortex-a15 or cortex-a57
+	    --cross-prefix=PREFIX   Cross compiler
+	    --cc=CC                 C compiler to use (blank is auto)
+	    --ld=LD                 Loader to use (blank is auto)
 EOF
     exit 1
 }
@@ -56,7 +56,11 @@ while [[ "$1" = -* ]]; do
 done
 
 if [ -z "$arch" ]; then
-    arch="arm"
+    cat <<-EOF
+	An architecture must be specified.  Either "--arch=arm" or "--arch=aarch64".
+EOF
+    exit 1
+
 fi
 
 if [ -z "$cpu" ]; then
@@ -68,11 +72,7 @@ if [ -z "$cpu" ]; then
 fi
 
 if [ -z "$plat" ]; then
-    if [ "$arch" = "arm" ]; then
-        plat="vexpress-a15"
-    elif [ "$arch" = "aarch64" ]; then
-        plat="virt"
-    fi
+    plat="virt"
 fi
 
 if [ -z "$cross" ]; then
