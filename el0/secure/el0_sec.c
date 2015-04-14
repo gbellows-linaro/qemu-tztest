@@ -1,7 +1,8 @@
 #include "el0_common.h"
+#include "tztest.h"
 
-const char *sec_state_str;
-tztest_t tztest[TZTEST_COUNT];
+const char *sec_state_str = "secure";
+sys_control_t *syscntl = NULL;
 
 void el0_sec_loop()
 {
@@ -53,17 +54,7 @@ int main()
 {
     svc_op_desc_t desc;
 
-    /* ISSUE: For some reason, static initialization of the global security
-     * state string fails.  The pointer ends up being NULL in some cases, but
-     * not in others.  This likely has something to do with the position
-     * independence of the EL0 code.  The below workaround works fine.
-     */
-    const char *str = "secure";
-    sec_state_str = str;
-
     printf("EL0 (%s) started...\n", sec_state_str);
-
-    tztest_init();
 
     /* Fetch the system-wide control structure */
     __svc(SVC_OP_GET_SYSCNTL, &desc);

@@ -5,12 +5,10 @@
 #include "exception.h"
 #include "el0.h"
 #include "debug.h"
-#include "el0_common.h"
-#include "tztest.h"
+#include "tztest_internal.h"
+#include "tztest_el0.h"
 
-sys_control_t *syscntl = NULL;
-
-uint32_t check_smc(uint32_t el)
+uint32_t el0_check_smc(uint32_t el)
 {
     TEST_HEAD("smc behavior");
 
@@ -20,7 +18,7 @@ uint32_t check_smc(uint32_t el)
     return 0;
 }
 
-uint32_t check_register_access(uint32_t el)
+uint32_t el0_check_register_access(uint32_t el)
 {
     /* Set things to non-secure P1 and attempt accesses */
     TEST_HEAD("restricted register access");
@@ -60,7 +58,7 @@ uint32_t check_register_access(uint32_t el)
 }
 
 #ifdef AARCH64
-uint32_t check_cpacr_trap(uint32_t el)
+uint32_t el0_check_cpacr_trap(uint32_t el)
 {
     uint64_t cptr_el3, cpacr;
 
@@ -93,7 +91,7 @@ uint32_t check_cpacr_trap(uint32_t el)
     return 0;
 }
 
-uint32_t check_wfx_trap(uint32_t el)
+uint32_t el0_check_wfx_trap(uint32_t el)
 {
     uint64_t sctlr, scr;
 
@@ -160,14 +158,3 @@ uint32_t check_wfx_trap(uint32_t el)
     return 0;
 }
 #endif
-
-void tztest_init()
-{
-    tztest[TZTEST_SMC] = check_smc;
-    tztest[TZTEST_REG_ACCESS] = check_register_access;
-#ifdef AARCH64
-    tztest[TZTEST_CPACR_TRAP] = check_cpacr_trap;
-    tztest[TZTEST_WFX_TRAP] = check_wfx_trap;
-#endif
-}
-

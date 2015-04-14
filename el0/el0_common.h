@@ -7,7 +7,6 @@
 #include "arm_builtins.h"
 #include "el0.h"
 #include "debug.h"
-#include "tztest.h"
 
 extern sys_control_t *syscntl;
 

@@ -1,6 +1,9 @@
 #ifndef _SYSCNTL_H
 #define _SYSCNTL_H
 
+#include <stdint.h>
+#include "libcflat.h"
+
 typedef struct {
      void *buf_pa;
      void *buf_va;
@@ -33,5 +36,7 @@ typedef struct {
     bool excp_log;
     test_control_t *test_cntl;
 } sys_control_t;
+
+extern sys_control_t *syscntl;
 
 #endif

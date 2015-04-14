@@ -1,12 +1,13 @@
-VPATH	= $(ARCH):../$(ARCH):../../common/$(ARCH):../
+VPATH	= $(ARCH):../$(ARCH):../../common/$(ARCH):../:../../tztest
 
 EL0_NS_ELF		= el0_nsec.elf
 EL0_NS_IMAGE 	= el0_nsec.bin
 EL0_NS_LOAD		= el0_nsec.lds
-EL0_NS_OBJS		= tztest_nsec.o \
-				  tztest.o \
+EL0_NS_OBJS		= el0_nsec.o \
 				  el0.o \
-                  builtins.o
+                  builtins.o \
+				  tztest.o \
+				  tztest_el0.o
 
 libgcc := $(shell $(CC) $(CFLAGS) --print-libgcc-file-name)
 FLATLIBS = ../../libcflat/libcflat.a $(libgcc) ../../libcflat/$(ARCH)/libeabi.a
@@ -15,6 +16,7 @@ FLATLIBS = ../../libcflat/libcflat.a $(libgcc) ../../libcflat/$(ARCH)/libeabi.a
 
 CFLAGS += -I$(ARCH) -I../$(ARCH) -I../ -I../$(ARCH)
 CFLAGS += -I../../common/$(ARCH) -I../../common/
+CFLAGS += -I../../tztest
 
 ##################################################################
 
