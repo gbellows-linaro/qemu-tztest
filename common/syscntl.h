@@ -16,6 +16,8 @@ typedef struct {
     bool log;
     uint32_t action;
     bool taken;
+    uint32_t el;
+    uint32_t state;
 } sys_exception_t;
 
 #define EXCP_ACTION_SKIP 1
@@ -30,10 +32,7 @@ typedef struct {
 
 typedef struct {
     smc_interop_t smc_interop;
-    sys_exception_t el3_excp;
-    sys_exception_t el1_excp[2];
-    uint32_t excp_action;
-    bool excp_log;
+    sys_exception_t excp;
     test_control_t *test_cntl;
 } sys_control_t;
 

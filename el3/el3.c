@@ -29,10 +29,10 @@ const char *smc_op_name[] = {
     [SMC_OP_TEST] = "SMC_OP_TEST",
     [SMC_OP_DISPATCH] = "SMC_OP_DISPATCH",
 };
+#endif
 
 const char *sec_state_str = "EL3";
 const uint32_t exception_level = EL3;
-#endif
 
 uintptr_t EL3_TEXT_BASE = (uintptr_t)&_EL3_TEXT_BASE;
 uintptr_t EL3_DATA_BASE = (uintptr_t)&_EL3_DATA_BASE;
@@ -160,11 +160,13 @@ int el3_handle_smc(uintptr_t op, smc_op_desc_t *desc)
 int el3_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
 					     uintptr_t elr)
 {
-    if (syscntl->excp_log || syscntl->el3_excp.log) {
-        syscntl->el3_excp.taken = true;
-        syscntl->el3_excp.ec = ec;
-        syscntl->el3_excp.iss = iss;
-        syscntl->el3_excp.far = far;
+    if (syscntl->excp.log) {
+        syscntl->excp.taken = true;
+        syscntl->excp.ec = ec;
+        syscntl->excp.iss = iss;
+        syscntl->excp.far = far;
+        syscntl->excp.el = exception_level;
+        syscntl->excp.state = 0;
     }
 
     switch (ec) {
@@ -196,8 +198,7 @@ int el3_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
         /* Other than system calls, synchronous exceptions return to the
          * offending instruction.  The user should have issued a SKIP.
          */
-        if (syscntl->el3_excp.action == EXCP_ACTION_SKIP ||
-            syscntl->excp_action == EXCP_ACTION_SKIP) {
+        if (syscntl->excp.action == EXCP_ACTION_SKIP) {
             elr +=4;
             __set_exception_return(elr);
         }
@@ -209,8 +210,7 @@ int el3_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
         /* Other than system calls, synchronous exceptions return to the
          * offending instruction.  The user should have issued a SKIP.
          */
-        if (syscntl->el3_excp.action == EXCP_ACTION_SKIP ||
-            syscntl->excp_action == EXCP_ACTION_SKIP) {
+        if (syscntl->excp.action == EXCP_ACTION_SKIP) {
             elr +=4;
             __set_exception_return(elr);
         }
@@ -221,8 +221,7 @@ int el3_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
         /* Other than system calls, synchronous exceptions return to the
          * offending instruction.  The user should have issued a SKIP.
          */
-        if (syscntl->el3_excp.action == EXCP_ACTION_SKIP ||
-            syscntl->excp_action == EXCP_ACTION_SKIP) {
+        if (syscntl->excp.action == EXCP_ACTION_SKIP) {
             elr +=4;
             __set_exception_return(elr);
         }

@@ -153,11 +153,13 @@ int el1_handle_svc(uint32_t op, svc_op_desc_t *desc)
 void el1_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
      					uintptr_t elr)
 {
-    if (syscntl->excp_log || syscntl->el1_excp[secure_state].log) {
-        syscntl->el1_excp[secure_state].taken = true;
-        syscntl->el1_excp[secure_state].ec = ec;
-        syscntl->el1_excp[secure_state].iss = iss;
-        syscntl->el1_excp[secure_state].far = far;
+    if (syscntl->excp.log) {
+        syscntl->excp.taken = true;
+        syscntl->excp.ec = ec;
+        syscntl->excp.iss = iss;
+        syscntl->excp.far = far;
+        syscntl->excp.el = exception_level;
+        syscntl->excp.state = secure_state;
     }
 
     switch (ec) {
@@ -172,14 +174,12 @@ void el1_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
          * behavior.
          */
 #if AARCH32
-        if (syscntl->el1_excp[secure_state].action != EXCP_ACTION_SKIP &&
-            syscntl->excp_action != EXCP_ACTION_SKIP) {
+        if (syscntl->excp.action != EXCP_ACTION_SKIP) {
             elr += 4;
             __set_exception_return(elr);
         }
 #else
-        if (syscntl->el1_excp[secure_state].action == EXCP_ACTION_SKIP ||
-            syscntl->excp_action == EXCP_ACTION_SKIP) {
+        if (syscntl->excp.action == EXCP_ACTION_SKIP) {
             elr +=4;
             __set_exception_return(elr);
         }
@@ -206,8 +206,7 @@ void el1_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
         DEBUG_MSG("WFI/WFE instruction exception far = 0x%lx  elr = 0x%lx\n",
                   far, elr);
 
-        if (syscntl->el1_excp[secure_state].action == EXCP_ACTION_SKIP ||
-            syscntl->excp_action == EXCP_ACTION_SKIP) {
+        if (syscntl->excp.action == EXCP_ACTION_SKIP) {
             elr +=4;
             __set_exception_return(elr);
         }

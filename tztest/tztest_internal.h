@@ -42,21 +42,42 @@ typedef enum {
 
 #define TEST_EXCEPTION(_fn, _excp, _el)                 \
     do {                                                \
-        syscntl->_el.ec = 0;                            \
-        syscntl->excp_action = EXCP_ACTION_SKIP;        \
-        syscntl->excp_log = true;                       \
+        syscntl->excp.action = EXCP_ACTION_SKIP;        \
+        syscntl->excp.log = true;                       \
         _fn;                                            \
-        TEST_CONDITION(syscntl->_el.taken &&            \
-                       syscntl->_el.ec == (_excp));     \
-        syscntl->_el.taken = 0;                         \
-        syscntl->excp_action = 0;                       \
-        syscntl->_el.ec = 0;                            \
+        TEST_CONDITION(syscntl->excp.taken &&           \
+                       syscntl->excp.el == (_el) &&     \
+                       syscntl->excp.ec == (_excp));    \
+        syscntl->excp.taken = 0;                        \
+        syscntl->excp.ec = 0;                           \
+        syscntl->excp.iss = 0;                          \
+        syscntl->excp.far = 0;                          \
+        syscntl->excp.el = 0;                           \
+        syscntl->excp.state = 0;                        \
+        syscntl->excp.action = 0;                       \
+        syscntl->excp.log = false;                      \
+    } while (0)
+
+#define TEST_NO_EXCEPTION(_fn)                          \
+    do {                                                \
+        syscntl->excp.action = EXCP_ACTION_SKIP;        \
+        syscntl->excp.log = true;                       \
+        _fn;                                            \
+        TEST_CONDITION(!syscntl->excp.taken);           \
+        syscntl->excp.taken = 0;                        \
+        syscntl->excp.ec = 0;                           \
+        syscntl->excp.iss = 0;                          \
+        syscntl->excp.far = 0;                          \
+        syscntl->excp.el = 0;                           \
+        syscntl->excp.state = 0;                        \
+        syscntl->excp.action = 0;                       \
+        syscntl->excp.log = false;                      \
     } while (0)
 
 #define TEST_EL1_EXCEPTION(_fn, _excp) \
-        TEST_EXCEPTION(_fn, _excp, el1_excp[secure_state])
+        TEST_EXCEPTION(_fn, _excp, EL1)
 #define TEST_EL3_EXCEPTION(_fn, _excp) \
-        TEST_EXCEPTION(_fn, _excp, el3_excp)
+        TEST_EXCEPTION(_fn, _excp, EL3)
 
 #endif
 
