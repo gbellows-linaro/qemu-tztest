@@ -6,16 +6,6 @@
 #include "state.h"
 #include "debug.h"
 #include "tztest_internal.h"
-#include "tztest_el0.h"
-
-tztest_t test_func[] = {
-    [TZTEST_SMC] = el0_check_smc,
-    [TZTEST_REG_ACCESS] = el0_check_register_access,
-#ifdef AARCH64
-    [TZTEST_CPACR_TRAP] = el0_check_cpacr_trap,
-    [TZTEST_WFX_TRAP] = el0_check_wfx_trap
-#endif
-};
 
 uint32_t el0_check_smc(uint32_t __attribute__((unused))arg)
 {
@@ -167,3 +157,13 @@ uint32_t el0_check_wfx_trap(uint32_t __attribute__((unused))arg)
     return 0;
 }
 #endif
+
+tztest_t test_func[] = {
+    [TZTEST_SMC] = el0_check_smc,
+    [TZTEST_REG_ACCESS] = el0_check_register_access,
+#ifdef AARCH64
+    [TZTEST_CPACR_TRAP] = el0_check_cpacr_trap,
+    [TZTEST_WFX_TRAP] = el0_check_wfx_trap
+#endif
+};
+
