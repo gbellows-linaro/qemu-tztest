@@ -5,7 +5,7 @@
 #include "state.h"
 
 typedef enum {
-    TZTEST_SMC = 0,
+    TZTEST_SMC = 1,
     TZTEST_REG_ACCESS,
     TZTEST_CPACR_TRAP,
     TZTEST_WFX_TRAP,

@@ -25,8 +25,10 @@ typedef struct {
 } op_map_mem_t;
 
 typedef struct {
-    uintptr_t func_id;
+    uint32_t fid;
     uintptr_t arg;
+    uintptr_t state;
+    uintptr_t el;
     uintptr_t ret;
 } op_dispatch_t;
 

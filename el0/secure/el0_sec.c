@@ -32,7 +32,8 @@ void el0_sec_loop()
             op = SVC_OP_YIELD;
             break;
         case SVC_OP_DISPATCH:
-            tztest[desc->disp.func_id](0);
+            run_test(desc->disp.fid, desc->disp.el, desc->disp.state,
+                     desc->disp.arg);
             op = SVC_OP_YIELD;
             break;
         case 0:

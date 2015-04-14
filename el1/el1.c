@@ -134,9 +134,13 @@ int el1_handle_svc(uint32_t op, svc_op_desc_t *desc)
         el1_interop_test((op_test_t *)desc);
         break;
     case SVC_OP_DISPATCH:
-        memcpy(smc_interop_buf, desc, sizeof(smc_op_desc_t));
-        __smc(SMC_OP_DISPATCH, smc_interop_buf);
-        memcpy(desc, smc_interop_buf, sizeof(smc_op_desc_t));
+        if (desc->disp.el == exception_level &&
+            desc->disp.state == secure_state)  {
+        } else {
+            memcpy(smc_interop_buf, desc, sizeof(smc_op_desc_t));
+            __smc(SMC_OP_DISPATCH, smc_interop_buf);
+            memcpy(desc, smc_interop_buf, sizeof(smc_op_desc_t));
+        }
         break;
     default:
         DEBUG_MSG("Unrecognized AArch64 SVC opcode: op = %d\n", op);
