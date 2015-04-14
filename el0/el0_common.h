@@ -5,8 +5,8 @@
 #include "svc.h"
 #include "syscntl.h"
 #include "arm_builtins.h"
-#include "el0.h"
 #include "debug.h"
+#include "state.h"
 
 extern sys_control_t *syscntl;
 

@@ -2,6 +2,7 @@
 #define _TZTEST_INTERNAL_H
 
 #include "tztest.h"
+#include "state.h"
 
 typedef enum {
     TZTEST_SMC = 0,
@@ -12,10 +13,12 @@ typedef enum {
 } tztest_func_id_t;
 
 #define TEST_HEAD(_str, ...) \
-    printf("\nValidating %s EL%d " _str ":\n", sec_state_str, el, ##__VA_ARGS__)
+    printf("\nValidating %s EL%d " _str ":\n", \
+           sec_state_str, exception_level, ##__VA_ARGS__)
 
 #define TEST_MSG(_str, ...) \
-    printf("\tEL%d (%s): " _str "... ", el, sec_state_str, ##__VA_ARGS__)
+    printf("\tEL%d (%s): " _str "... ", \
+           exception_level, sec_state_str, ##__VA_ARGS__)
 
 #define INC_TEST_COUNT()    (syscntl->test_cntl->test_count += 1)
 #define INC_FAIL_COUNT()    (syscntl->test_cntl->fail_count += 1)
@@ -51,7 +54,7 @@ typedef enum {
     } while (0)
 
 #define TEST_EL1_EXCEPTION(_fn, _excp) \
-        TEST_EXCEPTION(_fn, _excp, el1_excp[SEC_STATE])
+        TEST_EXCEPTION(_fn, _excp, el1_excp[secure_state])
 #define TEST_EL3_EXCEPTION(_fn, _excp) \
         TEST_EXCEPTION(_fn, _excp, el3_excp)
 

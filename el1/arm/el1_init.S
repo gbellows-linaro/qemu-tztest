@@ -4,7 +4,6 @@
 #include "cpu.h"
 #include "vmsa.h"
 #include "el1.h"
-#include "el0.h"
 #undef __ASSEMBLY__
 
 .arch_extension sec

@@ -18,7 +18,6 @@ FLATLIBS = ../../libcflat/libcflat.a $(libgcc) ../../libcflat/$(ARCH)/libeabi.a
 
 CFLAGS += -I$(ARCH) -I../$(ARCH) -I../ -I../$(ARCH)
 CFLAGS += -I../../common/$(ARCH) -I../../common/
-CFLAGS += -I../../el0/secure/
 
 ##################################################################
 

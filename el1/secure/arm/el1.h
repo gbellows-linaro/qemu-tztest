@@ -40,7 +40,6 @@ extern uintptr_t EL1_S_DATA_SIZE;
 #define EL1_BASE_VA EL1_S_BASE_VA
 #define EL1_VA_HEAP_BASE EL1_S_VA_HEAP_BASE
 
-#define SEC_STATE_STR "secure"
-#define SEC_STATE 0
+#define EL0_STACK_BASE EL0_S_STACK_BASE
 
 #endif

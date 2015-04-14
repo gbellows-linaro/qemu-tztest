@@ -2,6 +2,8 @@
 #include "tztest.h"
 
 const char *sec_state_str = "non-secure";
+const uint32_t secure_state = NONSECURE;
+const uint32_t exception_level = EL0;
 sys_control_t *syscntl = NULL;
 
 int main()

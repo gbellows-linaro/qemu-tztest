@@ -1,7 +1,7 @@
 #ifndef _DEBUG_H
 #define _DEBUG_H
 
-extern const char *sec_state_str;
+#include "state.h"
 
 #ifdef DEBUG
 #define DEBUG_MSG(_str, ...) \

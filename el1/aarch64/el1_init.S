@@ -2,7 +2,6 @@
 #include "memory.h"
 #include "vmsa.h"
 #include "el1.h"
-#include "el0.h"
 #undef __ASSEMBLY__
 
 .section .init

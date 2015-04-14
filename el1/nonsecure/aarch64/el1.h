@@ -37,7 +37,6 @@ extern uintptr_t EL1_NS_DATA_SIZE;
 #define EL1_BASE_VA EL1_NS_BASE_VA
 #define EL1_VA_HEAP_BASE EL1_NS_VA_HEAP_BASE
 
-#define SEC_STATE_STR "non-secure"
-#define SEC_STATE 1
+#define EL0_STACK_BASE EL0_NS_STACK_BASE
 
 #endif

@@ -14,8 +14,7 @@
 #include "arm_builtins.h"
 #include "syscntl.h"
 #include "mem_util.h"
-
-#define SEC_STATE_STR "EL3"
+#include "state.h"
 #include "debug.h"
 
 #if DEBUG
@@ -32,6 +31,7 @@ const char *smc_op_name[] = {
 };
 
 const char *sec_state_str = "EL3";
+const uint32_t exception_level = EL3;
 #endif
 
 uintptr_t EL3_TEXT_BASE = (uintptr_t)&_EL3_TEXT_BASE;

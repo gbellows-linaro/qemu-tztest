@@ -8,6 +8,7 @@
 #include "string.h"
 #include "el1.h"
 #include "arm_builtins.h"
+#include "state.h"
 #include "debug.h"
 #include "syscntl.h"
 

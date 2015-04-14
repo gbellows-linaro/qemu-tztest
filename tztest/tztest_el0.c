@@ -3,12 +3,12 @@
 #include "syscntl.h"
 #include "arm_builtins.h"
 #include "exception.h"
-#include "el0.h"
+#include "state.h"
 #include "debug.h"
 #include "tztest_internal.h"
 #include "tztest_el0.h"
 
-uint32_t el0_check_smc(uint32_t el)
+uint32_t el0_check_smc(uint32_t __attribute__((unused))arg)
 {
     TEST_HEAD("smc behavior");
 
@@ -18,7 +18,7 @@ uint32_t el0_check_smc(uint32_t el)
     return 0;
 }
 
-uint32_t el0_check_register_access(uint32_t el)
+uint32_t el0_check_register_access(uint32_t __attribute__((unused))arg)
 {
     /* Set things to non-secure P1 and attempt accesses */
     TEST_HEAD("restricted register access");
@@ -58,7 +58,7 @@ uint32_t el0_check_register_access(uint32_t el)
 }
 
 #ifdef AARCH64
-uint32_t el0_check_cpacr_trap(uint32_t el)
+uint32_t el0_check_cpacr_trap(uint32_t __attribute__((unused))arg)
 {
     uint64_t cptr_el3, cpacr;
 
@@ -91,7 +91,7 @@ uint32_t el0_check_cpacr_trap(uint32_t el)
     return 0;
 }
 
-uint32_t el0_check_wfx_trap(uint32_t el)
+uint32_t el0_check_wfx_trap(uint32_t __attribute__((unused))arg)
 {
     uint64_t sctlr, scr;
 
@@ -115,7 +115,7 @@ uint32_t el0_check_wfx_trap(uint32_t el)
      */
     SVC_SET_REG(SCR, 3, scr | SCR_WFE);
     TEST_MSG("Execution of trapped WFE (SCTLR.nTWE clear)",
-           SEC_STATE_STR);
+           sec_state_str);
     TEST_EL3_EXCEPTION(asm volatile("wfe\n"), EC_WFI_WFE);
 
     /* Restore SCTLR */
@@ -123,7 +123,7 @@ uint32_t el0_check_wfx_trap(uint32_t el)
 
     /* This should trap to EL3 with SCTLR.nTWE set */
     TEST_MSG("Execution of trapped WFE (SCTLR.nTWE set)",
-           SEC_STATE_STR);
+           sec_state_str);
     TEST_EL3_EXCEPTION(asm volatile("wfe\n"), EC_WFI_WFE);
 
     /* Restore SCR */
@@ -142,14 +142,14 @@ uint32_t el0_check_wfx_trap(uint32_t el)
     SVC_SET_REG(SCR, 3, scr | SCR_WFI);
 
     TEST_MSG("Execution of trapped WFI (SCTLR.nTWI clear)",
-           SEC_STATE_STR);
+           sec_state_str);
     TEST_EL3_EXCEPTION(asm volatile("wfi\n"), EC_WFI_WFE);
 
     /* Restore SCTLR */
     SVC_SET_REG(SCTLR, 1, sctlr);
 
     TEST_MSG("Execution of trapped WFI (SCTLR.nTWI set)",
-           SEC_STATE_STR);
+           sec_state_str);
     TEST_EL3_EXCEPTION(asm volatile("wfi\n"), EC_WFI_WFE);
 
     /* Restore SCR */
