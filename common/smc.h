@@ -1,18 +1,14 @@
 #ifndef _SMC_H
 #define _SMC_H
 
-#define SMC_OP_NOOP 0
-#define SMC_OP_DISPATCH_MONITOR 1
-#define SMC_OP_YIELD 2
-#define SMC_OP_DISPATCH_SECURE_USR 3
-#define SMC_OP_DISPATCH_SECURE_SVC 4
-#define SMC_OP_ALLOCATE_SECURE_MEMORY 4
-#define SMC_OP_EXIT 5
-#define SMC_OP_MAP 8
-#define SMC_OP_GET_REG  11
-#define SMC_OP_SET_REG  12
-#define SMC_OP_TEST 13
-#define SMC_OP_DISPATCH 14
+#define SMC_OP_NOOP         0   /* Issue SMC with no switch or effect */
+#define SMC_OP_YIELD        1   /* Switch execution state, return from remote */
+#define SMC_OP_EXIT         2   /* Shutdown machine */
+#define SMC_OP_MAP          3   /* Perform memory map operation */
+#define SMC_OP_GET_REG      4   /* Fetch specified register */
+#define SMC_OP_SET_REG      5   /* Set specified register */
+#define SMC_OP_TEST         6   /* Perform interop test */
+#define SMC_OP_DISPATCH     7   /* Execute remote test function */
 
 #ifndef __ASSEMBLY__
 #include "interop.h"

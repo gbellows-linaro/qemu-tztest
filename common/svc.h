@@ -1,15 +1,15 @@
 #ifndef _SVC_H
 #define _SVC_H
 
-#define SVC_OP_EXIT 6
-#define SVC_OP_ALLOC 7
-#define SVC_OP_MAP 8
-#define SVC_OP_YIELD 9
-#define SVC_OP_GET_SYSCNTL 10
-#define SVC_OP_GET_REG 11
-#define SVC_OP_SET_REG 12
-#define SVC_OP_TEST 13
-#define SVC_OP_DISPATCH 14
+#define SVC_OP_YIELD        1
+#define SVC_OP_EXIT         2
+#define SVC_OP_MAP          3
+#define SVC_OP_GET_REG      4
+#define SVC_OP_SET_REG      5
+#define SVC_OP_TEST         6
+#define SVC_OP_DISPATCH     7
+#define SVC_OP_GET_SYSCNTL  8
+#define SVC_OP_ALLOC        9
 
 #ifndef __ASSEMBLY__
 #include "interop.h"

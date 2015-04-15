@@ -20,7 +20,6 @@
 #if DEBUG
 const char *smc_op_name[] = {
     [SMC_OP_NOOP] = "SMC_OP_NOOP",
-    [SMC_OP_DISPATCH_MONITOR] = "SMC_DISPATCH_MONITOR",
     [SMC_OP_YIELD] = "SMC_OP_YIELD",
     [SMC_OP_EXIT] = "SMC_OP_EXIT",
     [SMC_OP_MAP] = "SMC_OP_MAP",
