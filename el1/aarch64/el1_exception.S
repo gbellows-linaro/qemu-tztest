@@ -12,13 +12,12 @@ el1_sync_exception_current:
     str x30, [sp, #-8]!
     stp x2, x3, [sp, #-16]!
     stp x0, x1, [sp, #-16]!
-    mov x2, x0;
     mrs x0, esr_el1
     mov x1, #0xffffff
     and x1, x1, x0
     lsr x0, x0, #26
-    mrs x2, far_el3
-    mrs x3, elr_el3
+    mrs x2, far_el1
+    mrs x3, elr_el1
     bl el1_handle_exception
     ldp x0, x1, [sp], #16
     ldp x2, x3, [sp], #16
