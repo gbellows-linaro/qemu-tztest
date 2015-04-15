@@ -27,6 +27,8 @@ el1_sync_exception_current:
 el1_sync_exception_lower64:
     str x30, [sp, #-8]!
     stp x2, x3, [sp, #-16]!
+    mrs x2, spsr_el1    /* Get the lower SPSR */
+    str x2, [sp, #-8]!  /* Save the SPSR in case a nested interrupt occurs */
     stp x0, x1, [sp, #-16]!
     mrs x0, esr_el1
     mov x1, #0xffffff
@@ -37,17 +39,17 @@ el1_sync_exception_lower64:
     cmp x0, #EC_SVC32
     b.eq el1_sync_exception_lower64_svc
     mrs x2, far_el1
-    mrs x3, elr_el1
+    mrs x3, elr_el1     /* The handler deals with this getting destroyed */
     bl el1_handle_exception
-    ldp x0, x1, [sp], #16
-    ldp x2, x3, [sp], #16
     b el1_sync_exception_lower64_done
 el1_sync_exception_lower64_svc:
     ldp x0, x1, [sp]        /* Fetch copies of our inputs as SVC args */
     bl el1_handle_svc
-    ldp x2, x1, [sp], #16   /* We don't want to overwrite x0, so use x2 */
-    ldp x2, x3, [sp], #16   /* We can throw away the old x0, and restore x2 */
 el1_sync_exception_lower64_done:
+    ldp x2, x1, [sp], #16   /* We don't want to overwrite x0, so use x2 */
+    ldr x2, [sp], #8
+    msr spsr_el1, x2        /* Restore the SPSR in case it was destroyed */
+    ldp x2, x3, [sp], #16   /* We can throw away the old x0, and restore x2 */
     ldr x30, [sp], #8
     eret
 .align 7
