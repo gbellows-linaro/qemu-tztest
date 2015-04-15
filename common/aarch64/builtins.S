@@ -43,6 +43,9 @@ WRITE_REG cpacr_el1
 READ_REG sctlr_el1
 WRITE_REG sctlr_el1
 
+READ_REG sctlr_el3
+WRITE_REG sctlr_el3
+
 .globl __set_exception_return
 __set_exception_return:
     str x30, [sp, #-8]!

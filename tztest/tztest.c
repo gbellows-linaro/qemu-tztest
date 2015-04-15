@@ -23,6 +23,16 @@ tztest_case_t tztest[] = {
     TEST(TZTEST_WFX_TRAP, EL0, NONSECURE, 0),
     TEST(TZTEST_WFX_TRAP, EL0, SECURE, 0),
 #endif
+    TEST(TZTEST_SMC, EL1, NONSECURE, 0),
+    TEST(TZTEST_SMC, EL1, SECURE, 0),
+    TEST(TZTEST_REG_ACCESS, EL1, NONSECURE, 0),
+    TEST(TZTEST_REG_ACCESS, EL1, SECURE, 0),
+#ifdef AARCH64
+    TEST(TZTEST_CPACR_TRAP, EL1, NONSECURE, 0),
+    TEST(TZTEST_CPACR_TRAP, EL1, SECURE, 0),
+    TEST(TZTEST_WFX_TRAP, EL1, NONSECURE, 0),
+    TEST(TZTEST_WFX_TRAP, EL1, SECURE, 0),
+#endif
     TEST_END
 };
 
@@ -42,7 +52,9 @@ void run_test(uint32_t fid, uint32_t el, uint32_t state, uint32_t arg)
     op_dispatch_t disp;
 
     if (el == exception_level && state == secure_state) {
-        test_func[fid](arg);
+        if (test_func[fid]) {
+            test_func[fid](arg);
+        }
     } else {
         disp.fid = fid;
         disp.el = el;

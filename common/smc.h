@@ -32,6 +32,24 @@ extern smc_op_desc_t *smc_interop_buf;
 #define SMC_EXIT()  __smc(SMC_OP_EXIT, NULL)
 #define SMC_YIELD()  __smc(SMC_OP_YIELD, smc_interop_buf);
 
+#define SMC_GET_REG(__reg, __el, __val)     \
+    do {                                \
+        smc_op_desc_t *desc = smc_interop_buf;             \
+        desc->get.key = (__reg);         \
+        desc->get.el = (__el);           \
+        __smc(SMC_OP_GET_REG, desc);   \
+        (__val) = desc->get.data;        \
+    } while (0)
+
+#define SMC_SET_REG(__reg, __el, __val)     \
+    do {                                \
+        smc_op_desc_t *desc = smc_interop_buf;             \
+        desc->get.key = (__reg);         \
+        desc->get.el = (__el);           \
+        desc->get.data = (__val);        \
+        __smc(SMC_OP_SET_REG, desc);   \
+    } while (0)
+
 #endif
 
 #endif

@@ -2,6 +2,7 @@
 #include "exception.h"
 #include "vmsa.h"
 #include "mem_util.h"
+#include "tztest.h"
 
 uintptr_t mem_pgtbl_base = EL1_PGTBL_BASE;
 smc_op_desc_t *smc_interop_buf;
@@ -136,6 +137,8 @@ int el1_handle_svc(uint32_t op, svc_op_desc_t *desc)
     case SVC_OP_DISPATCH:
         if (desc->disp.el == exception_level &&
             desc->disp.state == secure_state)  {
+            run_test(desc->disp.fid, desc->disp.el,
+                     desc->disp.state, desc->disp.arg);
         } else {
             memcpy(smc_interop_buf, desc, sizeof(smc_op_desc_t));
             __smc(SMC_OP_DISPATCH, smc_interop_buf);
@@ -212,7 +215,7 @@ void el1_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
         }
         break;
     default:
-        DEBUG_MSG("Unhandled EL1 exception: ec = %d iss = %d\n", ec, iss);
+        DEBUG_MSG("Unhandled EL1 exception: ec = 0x%x iss = 0x%x\n", ec, iss);
         SMC_EXIT();
         break;
     }
