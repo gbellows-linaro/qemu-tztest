@@ -177,7 +177,8 @@ unmap_va_done:
 
 /* memcpy(dest, src) */
 memcpy:
-    cbz x2, memcpy_done
+    cmp x2, #0
+    ble memcpy_done
     ldr x10, [x1], #8
     str x10, [x0], #8
     subs x2, x2, #8
