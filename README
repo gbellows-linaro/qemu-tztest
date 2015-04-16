@@ -1,5 +1,5 @@
 CONFIGURE
-----------
+================
 Configure the test using ./configure before building.  For help with options
 use "-?"
 
@@ -17,7 +17,7 @@ as follows:
     $ ./configure --plat=virt --cpu=cortex-a15
 
 BUILD
------
+================
 Once configured, the test can be built my simply using make.  This will produce
 an output test image that can be used with QEMU.
 
@@ -28,8 +28,13 @@ messages by building as follows.
 
     $ CFLAGS=-DDEBUG make
 
+To perform a full clean, the following command can be used.  It performs a
+standard clean along with clearing any generated build files and cscope files.
+
+    $ make distclean
+
 RUN
-----
+================
 Using compatible machine and cpu properties, the output test image can be run
 using the following QEMU command line:
 
@@ -44,7 +49,7 @@ using the following QEMU command line:
         -serial stdio -display none -m 1024 -machine type=virt -cpu cortex-a57
 
 DEBUG
------
+================
 A number of facilities are provided for assiting in debugging.
 
     1) As mentioned above, adding CFLAGS=-DDEBUG enables verbose message
@@ -90,7 +95,7 @@ A number of facilities are provided for assiting in debugging.
        address space.
 
 OUTPUT
--------
+================
 When run, the test produces out put in the format:
     "Test Heading:"
         "Test case..." "RESULT"
