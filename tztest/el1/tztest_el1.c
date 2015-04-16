@@ -5,8 +5,43 @@
 #include "arm_builtins.h"
 #include "exception.h"
 #include "state.h"
+#include "cpu.h"
 #include "debug.h"
 #include "tztest_internal.h"
+
+uint32_t el1_check_smc(uint32_t __attribute__((unused))arg)
+{
+    uintptr_t scr;
+    TEST_HEAD("smc behavior");
+
+    SMC_GET_REG(SCR, 3, scr);
+    SMC_SET_REG(SCR, 3, scr | SCR_SMD);
+#ifdef AARCH64
+    /* On AArch64, SMC calls below EL3 should result in an undefined exception
+     * if the SCR.SMD bit is set.  This is regardless of whether EL2 is present
+     * or not.
+     */
+    TEST_MSG("SMC call with SCR.SMD set");
+    TEST_EL3_EXCEPTION(__smc(SMC_OP_NOOP, NULL), EC_UNKNOWN);
+#else
+    /* On AArch32, SMC calls are undefined when SCR.SCD is set only when the
+     * virtualization extensions are present.
+     */
+    //TEST_EL1_EXCEPTION(__smc(SMC_OP_NOOP, NULL), EC_UNKNOWN);
+
+    /* When the virtualization extensions are not present, the SCR.SCD bit
+     * setting should have no impact on SMC.
+     */
+    TEST_MSG("SMC call without virt ext. and  SCR.SMD set");
+    TEST_NO_EXCEPTION(__smc(SMC_OP_NOOP, NULL));
+
+#endif
+
+    /* Restor SCR */
+    SMC_SET_REG(SCR, 3, scr);
+
+    return 0;
+}
 
 #ifdef AARCH64
 uint32_t el1_check_cpacr_trap(uint32_t __attribute__((unused))arg)

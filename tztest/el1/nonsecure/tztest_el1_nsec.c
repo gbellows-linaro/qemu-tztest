@@ -83,14 +83,14 @@ uint32_t check_mask_bits()
      */
     SMC_SET_REG(SCR, 3, scr | (SCR_AW | SCR_FW));
 
-    TEST_MSG("Checking CPSR.F with SCR.FW enabled");
+    TEST_MSG("Writing CPSR.F with SCR.FW enabled");
     val = cpsr | CPSR_F;
     TEST_FUNCTION(WRITE_CPSR(val), READ_CPSR() == val);
 
     /* Restore CPSR to its original value before next test. */
     WRITE_CPSR(cpsr);
 
-    TEST_MSG("Checking CPSR.A with SCR.AW enabled");
+    TEST_MSG("Writing CPSR.A with SCR.AW enabled");
     val = cpsr | CPSR_A;
     TEST_FUNCTION(WRITE_CPSR(val), READ_CPSR() == val);
 
@@ -103,14 +103,14 @@ uint32_t check_mask_bits()
      */
     SMC_SET_REG(SCR, 3, scr);
 
-    TEST_MSG("Checking CPSR.F with SCR.FW disabled");
+    TEST_MSG("Writing CPSR.F with SCR.FW disabled");
     val = cpsr | CPSR_F;
     TEST_FUNCTION(WRITE_CPSR(val), READ_CPSR() != val);
 
     /* Restore CPSR to its original value before next test. */
     WRITE_CPSR(cpsr);
 
-    TEST_MSG("Checking CPSR.A with SCR.AW disabled");
+    TEST_MSG("Writing CPSR.A with SCR.AW disabled");
     val = cpsr | CPSR_A;
     TEST_FUNCTION(WRITE_CPSR(val), READ_CPSR() != val);
 
@@ -122,6 +122,7 @@ uint32_t check_mask_bits()
 #endif
 
 tztest_t test_func[] = {
+    [TZTEST_SMC] = el1_check_smc,
     [TZTEST_REG_ACCESS] = el1_check_register_access,
 #ifdef AARCH64
     [TZTEST_CPACR_TRAP] = el1_check_cpacr_trap,

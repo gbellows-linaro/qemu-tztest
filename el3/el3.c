@@ -158,7 +158,7 @@ int el3_handle_smc(uintptr_t op, smc_op_desc_t *desc)
         }
         break;
     default:
-        printf("Unrecognized AArch64 SMC opcode: op = %d\n", op);
+        DEBUG_MSG("Unrecognized AArch64 SMC opcode: op = %d\n", op);
         el3_shutdown();
         break;
     }

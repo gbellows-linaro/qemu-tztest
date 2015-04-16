@@ -70,6 +70,7 @@ uint32_t el1_check_register_access(uint32_t __attribute__((unused))arg)
 }
 
 tztest_t test_func[] = {
+    [TZTEST_SMC] = el1_check_smc,
     [TZTEST_REG_ACCESS] = el1_check_register_access,
 #ifdef AARCH64
     [TZTEST_CPACR_TRAP] = el1_check_cpacr_trap,
