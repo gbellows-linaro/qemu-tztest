@@ -9,6 +9,7 @@ typedef enum {
     TZTEST_REG_ACCESS,
     TZTEST_CPACR_TRAP,
     TZTEST_WFX_TRAP,
+    TZTEST_MASK_BITS,
     TZTEST_COUNT
 } tztest_func_id_t;
 
