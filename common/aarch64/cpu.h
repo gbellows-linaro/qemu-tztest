@@ -1,5 +1,5 @@
-#ifndef __ARMV8_REGS_H
-#define __ARMV8_REGS_H
+#ifndef _CPU_H
+#define _CPU_H
 
 #define PSTATE_EL_EL0    0x00
 #define PSTATE_EL_EL1H   0x04

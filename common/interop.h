@@ -38,6 +38,7 @@ typedef enum {
     CPACR,
     SCR,
     SCTLR,
+    CPSR,
 } op_reg_key_t;
 
 typedef struct {

@@ -40,6 +40,8 @@ extern uintptr_t read_ifar();
 extern void write_ifar(uintptr_t);
 extern uintptr_t read_ifsr();
 extern void write_ifsr(uintptr_t);
+extern uintptr_t read_cpsr();
+extern void write_cpsr(uintptr_t);
 extern void __set_exception_return(uintptr_t);
 extern void __exception_return(uintptr_t, uint32_t);
 
@@ -53,12 +55,11 @@ extern void __exception_return(uintptr_t, uint32_t);
 #define WRITE_MVBAR(_val) write_mvbar(_val)
 #define READ_NSACR() read_nsacr()
 #define WRITE_NSACR(_val) write_nsacr(_val)
+#define READ_CPSR() read_cpsr()
+#define WRITE_CPSR(_val) write_cpsr(_val)
 
 #if REMOVE_OR_INTEGRATE
 #define __cps(_r0) asm volatile ("cps %[r0]\n":: [r0] "X" (_r0))
-
-#define __mrs(_r0, _reg) asm volatile ("mrs %[r0], "#_reg"\n" : [r0] "=r" (_r0))
-#define __msr(_reg, _r0) asm volatile ("msr "#_reg", %[r0]\n" :: [r0] "r" (_r0))
 
 #define __srsdb_svc(_mode) asm volatile ("srsdb sp!, #0x13\n")
 
@@ -121,14 +122,5 @@ _RWCP(tpidrurw, 15, 0, 13, 0, 2)     /* _read/write_tpidrurw */
 _RWCP(tpidruro, 15, 0, 13, 0, 3)     /* _read/write_tpidruro */
 _RWCP(tpidrprw, 15, 0, 13, 0, 4)     /* _read/write_tpidrprw */
 
-static inline uint32_t _read_cpsr() {
-    uint32_t r0 = 0;
-    __mrs(r0, cpsr);
-    return r0;
-}
-
-static inline void _write_cpsr(uint32_t val) {
-    __msr(cpsr_fsxc, val);
-}
 #endif
 #endif

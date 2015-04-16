@@ -1,5 +1,5 @@
-#ifndef __ARMV7_REGS_H
-#define __ARMV7_REGS_H
+#ifndef _CPU_H
+#define _CPU_H
 
 #define CPSR_M_USR  0x10
 #define CPSR_M_FIQ  0x11
@@ -11,7 +11,15 @@
 #define CPSR_M_UND  0x1B
 #define CPSR_M_SYS  0x1F
 
-#define SCR_NS      0x1
+#define SCR_NS      (1 << 0)
+#define SCR_IRQ     (1 << 1)
+#define SCR_FIQ     (1 << 2)
+#define SCR_EA      (1 << 3)
+#define SCR_FW      (1 << 4)
+#define SCR_AW      (1 << 5)
+
+#define CPSR_F      (1 << 6)
+#define CPSR_A      (1 << 8)
 
 #define SPSR_EL0    CPSR_M_USR
 #define SPSR_EL1    CPSR_M_SVC

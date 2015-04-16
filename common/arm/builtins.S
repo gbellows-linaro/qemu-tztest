@@ -49,4 +49,15 @@ __set_exception_return:
 __exception_return:
     push {r0, r1}
     rfefd sp!
+
+.globl read_cpsr
+read_cpsr:
+    mrs r0, cpsr
+    bx lr
+
+.globl write_cpsr
+write_cpsr:
+    msr cpsr_cxsf, r0
+    bx lr
+
 #undef __ASSEMBLY__

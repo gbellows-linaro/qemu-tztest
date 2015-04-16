@@ -117,13 +117,18 @@ int el3_handle_smc(uintptr_t op, smc_op_desc_t *desc)
             case CPTR_EL3:
                 desc->get.data = READ_CPTR_EL3();
                 break;
+#endif
+#if AARCH32
+            case CPSR:
+                desc->set.data = READ_CPSR();
+                break;
+#endif
             case CPACR:
                 desc->get.data = READ_CPACR();
                 break;
             case SCR:
                 desc->get.data = READ_SCR();
                 break;
-#endif
             }
         }
         break;
@@ -137,13 +142,18 @@ int el3_handle_smc(uintptr_t op, smc_op_desc_t *desc)
             case CPTR_EL3:
                 WRITE_CPTR_EL3(desc->set.data);
                 break;
+#endif
+#if AARCH32
+            case CPSR:
+                WRITE_CPSR(desc->set.data);
+                break;
+#endif
             case CPACR:
                 WRITE_CPACR(desc->set.data);
                 break;
             case SCR:
                 WRITE_SCR(desc->set.data);
                 break;
-#endif
             }
         }
         break;
