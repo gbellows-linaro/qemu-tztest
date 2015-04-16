@@ -58,7 +58,7 @@ void el3_shutdown() {
 
     *sysreg_cfgctrl = SYS_SHUTDOWN;
 
-    while(1);   /* Shutdown does not work on all machines */
+    asm volatile("wfi\n");  /* Shutdown does not work on all machines */
 }
 
 void el3_alloc_mem(op_alloc_mem_t *alloc)
