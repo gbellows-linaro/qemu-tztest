@@ -104,7 +104,7 @@ uint32_t el0_check_wfx_trap(uint32_t __attribute__((unused))arg)
 
     /* Clear SCTLR.nTWE to cause WFE instructions to trap to EL1 */
     SVC_SET_REG(SCTLR, 1, sctlr & ~SCTLR_nTWE);
-    TEST_MSG("Execution of WFE trapped to EL1");
+    TEST_MSG("WFE (SCTLR.nTWE clear, SCR.WFE clear)");
     TEST_EL1_EXCEPTION(asm volatile("wfe\n"), EC_WFI_WFE);
 
     /* SCTLR.nTWE left as trapping to check precedence */
@@ -113,16 +113,14 @@ uint32_t el0_check_wfx_trap(uint32_t __attribute__((unused))arg)
      * is clear
      */
     SVC_SET_REG(SCR, 3, scr | SCR_WFE);
-    TEST_MSG("Execution of trapped WFE (SCTLR.nTWE clear)",
-           sec_state_str);
+    TEST_MSG("WFE (SCTLR.nTWE clear, SCR.WFE set)");
     TEST_EL3_EXCEPTION(asm volatile("wfe\n"), EC_WFI_WFE);
 
     /* Restore SCTLR */
     SVC_SET_REG(SCTLR, 1, sctlr);
 
     /* This should trap to EL3 with SCTLR.nTWE set */
-    TEST_MSG("Execution of trapped WFE (SCTLR.nTWE set)",
-           sec_state_str);
+    TEST_MSG("WFE (SCTLR.nTWE set, SCR.WFE set)");
     TEST_EL3_EXCEPTION(asm volatile("wfe\n"), EC_WFI_WFE);
 
     /* Restore SCR */
@@ -130,7 +128,7 @@ uint32_t el0_check_wfx_trap(uint32_t __attribute__((unused))arg)
 
     /* Clear SCTLR.nTWI to cause WFI instructions to trap to EL1 */
     SVC_SET_REG(SCTLR, 1, sctlr & ~SCTLR_nTWI);
-    TEST_MSG("Execution of WFI trapped to EL1");
+    TEST_MSG("WFI (SCTLR.nTWI clear, SCR.WFI clear)");
     TEST_EL1_EXCEPTION(asm volatile("wfi\n"), EC_WFI_WFE);
 
     /* SCTLR.nTWI left as trapping to check precedence */
@@ -140,15 +138,13 @@ uint32_t el0_check_wfx_trap(uint32_t __attribute__((unused))arg)
      */
     SVC_SET_REG(SCR, 3, scr | SCR_WFI);
 
-    TEST_MSG("Execution of trapped WFI (SCTLR.nTWI clear)",
-           sec_state_str);
+    TEST_MSG("WFI (SCTLR.nTWI clear, SCR.WFI set)");
     TEST_EL3_EXCEPTION(asm volatile("wfi\n"), EC_WFI_WFE);
 
     /* Restore SCTLR */
     SVC_SET_REG(SCTLR, 1, sctlr);
 
-    TEST_MSG("Execution of trapped WFI (SCTLR.nTWI set)",
-           sec_state_str);
+    TEST_MSG("WFI (SCTLR.nTWI set, SCR.WFI set)");
     TEST_EL3_EXCEPTION(asm volatile("wfi\n"), EC_WFI_WFE);
 
     /* Restore SCR */
