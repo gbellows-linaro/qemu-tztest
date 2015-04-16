@@ -1,4 +1,5 @@
-VPATH	= $(ARCH):../$(ARCH):../../common/$(ARCH):../:../../tztest
+VPATH	= $(ARCH):../$(ARCH):../../common/$(ARCH):../:
+VPATH   += ../../tztest/el0:../../tztest
 
 EL0_S_ELF		= el0_sec.elf
 EL0_S_IMAGE 	= el0_sec.bin
@@ -16,7 +17,7 @@ FLATLIBS = ../../libcflat/libcflat.a $(libgcc) ../../libcflat/$(ARCH)/libeabi.a
 
 CFLAGS += -I$(ARCH) -I../$(ARCH) -I../ -I../$(ARCH)
 CFLAGS += -I../../common/$(ARCH) -I../../common/
-CFLAGS += -I../../tztest
+CFLAGS += -I../../tztest/el0 -I../../tztest
 
 ##################################################################
 

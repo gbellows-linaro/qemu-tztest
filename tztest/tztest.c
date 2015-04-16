@@ -3,7 +3,6 @@
 #include "svc.h"
 #include "libcflat.h"
 #include "tztest_internal.h"
-#include "tztest_el0.h"
 
 tztest_case_t tztest[256];
 uint32_t tztest_num = 0;
