@@ -9,9 +9,25 @@
 #define PSTATE_EL_EL3H   0x0C
 #define PSTATE_EL_EL3T   0x0D
 
+#define SCR_NS      (1 << 0)
+#define SCR_IRQ     (1 << 1)
+#define SCR_FIQ     (1 << 2)
+#define SCR_EA      (1 << 3)
+#define SCR_NET     (1 << 6)
+#define SCR_SMD     (1 << 7)
+#define SCR_SCD     SCR_SMD    /* For AArch32 compatability */
+#define SCR_HCE     (1 << 8)
+#define SCR_SIF     (1 << 9)
+#define SCR_RW      (1 << 10)
+#define SCR_ST      (1 << 11)
+#define SCR_TWI     (1 << 12)
+#define SCR_TWE     (1 << 13)
+
+
 #define SPSR_EL0    PSTATE_EL_EL0
 #define SPSR_EL1    PSTATE_EL_EL1T
 #define SPSR_EL2    PSTATE_EL_EL2T
 #define SPSR_EL3    PSTATE_EL_EL3T
+
 
 #endif

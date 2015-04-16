@@ -17,6 +17,11 @@
 #define SCR_EA      (1 << 3)
 #define SCR_FW      (1 << 4)
 #define SCR_AW      (1 << 5)
+#define SCR_NET     (1 << 6)
+#define SCR_SCD     (1 << 7)
+#define SCR_SMD     SCR_SCD    /* For AArch64 compatability */
+#define SCR_HCE     (1 << 8)
+#define SCR_SIF     (1 << 9)
 
 #define CPSR_F      (1 << 6)
 #define CPSR_A      (1 << 8)
