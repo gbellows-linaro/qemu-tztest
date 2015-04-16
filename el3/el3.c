@@ -16,6 +16,7 @@
 #include "mem_util.h"
 #include "state.h"
 #include "debug.h"
+#include "tztest.h"
 
 #if DEBUG
 const char *smc_op_name[] = {
@@ -32,6 +33,7 @@ const char *smc_op_name[] = {
 
 const char *sec_state_str = "EL3";
 const uint32_t exception_level = EL3;
+const uint32_t secure_state = 0;
 
 uintptr_t EL3_TEXT_BASE = (uintptr_t)&_EL3_TEXT_BASE;
 uintptr_t EL3_DATA_BASE = (uintptr_t)&_EL3_DATA_BASE;
@@ -98,7 +100,13 @@ int el3_handle_smc(uintptr_t op, smc_op_desc_t *desc)
         el3_shutdown();
         break;
     case SMC_OP_DISPATCH:
-        return SVC_OP_DISPATCH;
+        if (desc->disp.el == exception_level &&
+            desc->disp.state == (READ_SCR() & SCR_NS))  {
+            run_test(desc->disp.fid, desc->disp.el,
+                     desc->disp.state, desc->disp.arg);
+        } else {
+            return SVC_OP_DISPATCH;
+        }
         break;
     case SMC_OP_TEST:
         if (test->val != test->orig >> test->count) {

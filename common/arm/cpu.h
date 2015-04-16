@@ -24,6 +24,7 @@
 #define SCR_SIF     (1 << 9)
 
 #define CPSR_F      (1 << 6)
+#define CPSR_I      (1 << 7)
 #define CPSR_A      (1 << 8)
 
 #define SPSR_EL0    CPSR_M_USR

@@ -16,7 +16,7 @@
 extern uint32_t __smc(uint32_t, void *);
 
 typedef union {
-    op_dispatch_t dispatch;
+    op_dispatch_t disp;
     op_map_mem_t map;
     op_test_t test;
     op_data_t get;
