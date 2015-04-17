@@ -137,6 +137,12 @@ int el3_handle_smc(uintptr_t op, smc_op_desc_t *desc)
             case SCR:
                 desc->get.data = READ_SCR();
                 break;
+            case SCTLR:
+                desc->get.data = READ_SCTLR();
+                break;
+            default:
+                DEBUG_MSG("Unrecognized SVC GET reg = %d\n", desc->set.key);
+                break;
             }
         }
         break;
@@ -161,6 +167,12 @@ int el3_handle_smc(uintptr_t op, smc_op_desc_t *desc)
                 break;
             case SCR:
                 WRITE_SCR(desc->set.data);
+                break;
+            case SCTLR:
+                WRITE_SCTLR(desc->set.data);
+                break;
+            default:
+                DEBUG_MSG("Unrecognized SVC SET reg = %d\n", desc->set.key);
                 break;
             }
         }

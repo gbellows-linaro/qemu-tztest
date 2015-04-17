@@ -94,13 +94,19 @@ int el1_handle_svc(uint32_t op, svc_op_desc_t *desc)
             case CPTR_EL3:
                 desc->get.data = READ_CPTR_EL3();
                 break;
+#endif
             case CPACR:
                 desc->get.data = READ_CPACR();
                 break;
             case SCR:
                 desc->get.data = READ_SCR();
                 break;
-#endif
+            case SCTLR:
+                desc->get.data = READ_SCTLR();
+                break;
+            default:
+                DEBUG_MSG("Unrecognized SVC GET reg = %d\n", desc->set.key);
+                break;
             }
         } else if (desc->get.el == 3) {
             memcpy(smc_interop_buf, desc, sizeof(smc_op_desc_t));
@@ -118,13 +124,19 @@ int el1_handle_svc(uint32_t op, svc_op_desc_t *desc)
             case CPTR_EL3:
                 WRITE_CPTR_EL3(desc->set.data);
                 break;
+#endif
             case CPACR:
                 WRITE_CPACR(desc->set.data);
                 break;
             case SCR:
                 WRITE_SCR(desc->set.data);
                 break;
-#endif
+            case SCTLR:
+                WRITE_SCTLR(desc->set.data);
+                break;
+            default:
+                DEBUG_MSG("Unrecognized SVC SET reg = %d\n", desc->set.key);
+                break;
             }
         } else if (desc->set.el == 3) {
             memcpy(smc_interop_buf, desc, sizeof(smc_op_desc_t));
@@ -146,7 +158,7 @@ int el1_handle_svc(uint32_t op, svc_op_desc_t *desc)
         }
         break;
     default:
-        DEBUG_MSG("Unrecognized AArch64 SVC opcode: op = %d\n", op);
+        DEBUG_MSG("Unrecognized SVC opcode: op = %d\n", op);
         break;
     }
 
