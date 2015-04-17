@@ -91,27 +91,21 @@ uint32_t el1_check_wfx_trap(uint32_t __attribute__((unused))arg)
 
     /* Clearing SCTLR.nTWE normally traps WFE to EL1 but we are already there */
     WRITE_SCTLR(sctlr & ~SCTLR_nTWE);
+    SMC_SET_REG(SCR, 3, scr & ~SCR_WFE);
     TEST_MSG("WFE (SCTLR.nTWE clear, SCR.WFE clear)");
     TEST_NO_EXCEPTION(asm volatile("wfe\n"));
 
-    /* SCTLR.nTWE left as trapping to check precedence */
-
-    /* Trap WFE instructions to EL3.  This should work even though SCTLR.nTWE
-     * is clear
+    /* Trap WFE instructions to EL3.  This should work regardless od the
+     * SCTLR.nTWE setting.
      */
     SMC_SET_REG(SCR, 3, scr | SCR_WFE);
     TEST_MSG("WFE (SCTLR.nTWE clear, SCR.WFE set)");
     TEST_EL3_EXCEPTION(asm volatile("wfe\n"), EC_WFI_WFE);
 
-    /* Restore SCTLR */
-    WRITE_SCTLR(sctlr);
-
     /* This should trap to EL3 with SCTLR.nTWE set */
+    WRITE_SCTLR(sctlr | SCTLR_nTWE);
     TEST_MSG("WFE (SCTLR.nTWE set, SCR.WFE set)");
     TEST_EL3_EXCEPTION(asm volatile("wfe\n"), EC_WFI_WFE);
-
-    /* Restore SCR */
-    SMC_SET_REG(SCR, 3, scr);
 
     /* We cannot test the effect of WFI in EL1 mode like we did with WFE as it
      * causes a hang.  It is assumed that since the exception is not trapped we
@@ -120,11 +114,20 @@ uint32_t el1_check_wfx_trap(uint32_t __attribute__((unused))arg)
      * precedence.
      */
 
-    /* Trap WFI instructions to EL3  */
+    /* Trap WFI instructions to EL3.  This should work regardless od the
+     * SCTLR.nTWE setting.
+     */
     SMC_SET_REG(SCR, 3, scr | SCR_WFI);
-
-    TEST_MSG("WFI (SCR.WFI set)");
+    TEST_MSG("WFI (SCTLR.nTWI clear, SCR.WFI set)");
     TEST_EL3_EXCEPTION(asm volatile("wfi\n"), EC_WFI_WFE);
+
+    /* This should trap to EL3 with SCTLR.nTWE set */
+    WRITE_SCTLR(sctlr | SCTLR_nTWE);
+    TEST_MSG("WFI (SCTLR.nTWE set, SCR.WFI set)");
+    TEST_EL3_EXCEPTION(asm volatile("wfi\n"), EC_WFI_WFE);
+
+    /* Restore SCTLR */
+    WRITE_SCTLR(sctlr);
 
     /* Restore SCR */
     SMC_SET_REG(SCR, 3, scr);
