@@ -1,6 +1,7 @@
 #define __ASSEMBLY__
 #include "memory.h"
 #include "vmsa.h"
+#include "cpu.h"
 #include "el1.h"
 #undef __ASSEMBLY__
 
@@ -28,7 +29,7 @@ el1_init:
 
     /* Enable floating point register usage as printf uses it */
     mrs x10, cpacr_el1
-    orr x10, x10, #3<<20       /* Set CPACR.FPEN to enable FP */
+    orr x10, x10, #CPACR_FPEN(0x3)
     msr cpacr_el1, x10
 
 el1_init_mmu:

@@ -45,6 +45,14 @@ init_uart:
     ldr r10, =EL3_PTE_POOL_BASE
     push {r10, r11}
 
+    /* Enable floating-point as printf uses it */
+    mrc p15, 0, r10, c1 , c0, 2
+    orr r10, r10, #CPACR_FPEN(0x3)
+    mcr p15, 0, r10, c1 , c0, 2
+    mrc p15, 0, r10, c1, c1, 2
+    orr r10, r10, #NSACR_CP10
+    mcr p15, 0, r10, c1, c1, 2
+
 monitor_mmu_init:
     /* Disable data and instruction caches */
     mrc p15, 0, r10, c1, c0, 0

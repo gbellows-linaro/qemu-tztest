@@ -23,6 +23,10 @@
 #define SCR_HCE     (1 << 8)
 #define SCR_SIF     (1 << 9)
 
+#define CPACR_FPEN(_v) ((_v) << 20)
+
+#define NSACR_CP10  (1 << 10)
+
 #define CPSR_F      (1 << 6)
 #define CPSR_I      (1 << 7)
 #define CPSR_A      (1 << 8)

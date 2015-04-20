@@ -226,6 +226,17 @@ void el1_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
             __set_exception_return(elr);
         }
         break;
+    case EC_SIMD:
+        DEBUG_MSG("Adv SIMD or FP access exception - far = 0x%lx elr = 0x%lx\n",
+                  far, elr);
+        /* Other than system calls, synchronous exceptions return to the
+         * offending instruction.  The user should have issued a SKIP.
+         */
+        if (syscntl->excp.action == EXCP_ACTION_SKIP) {
+            elr += 4;
+            __set_exception_return(elr);
+        }
+        break;
     default:
         DEBUG_MSG("Unhandled EL1 exception: ec = 0x%x iss = 0x%x\n", ec, iss);
         SMC_EXIT();

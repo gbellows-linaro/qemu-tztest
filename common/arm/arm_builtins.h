@@ -57,6 +57,8 @@ extern void __exception_return(uintptr_t, uint32_t);
 #define WRITE_NSACR(_val) write_nsacr(_val)
 #define READ_CPSR() read_cpsr()
 #define WRITE_CPSR(_val) write_cpsr(_val)
+#define READ_SCTLR() read_sctlr()
+#define WRITE_SCTLR(_val) write_sctlr(_val)
 
 #if REMOVE_OR_INTEGRATE
 #define __cps(_r0) asm volatile ("cps %[r0]\n":: [r0] "X" (_r0))

@@ -56,6 +56,11 @@ init_uart:
     /* Save the input syscntl buf pointer */
     push {r4}
 
+    /* Enable floating-point as printf uses it */
+    mrc p15, 0, r10, c1, c0, 2
+    orr r10, r10, #CPACR_FPEN(0x3)
+    mcr p15, 0, r10, c1, c0, 2
+
 el1_mmu_init:
     /* Disable data and instruction caches */
     mrc p15, 0, r10, c1, c0, 0

@@ -33,8 +33,11 @@ init_uart:
 
     /* Enable floating point register usage as printf uses it */
     mrs x10, cptr_el3
-    and x10, x10, #~0x400       /* Clear CPTR.TFP to enable FP */
+    and x10, x10, #~CPTR_TFP       /* Clear CPTR.TFP to enable FP */
     msr cptr_el3, x10
+    mrs x10, cpacr_el1
+    orr x10, x10, #CPACR_FPEN(0x3)
+    msr cpacr_el1, x10
 
 el3_init_mmu:
     /* Disable data and instruction caches */

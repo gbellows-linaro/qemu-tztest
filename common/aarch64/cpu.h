@@ -23,11 +23,12 @@
 #define SCR_TWI     (1 << 12)
 #define SCR_TWE     (1 << 13)
 
+#define CPACR_FPEN(_v) ((_v) << 20)
+#define CPTR_TFP    (1 << 10)
 
 #define SPSR_EL0    PSTATE_EL_EL0
 #define SPSR_EL1    PSTATE_EL_EL1T
 #define SPSR_EL2    PSTATE_EL_EL2T
 #define SPSR_EL3    PSTATE_EL_EL3T
-
 
 #endif
