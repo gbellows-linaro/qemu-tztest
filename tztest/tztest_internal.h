@@ -9,6 +9,7 @@ typedef enum {
     TZTEST_REG_ACCESS,
     TZTEST_CPACR_TRAP,
     TZTEST_WFX_TRAP,
+    TZTEST_FP_TRAP,
     TZTEST_MASK_BITS,
     TZTEST_COUNT
 } tztest_func_id_t;
@@ -21,16 +22,19 @@ typedef enum {
     printf("\tEL%d (%s): " _str "... ", \
            exception_level, sec_state_str, ##__VA_ARGS__)
 
+#define TEST_MSG_SUCCESS() printf("PASSED\n")
+#define TEST_MSG_FAILURE() printf("FAILED\n")
+
 #define INC_TEST_COUNT()    (syscntl->test_cntl->test_count += 1)
 #define INC_FAIL_COUNT()    (syscntl->test_cntl->fail_count += 1)
 
 #define TEST_CONDITION(_cond)                           \
     do {                                                \
         if (!(_cond)) {                                 \
-            printf("FAILED\n");                         \
+            TEST_MSG_FAILURE();                         \
             INC_FAIL_COUNT();                           \
         } else {                                        \
-            printf("PASSED\n");                         \
+            TEST_MSG_SUCCESS();                         \
         }                                               \
         INC_TEST_COUNT();                               \
     } while(0)
@@ -41,38 +45,40 @@ typedef enum {
         TEST_CONDITION(_cond);                          \
     } while(0)
 
-#define TEST_EXCEPTION(_fn, _excp, _el)                 \
+#define TEST_ENABLE_EXCP_LOG()                          \
     do {                                                \
         syscntl->excp.action = EXCP_ACTION_SKIP;        \
         syscntl->excp.log = true;                       \
+    } while(0)
+
+#define TEST_EXCP_RESET()                               \
+    do {                                                \
+        syscntl->excp.taken = 0;                        \
+        syscntl->excp.ec = 0;                           \
+        syscntl->excp.iss = 0;                          \
+        syscntl->excp.far = 0;                          \
+        syscntl->excp.el = 0;                           \
+        syscntl->excp.state = 0;                        \
+        syscntl->excp.action = 0;                       \
+        syscntl->excp.log = false;                      \
+    } while(0)
+
+#define TEST_EXCEPTION(_fn, _excp, _el)                 \
+    do {                                                \
+        TEST_ENABLE_EXCP_LOG();                         \
         _fn;                                            \
         TEST_CONDITION(syscntl->excp.taken &&           \
                        syscntl->excp.el == (_el) &&     \
                        syscntl->excp.ec == (_excp));    \
-        syscntl->excp.taken = 0;                        \
-        syscntl->excp.ec = 0;                           \
-        syscntl->excp.iss = 0;                          \
-        syscntl->excp.far = 0;                          \
-        syscntl->excp.el = 0;                           \
-        syscntl->excp.state = 0;                        \
-        syscntl->excp.action = 0;                       \
-        syscntl->excp.log = false;                      \
+        TEST_EXCP_RESET();                              \
     } while (0)
 
 #define TEST_NO_EXCEPTION(_fn)                          \
     do {                                                \
-        syscntl->excp.action = EXCP_ACTION_SKIP;        \
-        syscntl->excp.log = true;                       \
+        TEST_ENABLE_EXCP_LOG();                         \
         _fn;                                            \
         TEST_CONDITION(!syscntl->excp.taken);           \
-        syscntl->excp.taken = 0;                        \
-        syscntl->excp.ec = 0;                           \
-        syscntl->excp.iss = 0;                          \
-        syscntl->excp.far = 0;                          \
-        syscntl->excp.el = 0;                           \
-        syscntl->excp.state = 0;                        \
-        syscntl->excp.action = 0;                       \
-        syscntl->excp.log = false;                      \
+        TEST_EXCP_RESET();                              \
     } while (0)
 
 #define TEST_EL1_EXCEPTION(_fn, _excp) \
