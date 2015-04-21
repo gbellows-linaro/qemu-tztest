@@ -250,6 +250,165 @@ more detail.
   - AArch32 EL1 CPSR bit masking verification
   - AArch64 EL1 CPACR and WFx exception trap validation
 
+Adding new tests
+============================
+Adding tests to the framework can be pretty straight forward provided you don't
+need any custom functionality.  Here are the steps:
+
+    1) Determine what EL the test is for.  It is possible for a test to be run
+       from multiple ELs, but there are often subtle differences that make it
+       necessary to add separate test functions.  For instance, system register
+       access from EL0 requires an SVC call but not neccessarily from EL1.
+       Similarly, exceptions may be routed differently depending on the
+       execution EL.
+
+    2) If the test is for both secure and nonsecure state, decide whether it is
+       common or not.  More often this is the case, but again their are
+       exceptions that make it easier to have separate test functions.
+
+    3) Based on the above 1 & 2, add the test function to the appropriate
+       tztest file.  For example, a secure EL0 test "foo" would get added to
+       tztest/el0/secure/tztest_el0_sec.c.  Similarly, a test function common
+       to secure and nonsecure EL1, would be added to tztest/el1/tztest_el1.c.
+       In addition, if the test function is common, a prototype needs to be
+       added to the common header tztest/el1/tztest_el1.h.
+
+    4) Once the test has been added, it needs to be assigned a function ID and
+       slot in the associated test_func[] tables. For example, a test
+       function for secure and nonsecure EL0, would be added to both tables.
+       The tables reside in the corresponding tztest file.  The above example
+       tables would be in tztest/el0/[non]secure/tztest_el0_[n]sec.c files.
+
+       In some cases, an existing unused function ID slot can be used if the ID
+       name makes sense. In some cases, however, new IDs need to be added to
+       tztest/tztest_internal.h.
+
+    5) The last step in adding the test is adding the appropriate test entry to
+       be run.  This is done by modifying the tztest[] test case array in
+       tztest/tztest.c. The entry consists of the function ID, the EL,
+       security state, and a function argument. The test dispatcher does the
+       rest.
+
+It is common to need additional infrastructure for new system registers or
+exceptions. Adding such support is often trivial, but there will likely be
+cases where new and more complex changes will be needed.
+
+Test obstacles and pitfalls
+============================
+Although it is fairly straight forward to add a test and available macros are
+named accordingly, a certain amount ARM architecture knowledge is needed. It is
+easy to get hung up on certain issues because of subtlties in the architecture.
+
+Here are some items to consider:
+
+    - Changing system registers can have an adverse effect, so make sure you
+      are aware of the side-effects you may cause.  For instance, disabling
+      floating-point will cause an unexpected exception on printf.
+    - Access to system registers is different depending on the EL.  There are
+      macros for accessing system registers are the various levels:
+      * EL0 - SVC_[GET,SET]_REG() allows access to a register at a specified
+              EL.
+      * EL1 - READ_*/WRITE_*() macros are provided for accessing registers
+              normally available at EL1.  SMC_[GET,SET]_REG macros are provided
+              for accessing registers at EL3.
+    - Other than EL0 address pointers being shared with their corresponding
+      secure state EL1, addressed should can not be shared without proper
+      mapping.  Each EL is designated its own distinct address space, so any
+      sharing should be done using the necessary mapping. SVC and SMC calls are
+      provided for this.
+    - The test is set-up to work with the current memory mappings and
+      constraints. Using an abundance of memory through dynamic allocation or
+      through static definitions can upset the existing memory layout sometimes
+      requiring adjustment.
+
+Minimal test requirements
+============================
+Below is a list of the minimal test infrastructure needed for compatability:
+
+    1) Test header indicating the test family being run.  This is done using
+       the TEST_HEAD macro.  The macro will format the heading appropriately.
+
+    2) Test message identifying the distinct test case being run.  This should
+       be unique as it identifies the specific test and its status. This is
+       done through the TEST_MSG macro.  This macro expects that the next print
+       will be the status associated with the corresponding test.  The macro
+       will format and add additional identifying details to the test message.
+
+    3) Test status message indicating whether the test failed or not.  This
+       message is the completion of #2 which indicates if the test passed or
+       failed.  This is done by using either the TEST_MSG_*() status macro or
+       one of the TEST_* macros that call the status macro internally.
+
+    4) Update of test statistics.  This usually done internally by the
+       supplied TEST macros, but can also be done using the INC_*_COUNT macros.
+       Minimally the test count must be incremented (INC_TEST_COUNT), but in
+       the case of failures the failure count must also be incremented
+       (INC_FAIL_COUNT). These counts are used in the final test statistics so
+       it is important that the are updated for accuracy.
+
+    5) Obviously a test condition is also needed for completeness.  The test
+       case should perform an operation and test whether the operation
+       succeeded or failed as expected.
+
+Sample test case
+============================
+Test: Check behavior of SMC call from EL0
+
+Expected behavior: SMC from both secure and nonsecure EL0 should result in an
+                   undefined exception at EL1.
+
+Required infrastructure: The test framework includes functionality for logging
+                and handling undefined exceptions.  Handling includes capturing
+                and reporting the exception state and skipping the offending
+                instructure on return.
+
+File changes: Since the test condition and expectations are the same for both
+              secure and nonsecure EL0, the test case named el0_check_smc() can
+              be added to the common EL0 test file (tztest_el0.c).  As it is
+              common for secure and nonsecure, a prototype is also added to the
+              common EL0 header (tztest_el0.h).  We expect the test function to
+              be executed from both secure states it is added as test function
+              ID TZTEST_SMC in both the secure and nonsecure test function
+              arrays (test_func[]). Lastly, test case entries are added for
+              both secure and nonsecure EL0 in the test case array (tztest[]).
+
+Test function: The test function (el0_check_smc) is rather simple in this case,
+               execute a noninvasive SMC instruction from EL0. The test
+               function begins with the test header "smc behavior" and test
+               case message "SMC call".
+
+               Next the condition is tested and utilizes the provided exception
+               test macro for verifying that the SMC call does infact generate
+               the expected exception.  In this case, the TEST_EL1_EXCEPTION()
+               macro is called and includes an inline smc assembly call
+               "smc #0" and the expected exception code EC_UNKNOWN).  Within
+               the macro, the SMC instruction will be executed and checks are
+               performed to see if it matches the expected EL and exception
+               code.  The test statistics are updated corresponding to the
+               result and the appropriate test status message is printed.
+
+Test result: The following would be the result if the tests were successful:
+
+                Validating non-secure EL0 smc behavior:
+                        EL0 (non-secure): SMC call... PASSED
+
+                Validating secure EL0 smc behavior:
+                        EL0 (secure): SMC call... PASSED
+
+                Validation complete.  Passed 2 of 2 tests.
+
+             The last message is cumulative and would include statistics of all
+             the tests executed, but demonstrative purposes it is only the two.
+
+Other test considerations
+============================
+- Tests are only added if the infrastructure does not already stress the
+  functional area.  For example, successful SMC operations from EL1 are not
+  validated as they are required for test operation.
+- In many cases, both a positive and negative test should be performed. For
+  example, access control to a given register should be tested with and without
+  the control for completeness.
+
 To-Dos
 ============================
 The amount of features that can be added to the test are endless, but the
