@@ -24,7 +24,12 @@
 #define SCR_TWE     (1 << 13)
 
 #define CPACR_FPEN(_v) ((_v) << 20)
+
 #define CPTR_TFP    (1 << 10)
+#define CPTR_TCPAC  (1 << 31)
+
+#define SCTLR_nTWI  (1 << 16)
+#define SCTLR_nTWE  (1 << 18)
 
 #define SPSR_EL0    PSTATE_EL_EL0
 #define SPSR_EL1    PSTATE_EL_EL1T

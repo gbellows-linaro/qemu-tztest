@@ -1,7 +1,7 @@
 #include "libcflat.h"
 #include "syscntl.h"
 #include "smc.h"
-#include "arm_builtins.h"
+#include "builtins.h"
 #include "exception.h"
 #include "state.h"
 #include "cpu.h"

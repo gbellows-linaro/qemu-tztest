@@ -11,7 +11,7 @@
 #include "smc.h"
 #include "svc.h"
 #include "el3_monitor.h"
-#include "arm_builtins.h"
+#include "builtins.h"
 #include "syscntl.h"
 #include "mem_util.h"
 #include "state.h"

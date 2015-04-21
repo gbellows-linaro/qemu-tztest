@@ -22,10 +22,18 @@
 #define SCR_SMD     SCR_SCD    /* For AArch64 compatability */
 #define SCR_HCE     (1 << 8)
 #define SCR_SIF     (1 << 9)
+#define SCR_TWI     (1 << 12)
+#define SCR_TWE     (1 << 13)
 
 #define CPACR_FPEN(_v) ((_v) << 20)
 
+#define CPTR_TFP    (1 << 10)
+#define CPTR_TCPAC  (1 << 31)
+
 #define NSACR_CP10  (1 << 10)
+
+#define SCTLR_nTWI  (1 << 16)
+#define SCTLR_nTWE  (1 << 18)
 
 #define CPSR_F      (1 << 6)
 #define CPSR_I      (1 << 7)

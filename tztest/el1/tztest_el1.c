@@ -2,7 +2,7 @@
 #include "svc.h"
 #include "smc.h"
 #include "syscntl.h"
-#include "arm_builtins.h"
+#include "builtins.h"
 #include "exception.h"
 #include "state.h"
 #include "cpu.h"
@@ -91,14 +91,14 @@ uint32_t el1_check_wfx_trap(uint32_t __attribute__((unused))arg)
 
     /* Clearing SCTLR.nTWE normally traps WFE to EL1 but we are already there */
     WRITE_SCTLR(sctlr & ~SCTLR_nTWE);
-    SMC_SET_REG(SCR, 3, scr & ~SCR_WFE);
+    SMC_SET_REG(SCR, 3, scr & ~SCR_TWE);
     TEST_MSG("WFE (SCTLR.nTWE clear, SCR.WFE clear)");
     TEST_NO_EXCEPTION(asm volatile("wfe\n"));
 
     /* Trap WFE instructions to EL3.  This should work regardless od the
      * SCTLR.nTWE setting.
      */
-    SMC_SET_REG(SCR, 3, scr | SCR_WFE);
+    SMC_SET_REG(SCR, 3, scr | SCR_TWE);
     TEST_MSG("WFE (SCTLR.nTWE clear, SCR.WFE set)");
     TEST_EL3_EXCEPTION(asm volatile("wfe\n"), EC_WFI_WFE);
 
@@ -117,7 +117,7 @@ uint32_t el1_check_wfx_trap(uint32_t __attribute__((unused))arg)
     /* Trap WFI instructions to EL3.  This should work regardless od the
      * SCTLR.nTWE setting.
      */
-    SMC_SET_REG(SCR, 3, scr | SCR_WFI);
+    SMC_SET_REG(SCR, 3, scr | SCR_TWI);
     TEST_MSG("WFI (SCTLR.nTWI clear, SCR.WFI set)");
     TEST_EL3_EXCEPTION(asm volatile("wfi\n"), EC_WFI_WFE);
 

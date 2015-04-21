@@ -1,7 +1,7 @@
 #include "libcflat.h"
 #include "svc.h"
 #include "syscntl.h"
-#include "arm_builtins.h"
+#include "builtins.h"
 #include "exception.h"
 #include "state.h"
 #include "cpu.h"
@@ -222,7 +222,7 @@ uint32_t el0_check_wfx_trap(uint32_t __attribute__((unused))arg)
     /* Even though we set the SCR to trap WFE instructions to EL3, precedence
      * should be still given to EL1 as log as SCTLR.nTWE is clear.
      */
-    SVC_SET_REG(SCR, 3, scr | SCR_WFE);
+    SVC_SET_REG(SCR, 3, scr | SCR_TWE);
     TEST_MSG("WFE (SCTLR.nTWE clear, SCR.WFE set)");
     TEST_EL1_EXCEPTION(asm volatile("wfe\n"), EC_WFI_WFE);
 
@@ -242,7 +242,7 @@ uint32_t el0_check_wfx_trap(uint32_t __attribute__((unused))arg)
     /* Even though we set the SCR to trap WFI instructions to EL3, precedence
      * should be still given to EL1 as log as SCTLR.nTWI is clear.
      */
-    SVC_SET_REG(SCR, 3, scr | SCR_WFI);
+    SVC_SET_REG(SCR, 3, scr | SCR_TWI);
     TEST_MSG("WFI (SCTLR.nTWI clear, SCR.WFI set)");
     TEST_EL1_EXCEPTION(asm volatile("wfi\n"), EC_WFI_WFE);
 

@@ -4,7 +4,7 @@
 #include "libcflat.h"
 #include "svc.h"
 #include "syscntl.h"
-#include "arm_builtins.h"
+#include "builtins.h"
 #include "debug.h"
 #include "state.h"
 
