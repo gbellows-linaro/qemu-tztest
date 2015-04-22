@@ -62,7 +62,8 @@ void el1_interop_test(op_test_t *desc)
     memcpy(desc, smc_interop_buf, sizeof(smc_op_desc_t));
 }
 
-int el1_handle_svc(uint32_t op, svc_op_desc_t *desc)
+int el1_handle_svc(uint32_t op, svc_op_desc_t *desc,
+                   uintptr_t __attribute((unused))far, uintptr_t elr)
 {
     uint32_t ret = 0;
 
@@ -162,6 +163,11 @@ int el1_handle_svc(uint32_t op, svc_op_desc_t *desc)
         break;
     }
 
+    /* We always restore the elr just in case we hit a nested EL1 exception in
+     * the handler.  This can happen as we run exception tests.
+     */
+    __set_exception_return(elr);
+
     return ret;
 }
 
@@ -191,12 +197,10 @@ void el1_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
 #if AARCH32
         if (syscntl->excp.action != EXCP_ACTION_SKIP) {
             elr += 4;
-            __set_exception_return(elr);
         }
 #else
         if (syscntl->excp.action == EXCP_ACTION_SKIP) {
             elr +=4;
-            __set_exception_return(elr);
         }
 #endif
         break;
@@ -223,7 +227,6 @@ void el1_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
 
         if (syscntl->excp.action == EXCP_ACTION_SKIP) {
             elr +=4;
-            __set_exception_return(elr);
         }
         break;
     case EC_SIMD:
@@ -234,7 +237,6 @@ void el1_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
          */
         if (syscntl->excp.action == EXCP_ACTION_SKIP) {
             elr += 4;
-            __set_exception_return(elr);
         }
         break;
     default:
@@ -242,6 +244,11 @@ void el1_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
         SMC_EXIT();
         break;
     }
+
+    /* We always restore the elr just in case there was a nested EL1 exception.
+     * In some cases up above, the elr has been adjusted.
+     */
+    __set_exception_return(elr);
 }
 
 void el1_start(uintptr_t base, uintptr_t size)

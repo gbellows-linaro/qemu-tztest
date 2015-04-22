@@ -19,6 +19,8 @@ el1_vectors:
 el1_svc_vect:
 	srsdb sp!, #CPSR_M_SVC
     push {r1-r3}
+	mov r2, #0                      /* There is no FAR on an SVC */
+	ldr r3, [sp, #16]               /* Jump back over the saved args for LR */
     bl el1_handle_svc
     pop {r1-r3}
     rfefd sp!

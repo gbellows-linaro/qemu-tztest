@@ -27,9 +27,11 @@ el1_sync_exception_current:
 el1_sync_exception_lower64:
     str x30, [sp, #-8]!
     stp x2, x3, [sp, #-16]!
-    mrs x2, spsr_el1    /* Get the lower SPSR */
-    str x2, [sp, #-8]!  /* Save the SPSR in case a nested interrupt occurs */
+    mrs x2, spsr_el1    /* Nested EL1 exceptions will overwrite the SPSR */
+    str x2, [sp, #-8]!  /* Save the SPSR so we can restore it later */
     stp x0, x1, [sp, #-16]!
+    mrs x2, far_el1
+    mrs x3, elr_el1     /* The handlers deal with saving this */
     mrs x0, esr_el1
     mov x1, #0xffffff
     and x1, x1, x0
@@ -38,8 +40,6 @@ el1_sync_exception_lower64:
     b.eq el1_sync_exception_lower64_svc
     cmp x0, #EC_SVC32
     b.eq el1_sync_exception_lower64_svc
-    mrs x2, far_el1
-    mrs x3, elr_el1     /* The handler deals with this getting destroyed */
     bl el1_handle_exception
     b el1_sync_exception_lower64_done
 el1_sync_exception_lower64_svc:

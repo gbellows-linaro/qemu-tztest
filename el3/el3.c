@@ -82,7 +82,8 @@ uint32_t el3_map_mem(op_map_mem_t *map)
     return 0;
 }
 
-int el3_handle_smc(uintptr_t op, smc_op_desc_t *desc)
+int el3_handle_smc(uintptr_t op, smc_op_desc_t *desc,
+                   uintptr_t __attribute((unused))far, uintptr_t elr)
 {
     op_test_t *test = (op_test_t*)desc;
 
@@ -183,6 +184,7 @@ int el3_handle_smc(uintptr_t op, smc_op_desc_t *desc)
         break;
     }
 
+    __set_exception_return(elr);
     return 0;
 }
 
@@ -229,7 +231,6 @@ int el3_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
          */
         if (syscntl->excp.action == EXCP_ACTION_SKIP) {
             elr +=4;
-            __set_exception_return(elr);
         }
         break;
     case EC_WFI_WFE:
@@ -241,7 +242,6 @@ int el3_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
          */
         if (syscntl->excp.action == EXCP_ACTION_SKIP) {
             elr +=4;
-            __set_exception_return(elr);
         }
         break;
     case EC_SIMD:
@@ -252,7 +252,6 @@ int el3_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
          */
         if (syscntl->excp.action == EXCP_ACTION_SKIP) {
             elr +=4;
-            __set_exception_return(elr);
         }
         break;
     default:
@@ -260,6 +259,11 @@ int el3_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
         el3_shutdown();
         break;
     }
+
+    /* We always restore the elr just in case there was a nested EL3 exception.
+     * In some cases up above, the elr has been adjusted.
+     */
+    __set_exception_return(elr);
 
     return 0;
 }

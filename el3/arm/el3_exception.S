@@ -18,6 +18,8 @@ el3_vectors:
 
 el3_smc_vect:
 	srsdb sp!, #CPSR_M_MON
+	mov r2, #0                      /* There is no FAR on an SVC */
+	ldr r3, [sp, #16]               /* Jump back over the saved args for LR */
     bl el3_handle_smc
     cmp r0, #0
     beq el3_smc_vect_done
