@@ -21,7 +21,7 @@ uint32_t el1_check_smc(uint32_t __attribute__((unused))arg)
      * if the SCR.SMD bit is set.  This is regardless of whether EL2 is present
      * or not.
      */
-    TEST_MSG("SMC call with SCR.SMD set");
+    TEST_MSG("SMC call without virt (SCR.SMD = 1)");
     TEST_EL3_EXCEPTION(__smc(SMC_OP_NOOP, NULL), EC_UNKNOWN);
 #else
     /* On AArch32, SMC calls are undefined when SCR.SCD is set only when the
@@ -32,7 +32,7 @@ uint32_t el1_check_smc(uint32_t __attribute__((unused))arg)
     /* When the virtualization extensions are not present, the SCR.SCD bit
      * setting should have no impact on SMC.
      */
-    TEST_MSG("SMC call without virt ext. and  SCR.SMD set");
+    TEST_MSG("SMC call without virt (SCR.SCD = 1)");
     TEST_NO_EXCEPTION(__smc(SMC_OP_NOOP, NULL));
 
 #endif
