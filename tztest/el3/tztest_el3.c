@@ -15,7 +15,7 @@ uint32_t el3_check_smc()
 
     uint32_t cpsr = READ_CPSR();
 
-    TEST_MSG("Checking monitor mode... ");
+    TEST_MSG("Checking monitor mode");
     TEST_CONDITION(CPSR_M_MON == (cpsr & CPSR_M_MON));
 
     // Test: Check that CPSR.A/I.F are set to 1 on exception to mon mode
