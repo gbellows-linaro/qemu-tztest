@@ -134,5 +134,113 @@ uint32_t el1_check_wfx_trap(uint32_t __attribute__((unused))arg)
 
     return 0;
 }
+
+uint32_t el1_check_fp_trap(uint32_t __attribute__((unused))arg)
+{
+#ifdef DEBUG
+    /* This test cannot be run easily when debug is enabled as messing with the
+     * floating-point enable disables printing.  It is easier to disable
+     * debugging than change the debugging to support floating-point enable, so
+     * the test is disabled.
+     */
+    TEST_HEAD("FP trapping test disabled during debug");
+#else
+
+    /* Disabling floating-point also disables printing and causes hangs if you
+     * try to print.  For this reason not all standard test macros can be used
+     * so instead checking and printing status is pulled out so printing can be
+     * reenabled ahead of time.
+     */
+    uint64_t cptr_el3, cpacr;
+
+    TEST_HEAD("FP trapping");
+
+    /* Get the current CPTR so we can restore it later */
+    SMC_GET_REG(CPTR_EL3, 3, cptr_el3);
+    cpacr = READ_CPACR();
+
+    /* First check that enabled FP does not give us an exception */
+    TEST_MSG("FP enabled (CPACR.FPEN = 3, CPTR_EL3 = 0)");
+    WRITE_CPACR(cpacr | CPACR_FPEN(3));
+    SMC_SET_REG(CPTR_EL3, 3, cptr_el3 & ~CPTR_TFP);
+    TEST_NO_EXCEPTION(asm volatile("fcmp s0, #0.0\n"));
+
+    /* Disable CPACR FP access */
+    TEST_MSG("FP disabled (CPACR.FPEN = 0, CPTR_EL3 = 0)");
+    WRITE_CPACR(cpacr & ~(CPACR_FPEN(3)));
+    TEST_ENABLE_EXCP_LOG();
+    asm volatile("fcmp s0, #0.0\n");
+    WRITE_CPACR(cpacr);           /* Reenable printing */
+    if (syscntl->excp.taken && syscntl->excp.el == 1 &&
+        syscntl->excp.ec == EC_SIMD) {
+        TEST_MSG_SUCCESS();
+    } else {
+        TEST_MSG_FAILURE();
+        INC_FAIL_COUNT();
+    }
+    INC_TEST_COUNT();
+    TEST_EXCP_RESET();
+
+    TEST_MSG("FP disabled (CPACR.FPEN = 1, CPTR_EL3 = 0)");
+    WRITE_CPACR(cpacr & ~(CPACR_FPEN(2)));
+    /* No exception in EL1 if FPEN = 1 */
+    TEST_NO_EXCEPTION(asm volatile("fcmp s0, #0.0\n"));
+
+    TEST_MSG("FP disabled (CPACR.FPEN = 2, CPTR_EL3 = 0)");
+    WRITE_CPACR(cpacr & ~(CPACR_FPEN(1)));
+    TEST_ENABLE_EXCP_LOG();
+    asm volatile("fcmp s0, #0.0\n");
+    WRITE_CPACR(cpacr);           /* Reenable printing */
+    if (syscntl->excp.taken && syscntl->excp.el == 1 &&
+        syscntl->excp.ec == EC_SIMD) {
+        TEST_MSG_SUCCESS();
+    } else {
+        TEST_MSG_FAILURE();
+        INC_FAIL_COUNT();
+    }
+    INC_TEST_COUNT();
+    TEST_EXCP_RESET();
+
+    TEST_MSG("FP disabled (CPACR.FPEN = 0, CPTR_EL3 = 1)");
+    WRITE_CPACR(cpacr & ~(CPACR_FPEN(3)));
+    SMC_SET_REG(CPTR_EL3, 3, cptr_el3 | CPTR_TFP);
+    TEST_ENABLE_EXCP_LOG();
+    asm volatile("fcmp s0, #0.0\n");
+    WRITE_CPACR(cpacr);           /* Reenable printing */
+    SMC_SET_REG(CPTR_EL3, 3, cptr_el3);     /* Reenable printing */
+    if (syscntl->excp.taken && syscntl->excp.el == 1 &&
+        syscntl->excp.ec == EC_SIMD) {
+        TEST_MSG_SUCCESS();
+    } else {
+        TEST_MSG_FAILURE();
+        INC_FAIL_COUNT();
+    }
+    INC_TEST_COUNT();
+    TEST_EXCP_RESET();
+
+    TEST_MSG("FP disabled (CPACR.FPEN = 3, CPTR_EL3 = 1)");
+    SMC_SET_REG(CPTR_EL3, 3, cptr_el3 | CPTR_TFP);
+    TEST_ENABLE_EXCP_LOG();
+    asm volatile("fcmp s0, #0.0\n");
+    SMC_SET_REG(CPTR_EL3, 3, cptr_el3);     /* Reenable printing */
+    if (syscntl->excp.taken && syscntl->excp.el == 3 &&
+        syscntl->excp.ec == EC_SIMD) {
+        TEST_MSG_SUCCESS();
+    } else {
+        TEST_MSG_FAILURE();
+        INC_FAIL_COUNT();
+    }
+    INC_TEST_COUNT();
+    TEST_EXCP_RESET();
+
+    /* Restore the original CPACR*/
+    WRITE_CPACR(cpacr);
+
+    /* Restore the original CPTR */
+    SMC_SET_REG(CPTR_EL3, 3, cptr_el3);
+#endif
+
+    return 0;
+}
 #endif
 

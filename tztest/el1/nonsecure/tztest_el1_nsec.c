@@ -127,6 +127,7 @@ tztest_t test_func[] = {
 #ifdef AARCH64
     [TZTEST_CPACR_TRAP] = el1_check_cpacr_trap,
     [TZTEST_WFX_TRAP] = el1_check_wfx_trap,
+    [TZTEST_FP_TRAP] = el1_check_fp_trap,
 #endif
 #ifdef AARCH32
     [TZTEST_MASK_BITS] = check_mask_bits,

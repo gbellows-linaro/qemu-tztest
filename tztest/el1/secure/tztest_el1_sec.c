@@ -74,7 +74,8 @@ tztest_t test_func[] = {
     [TZTEST_REG_ACCESS] = el1_check_register_access,
 #ifdef AARCH64
     [TZTEST_CPACR_TRAP] = el1_check_cpacr_trap,
-    [TZTEST_WFX_TRAP] = el1_check_wfx_trap
+    [TZTEST_WFX_TRAP] = el1_check_wfx_trap,
+    [TZTEST_FP_TRAP] = el1_check_fp_trap,
 #endif
 };
 
