@@ -31,9 +31,9 @@ const char *smc_op_name[] = {
 };
 #endif
 
-const char *sec_state_str = "EL3";
+char *sec_state_str[] = {"secure", "nonsecure"};
 const uint32_t exception_level = EL3;
-const uint32_t secure_state = 0;
+uint32_t secure_state = SECURE;
 
 uintptr_t EL3_TEXT_BASE = (uintptr_t)&_EL3_TEXT_BASE;
 uintptr_t EL3_DATA_BASE = (uintptr_t)&_EL3_DATA_BASE;
@@ -86,14 +86,15 @@ int el3_handle_smc(uintptr_t op, smc_op_desc_t *desc,
                    uintptr_t __attribute((unused))far, uintptr_t elr)
 {
     op_test_t *test = (op_test_t*)desc;
+    uint32_t ret = 0;
 
     DEBUG_MSG("Took an smc(%s) - desc = %p\n", smc_op_name[op], desc);
     switch (op) {
     case SMC_OP_YIELD:
-        return SVC_OP_YIELD;
+        ret = SVC_OP_YIELD;
         break;
     case SMC_OP_MAP:
-        return el3_map_mem((op_map_mem_t *)desc);
+        ret = el3_map_mem((op_map_mem_t *)desc);
         break;
     case SMC_OP_NOOP:
         break;
@@ -106,7 +107,7 @@ int el3_handle_smc(uintptr_t op, smc_op_desc_t *desc,
             run_test(desc->disp.fid, desc->disp.el,
                      desc->disp.state, desc->disp.arg);
         } else {
-            return SVC_OP_DISPATCH;
+            ret = SVC_OP_DISPATCH;
         }
         break;
     case SMC_OP_TEST:
@@ -115,7 +116,7 @@ int el3_handle_smc(uintptr_t op, smc_op_desc_t *desc,
         }
         test->val >>= 1;
         test->count++;
-        return SVC_OP_TEST;
+        ret = SVC_OP_TEST;
     case SMC_OP_GET_REG:
         if (desc->get.el == 3) {
             switch (desc->get.key) {
@@ -184,8 +185,14 @@ int el3_handle_smc(uintptr_t op, smc_op_desc_t *desc,
         break;
     }
 
+    /* EL3 can be secure or nonsecure.  Change our global secure state
+     * indicator if we will be switching state.
+     */
+    if (ret) {
+        secure_state ^= 1;
+    }
     __set_exception_return(elr);
-    return 0;
+    return ret;
 }
 
 int el3_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
@@ -203,23 +210,23 @@ int el3_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
     switch (ec) {
     case EC_SMC64:
     case EC_SMC32:
-        printf("Took an SMC exception from EL3\n");
+        DEBUG_MSG("Took an SMC exception from EL3\n");
         break;
     case EC_IABORT_LOWER:
-        printf("Instruction abort at lower level: far = %0lx\n", far);
+        DEBUG_MSG("Instruction abort at lower level: far = %0lx\n", far);
         el3_shutdown();
         break;
     case EC_IABORT:
-        printf("Instruction abort at EL3: far = %0lx\n", far);
+        DEBUG_MSG("Instruction abort at EL3: far = %0lx\n", far);
         el3_shutdown();
         break;
     case EC_DABORT_LOWER:
-        printf("Data abort at lower level: far = %0lx elr = %0lx\n",
-               far, elr);
+        DEBUG_MSG("Data abort at lower level: far = %0lx elr = %0lx\n",
+                  far, elr);
         el3_shutdown();
         break;
     case EC_DABORT:
-        printf("Data abort at EL3: far = %0lx elr = %0lx\n", far, elr);
+        DEBUG_MSG("Data abort at EL3: far = %0lx elr = %0lx\n", far, elr);
         el3_shutdown();
         break;
     case EC_SYSINSN:
@@ -255,7 +262,8 @@ int el3_handle_exception(uintptr_t ec, uintptr_t iss, uintptr_t far,
         }
         break;
     default:
-        printf("Unhandled EL3 exception: EC = 0x%lx  ISS = 0x%lx\n", ec, iss);
+        DEBUG_MSG("Unhandled EL3 exception: EC = 0x%lx  ISS = 0x%lx\n",
+                  ec, iss);
         el3_shutdown();
         break;
     }
@@ -304,7 +312,7 @@ void el3_start(uintptr_t base, uintptr_t size)
     uintptr_t addr = base;
     size_t len;
 
-    printf("EL3 started...\n");
+    printf("EL%d started...\n", exception_level);
 
     /* Unmap the init segement so we don't accidentally use it */
     for (len = 0; len < ((size + (PAGE_SIZE - 1)) & ~(PAGE_SIZE - 1));

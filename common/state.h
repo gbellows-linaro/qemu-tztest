@@ -1,8 +1,8 @@
 #ifndef _STATE_H
 #define _STATE_H
 
-extern const char *sec_state_str;
-extern const uint32_t secure_state;
+extern char *sec_state_str[];
+extern uint32_t secure_state;
 extern const uint32_t exception_level;
 
 #define EL0 0

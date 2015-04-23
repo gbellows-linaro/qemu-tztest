@@ -95,7 +95,7 @@ uint32_t el1_check_wfx_trap(uint32_t __attribute__((unused))arg)
     TEST_MSG("WFE (SCTLR.nTWE clear, SCR.WFE clear)");
     TEST_NO_EXCEPTION(asm volatile("wfe\n"));
 
-    /* Trap WFE instructions to EL3.  This should work regardless od the
+    /* Trap WFE instructions to EL3.  This should work regardless of the
      * SCTLR.nTWE setting.
      */
     SMC_SET_REG(SCR, 3, scr | SCR_TWE);
@@ -114,7 +114,7 @@ uint32_t el1_check_wfx_trap(uint32_t __attribute__((unused))arg)
      * precedence.
      */
 
-    /* Trap WFI instructions to EL3.  This should work regardless od the
+    /* Trap WFI instructions to EL3.  This should work regardless of the
      * SCTLR.nTWE setting.
      */
     SMC_SET_REG(SCR, 3, scr | SCR_TWI);

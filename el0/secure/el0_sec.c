@@ -1,8 +1,8 @@
 #include "el0_common.h"
 #include "tztest.h"
 
-const char *sec_state_str = "secure";
-const uint32_t secure_state = SECURE;
+char *sec_state_str[] = {"secure", "nonsecure"};
+uint32_t secure_state = SECURE;
 const uint32_t exception_level = EL0;
 sys_control_t *syscntl = NULL;
 
@@ -57,7 +57,7 @@ int main()
 {
     svc_op_desc_t desc;
 
-    printf("EL0 (%s) started...\n", sec_state_str);
+    printf("EL0 (%s) started...\n", sec_state_str[secure_state]);
 
     /* Fetch the system-wide control structure */
     __svc(SVC_OP_GET_SYSCNTL, &desc);

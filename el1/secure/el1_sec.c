@@ -9,8 +9,8 @@ uintptr_t EL1_S_DATA_BASE = (uintptr_t)&_EL1_S_DATA_BASE;
 uintptr_t EL1_S_TEXT_SIZE = (uintptr_t)&_EL1_S_TEXT_SIZE;
 uintptr_t EL1_S_DATA_SIZE = (uintptr_t)&_EL1_S_DATA_SIZE;
 
-const char *sec_state_str = "secure";
-const uint32_t secure_state = SECURE;
+char *sec_state_str[] = {"secure", "nonsecure"};
+uint32_t secure_state = SECURE;
 const uint32_t exception_level = EL1;
 
 #if REMOVE_OR_INTEGRATE

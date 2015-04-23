@@ -16,11 +16,11 @@ typedef enum {
 
 #define TEST_HEAD(_str, ...) \
     printf("\nValidating %s EL%d " _str ":\n", \
-           sec_state_str, exception_level, ##__VA_ARGS__)
+           sec_state_str[secure_state], exception_level, ##__VA_ARGS__)
 
 #define TEST_MSG(_str, ...) \
     printf("\tEL%d (%s): " _str "... ", \
-           exception_level, sec_state_str, ##__VA_ARGS__)
+           exception_level, sec_state_str[secure_state], ##__VA_ARGS__)
 
 #define TEST_MSG_SUCCESS() printf("PASSED\n")
 #define TEST_MSG_FAILURE() printf("FAILED\n")
