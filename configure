@@ -38,7 +38,7 @@ while [[ "$1" = -* ]]; do
 	    cpu="$arg"
 	    ;;
 	--cross-prefix)
-	    cross_prefix="$arg"
+	    cross="$arg"
 	    ;;
 	--cc)
 	    cc="$arg"
@@ -77,9 +77,9 @@ fi
 
 if [ -z "$cross" ]; then
     if [ "$arch" = "arm" ]; then
-        cross="arm-linux-gnueabi"
+        cross="arm-linux-gnueabi-"
     elif [ "$arch" = "aarch64" ]; then
-        cross="aarch64-linux-gnu"
+        cross="aarch64-linux-gnu-"
     fi
 fi
 
@@ -93,9 +93,9 @@ export ARCH=$arch
 export PLAT=$plat
 export PROCESSOR=$cpu
 export CROSS=$cross
-export CC=$cross-$cc
-export LD=$cross-$ld
-export OBJCOPY=$cross-$objcopy
-export AR=$cross-$ar
+export CC=$cross$cc
+export LD=$cross$ld
+export OBJCOPY=$cross$objcopy
+export AR=$cross$ar
 export CFLAGS+=$cflags
 EOF
